@@ -37,3 +37,21 @@ test('empty data are handled safely', () => {
   assert.equal(r.totalSamples, 0);
   assert.equal(r.events.length, 0);
 });
+
+test('C10 zachová skutečný touchdown rate a dostupné G', () => {
+  const samples = Array.from({ length: 8 }, (_, i) => point(i, {
+    onGround: i >= 4, altitudeAglFeet: i >= 4 ? 0 : 250,
+    touchdownRateFpm: i === 4 ? -165 : null,
+    gForce: i === 4 ? 1.19 : null,
+  }));
+  const event = analyzeFlight(samples).events.find(e => e.kind === 'touchdown');
+  assert.equal(event?.touchdownRateFpm, -165);
+  assert.equal(event?.gForce, 1.19);
+});
+test('C10 nevyplňuje touchdown rate, pokud zdroj chybí', () => {
+  const samples = Array.from({ length: 8 }, (_, i) => point(i, {
+    onGround: i >= 4,
+  }));
+  const event = analyzeFlight(samples).events.find(e => e.kind === 'touchdown');
+  assert.equal(event?.touchdownRateFpm, null);
+});
