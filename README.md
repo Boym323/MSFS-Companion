@@ -202,3 +202,10 @@ Etapy B2–B7 tvoří základ reálné telemetrie, PFD, mapy,
 historie letu a read-only systémového panelu. Další vývoj
 se zaměří na test kompatibility letadel, specializované
 avionické profily a volitelná zabezpečená ovládací API.
+
+## Profily letadel C5
+
+Nové read-only `/api/aircraft/profile` a panel `/aircraft` rozpoznávají
+kandidátní avioniku podle `TITLE`. Nejisté varianty zůstávají označené
+jako neověřené; profil sám o sobě nepovoluje G1000 ani jiné příkazy.
+Viz [C5 – profily letadel](docs/AIRCRAFT_C5.md).
