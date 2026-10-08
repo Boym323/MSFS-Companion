@@ -1,131 +1,88 @@
-# Instalace a vzdálená správa MSFS Companion na Windows
+# Windows instalace a ovládání v domácí síti
 
-## Co instalátor dělá
+## Základní fungování
 
-- Nainstaluje aplikaci pro **Windows x64** a zobrazí ji v oznamovací
-  oblasti vedle hodin s vlastní ikonou letadla.
-- Ve **Správci úloh** se zobrazí popis **MSFS Companion**.
-  Samostatný podproces pro webový backend má popis
-  **MSFS Companion Bridge**.
-- Po přihlášení do Windows se Companion automaticky spouští
-  a hlídá svůj skrytý webový bridge.
-- Po spuštění a následně každou hodinu kontroluje aktualizace.
-- Aktualizace může krátce restartovat Companion a jeho bridge
-  **i během běžícího MSFS**. Simulátor se neukončuje.
-- Lokální web otevřete na `http://127.0.0.1:8765/admin`.
+MSFS Companion je aplikace pro Windows x64. Po přihlášení běží u hodin,
+sama spouští webový bridge a kontroluje novou verzi při startu a každou
+hodinu. Vydání se stahují z veřejných GitHub Releases projektu.
 
-## První instalace
+**Během aktualizace se restartuje pouze Companion a jeho bridge.**
+Microsoft Flight Simulator 2020 zůstane spuštěný, dashboard může
+na několik sekund ztratit spojení.
 
-1. Otevřete [GitHub Releases](https://github.com/Boym323/MSFS-Companion/releases).
-2. U posledního vydání stáhněte `Boym323.MsfsCompanion-win-Setup.exe`.
-3. Spusťte instalátor a ověřte ikonu v oznamovací oblasti.
-4. Otevřete `http://127.0.0.1:8765/admin` na Windows PC.
-5. Pro první vzdálenou správu pokračujte následující kapitolou.
+## Instalace na počítači s MSFS
 
-Použijte **Setup.exe**, nikoli `Portable.zip`. Přenosné sestavení
-neposkytuje běžný instalovaný aktualizační kanál.
+1. Na [GitHub Releases](https://github.com/Boym323/MSFS-Companion/releases)
+   stáhněte nejnovější `Boym323.MsfsCompanion-win-Setup.exe`.
+2. Nainstalujte aplikaci. Přenosný ZIP nepoužívejte pro automatické aktualizace.
+3. V oznamovací oblasti Windows vyberte ikonu MSFS Companion.
+4. Přímo na Windows otevřete `http://127.0.0.1:8765/admin`.
+5. V nabídce aplikace vyberte **Zkopírovat adresu dashboardu v LAN**.
+   Získáte například `http://192.168.1.25:8765/admin`.
 
-## Vynucení aktualizace z webu
+Windows hostitel poskytuje web pouze na `localhost` a privátní IPv4
+adrese vybraného aktivního Ethernet/Wi-Fi adaptéru. Nepoužívá
+`0.0.0.0`, Tailscale, přístupový token ani veřejné síťové rozhraní.
 
-Správce na `/admin` má panel **Správa Windows aplikace**.
-Příkazy nejsou dostupné bez autorizace. Pro první spárování:
+## Jednorázové povolení ve Windows Firewallu
 
-1. Jednou u Windows počítače klikněte pravým tlačítkem na ikonu
-   Companion vedle hodin.
-2. Vyberte **Zkopírovat správcovský klíč**. Jde o náhodný 256bitový
-   přístupový klíč uložený v profilu aktuálního uživatele.
-3. Přeneste klíč **soukromě a bezpečně** do svého Macu, ideálně přes
-   správce hesel. Nevkládejte jej do veřejného chatu ani do URL.
-4. Na webu `/admin` vložte klíč do panelu, potvrďte **Připojit správu**.
-   Pokud je Mac jen váš a důvěryhodný, můžete vybrat zapamatování klíče.
-5. Vyberte **Vynutit kontrolu a instalaci nové verze**.
+Jestliže adresa funguje na Windows PC, ale Mac se nepřipojí,
+zkontrolujte, že jsou oba počítače ve stejné domácí podsíti
+a síťový profil Windows je **Soukromá síť (Private)**.
 
-Tím se vyvolá kontrola GitHub Releases na Windows PC. Pokud je
-novější verze dostupná, stáhne se a nainstaluje. Stav procesu se
-aktualizuje na stránce automaticky. Pokud nová verze není, aplikace
-vypíše, že už je aktuální; **nepřeinstalovává stejnou verzi**.
+Pouze na svém důvěryhodném domácím PC otevřete PowerShell
+**jako správce** a povolte příchozí TCP 8765 výhradně pro
+lokální podsíť a profil Private:
 
-Webový příkaz nepřistupuje přímo do Windows, nevykonává PowerShell
-ani neposílá žádné příkazy simulátoru. Backend pouze ověří správce
-a předá požadavek místnímu hostiteli.
-
-## Přístup z Macu bez návštěvy Windows PC
-
-Backend zůstává navázán na `127.0.0.1:8765` a není přímo
-vystaven lokální síti ani internetu. K bezpečnému přístupu
-z dalšího počítače doporučujeme **Tailscale Serve**.
-Toto je **jednorázové nastavení**, ne automatická součást instalátoru.
-
-1. Nainstalujte Tailscale na Windows PC i Mac a přihlaste obě
-   zařízení do stejné soukromé sítě (tailnet).
-2. Na Windows PC jednou spusťte v PowerShellu:
-
-   ```powershell
-   tailscale serve --bg http://127.0.0.1:8765
-   tailscale serve status
-   ```
-
-3. Tailscale zobrazí soukromou HTTPS adresu typu
-   `https://pocitac.nazev-tailnetu.ts.net`. Na Macu otevřete
-   tuto adresu s cestou `/admin`.
-4. Zadejte svůj správcovský klíč a můžete spravovat aktualizace
-   bez dalšího přístupu k Windows ploše.
-
-Používejte **Tailscale Serve**, nikdy **Tailscale Funnel** –
-Funnel by službu zveřejnil internetu. Provoz musí zůstat omezen
-pravidly vašeho tailnetu. HTTPS přenos a autorizovaný přístup
-jsou dvě nezávislé ochrany.
-
-Oficiální návod:
-[Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve).
-
-### Bezpečnost přístupového klíče
-
-- Klíč uchovávejte jako heslo. Při zapamatování ve webu
-  se ukládá do úložiště příslušného prohlížeče na daném zařízení.
-- Nepoužívejte nedůvěryhodné počítače a nesdílejte klíč veřejně.
-- V případě kompromitace lze soubor
-  `%LOCALAPPDATA%\MSFS Companion\admin-access.token`
-  s **ukončenou aplikací** smazat a při dalším spuštění vznikne nový.
-  Poté aktualizujte klíč i na správních zařízeních.
-- Bridge spuštěný samostatně (například na Macu při vývoji)
-  správcovská API vůbec neregistruje.
-- Nikdy ručně nepřesměrovávejte port 8765 na internetovém routeru.
-
-## Běžné aktualizace
-
-Zdroj je veřejný repozitář
-`https://github.com/Boym323/MSFS-Companion`.
-
-Po schválení a sloučení změn do `main` GitHub Actions sestaví
-aplikaci a publikuje novou verzi přes Releases. Nainstalovaný
-Windows hostitel ji standardně zkontroluje přibližně 20 sekund
-po spuštění a pak jednou za hodinu.
-
-Během aktualizace může dashboard krátce ztratit WebSocket spojení,
-ale MSFS pokračuje. Po restartu Companionu se web znovu připojí.
-
-## Diagnostika
-
-Přes nabídku u hodin vyberte **Otevřít diagnostický log**.
-Log je také v:
-
-```text
-%LOCALAPPDATA%\MSFS Companion\windows-host.log
+```powershell
+New-NetFirewallRule -DisplayName "MSFS Companion – domácí síť" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8765 -Profile Private -RemoteAddress LocalSubnet
 ```
 
-V logu sledujte zejména zprávy o dostupné verzi, stažení nebo chybě.
-Z webu lze zobrazit stav, ale podrobný lokální diagnostický log
-se kvůli bezpečnosti **neposílá vzdáleně**.
+Toto pravidlo je potřeba vytvořit jen jednou; platí i po
+aktualizacích aplikace. Pokud už odpovídající pravidlo existuje,
+nevytvářejte duplicitní. **Nevytvářejte pravidlo pro Public,
+nepřesměrovávejte port 8765 na routeru a nepoužívejte UPnP.**
 
-### Omezení vývojového vydání
+Upozornění: přístup ze zařízení v jiné VLAN/podsíti je v této
+jednoduché konfiguraci záměrně odmítnut.
 
-Instalační balíčky zatím nejsou digitálně podepsané a nemají
-automatický rollback. Před přechodem na produkční použití
-otestujte skutečný upgrade mezi dvěma verzemi, start po
-přihlášení a obnovu po výpadku připojení.
+## Ovládání z Macu či tabletu
 
-Aktuální bridge stále poskytuje **mock telemetrii**; B2 připojí
-skutečný SimConnect. Samotná diagnostika B1 je oddělená aplikace.
+Na zařízení připojeném ke stejné domácí síti otevřete adresu
+zkopírovanou z Windows, například:
 
-Oficiální dokumentace [Velopack](https://docs.velopack.io/packaging/operating-systems/windows).
+```text
+http://192.168.1.25:8765/admin
+```
+
+Panel **Správa Windows aplikace** automaticky zobrazí stav a verzi.
+Klikněte na **Vynutit kontrolu a instalaci nové verze**. Pokud na
+GitHubu existuje novější vydání, Windows Companion jej stáhne,
+nainstaluje a krátce restartuje. Simulátor zůstane spuštěný.
+
+**Žádný správcovský klíč ani přihlášení se nevyžaduje.**
+Zároveň to znamená, že aktualizaci může vyvolat **kterékoliv
+zařízení ve stejné důvěryhodné domácí podsíti**. Používejte
+proto tento režim pouze tam, kde důvěřujete ostatním zařízením.
+
+Bridge ověřuje IP adresu klienta a hlavičku Host.
+Aktualizační příkaz přijme jen s odpovídajícím původem stránky
+(`Origin`) a vlastní hlavičkou požadavku; chrání to před
+jednoduchým zneužitím z cizích webů. Nejde o přihlášení uživatele.
+
+## Když se web nebo aktualizace nedaří
+
+- Na Windows zkuste `http://127.0.0.1:8765/admin`.
+- Ověřte, že Mac je ve stejné podsíti a Windows má profil Private.
+- Zkontrolujte pravidlo Windows Firewallu, případně izolaci
+  Wi-Fi klientů na routeru.
+- Pokud se změnila IP adresa Windows PC, zkopírujte novou
+  adresu přes ikonu Companionu; aplikaci případně restartujte.
+- Místní log: `%LOCALAPPDATA%\MSFS Companion\windows-host.log`.
+
+Dokumentace je v češtině. Samostatná diagnostika B1 už
+prokázala SimConnect, ale produkční bridge stále zobrazuje
+**mock telemetrii**; skutečná data připojí etapa B2.
+
+Instalátory jsou zatím nepodepsaná vývojová vydání a není
+implementovaný automatický rollback.

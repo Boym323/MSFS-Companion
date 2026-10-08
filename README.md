@@ -1,29 +1,24 @@
 # MSFS Companion
 
-Webový doplněk pro **Microsoft Flight Simulator 2020**. Na počítači s Windows
-běží aplikace na pozadí a poskytuje dashboard s letovými údaji.
+Webový doplněk pro **Microsoft Flight Simulator 2020**.
+Windows aplikace běží na pozadí, automaticky se aktualizuje a
+poskytuje dashboard dostupný z domácí sítě.
 
-> **Aktuální stav:** Web a běžný bridge zatím používají simulovanou telemetrii.
-> Samostatný diagnostický nástroj B1 již ověřil spojení se skutečným SimConnect.
-> Připojení ostré telemetrie do bridge je další etapa B2.
-
-## Požadavky pro vývoj
-
-- .NET 10 SDK
-- Node.js 22.12+ (doporučeno Node.js 24)
-- Git
-
-Vývojový mock režim funguje na macOS, Linuxu i Windows.
+> Aktuální stav: bridge stále používá simulovanou telemetrii.
+> Diagnostika B1 ověřila skutečné SimConnect; živé údaje v
+> dashboardu přidá až etapa B2.
 
 ## Spuštění při vývoji
 
-V kořeni repozitáře otevřete dva terminály. V prvním spusťte backend:
+Požadavky: .NET 10 SDK, Node.js 22.12+ a Git.
+
+V kořeni projektu spusťte backend:
 
 ```bash
 dotnet run --project apps/bridge
 ```
 
-Ve druhém spusťte web:
+V dalším terminálu spusťte web:
 
 ```bash
 cd apps/web
@@ -31,65 +26,58 @@ npm install
 npm run dev
 ```
 
-Otevřete `http://127.0.0.1:5173/admin`. Vite předává požadavky
-`/api` a `/ws` lokálnímu bridge.
+Otevřete `http://127.0.0.1:5173/admin`.
 
-Backend ověříte těmito příkazy:
+Testy při spuštěném backendu:
 
 ```bash
-curl http://127.0.0.1:8765/api/status
-curl http://127.0.0.1:8765/api/telemetry
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-Testy kontrolují HTTP, WebSocket, změny telemetrie a nepřístupnost
-neautorizovaných ovládacích příkazů.
+## Windows a domácí síť
 
-## Windows instalace a aktualizace
-
-Vývojové instalační balíčky se automaticky vydávají v
+Nainstalujte poslední `Setup.exe` z
 [GitHub Releases](https://github.com/Boym323/MSFS-Companion/releases).
-Nainstalujte variantu `Setup.exe`, nikoli přenosný ZIP.
 
-Windows aplikace se spouští po přihlášení, běží u hodin, hlídá svůj
-bridge a automaticky kontroluje aktualizace. Nová verze může krátce
-restartovat **pouze MSFS Companion**, i když MSFS 2020 právě běží.
+Windows hostitel automaticky spouští bridge, zobrazuje ikonu u hodin
+a po startu a každou hodinu kontroluje aktualizace.
 
-V dashboardu na `/admin` je zabezpečená **Správa Windows aplikace**
-pro ruční vyžádání kontroly a instalace aktualizací. Klíč se jednou
-zkopíruje z nabídky u hodin. Pro ovládání z Macu doporučujeme
-soukromé propojení přes Tailscale Serve. **Zpřístupnění bez tunelu
-přes veřejný internet není podporováno.**
+V nabídce u hodin vyberte
+**Zkopírovat adresu dashboardu v LAN**. Na Macu nebo tabletu
+ve stejné domácí podsíti otevřete uvedenou adresu, například
+`http://192.168.1.25:8765/admin`.
 
-Podrobný [návod na Windows instalaci a vzdálené aktualizace](docs/WINDOWS_INSTALLER.md).
-Doplňující informace: [architektura](docs/ARCHITECTURE.md),
-[diagnostika SimConnect](docs/SIMCONNECT_PROBE.md),
-[aktualizační mechanismus](docs/UPDATES.md).
+V panelu **Správa Windows aplikace** je tlačítko pro vynucenou
+kontrolu a instalaci nové verze. **Bez Tailscale, bez klíče
+a bez přihlášení.** Aktualizuje se jen Companion; MSFS
+zůstává spuštěný.
 
-## Struktura repozitáře
+Ve Windows může být nutné jednorázově povolit TCP 8765
+pro profil Private a LocalSubnet. Nepovolujte veřejný přístup
+a port nepřesměrovávejte na internet.
+
+**Důležité:** Každé zařízení ve stejné důvěryhodné podsíti
+smí vyvolat aktualizaci. Cross-site požadavky a přístup
+z jiných podsítí server odmítá; nejde o autentizaci uživatele.
+
+Podrobný [český návod k Windows a domácí síti](docs/WINDOWS_INSTALLER.md).
+Dále [architektura](docs/ARCHITECTURE.md),
+[diagnostika SimConnect](docs/SIMCONNECT_PROBE.md)
+a [aktualizace](docs/UPDATES.md).
+
+## Projekt
 
 ```text
-apps/
-  bridge/        ASP.NET Core, lokální API, WebSocket a správa aktualizací
-  probe/         Diagnostika SimConnect pro Windows
-  web/           React, TypeScript a Vite
-  windows-host/  Windows tray, instalátor a automatické aktualizace
-tests/           Regresní testy bridge
-docs/            Česká technická a uživatelská dokumentace
-.github/         GitHub Actions a publikační workflow
+apps/bridge/          HTTP API, WebSocket, telemetrie a řízení aktualizací
+apps/probe/           Diagnostika SimConnect B1 na Windows
+apps/web/             React/TypeScript dashboard
+apps/windows-host/    Windows tray, automatické aktualizace a LAN konfigurace
+docs/                 Česká dokumentace
+tests/                Regresní testy
+.github/              CI a publikování
 ```
 
-## Bezpečnost
+## Další vývoj
 
-Bridge poslouchá jen na `127.0.0.1:8765`. Správcovská aktualizační
-API se registrují jen pod Windows hostitelem a vyžadují náhodný
-správcovský klíč. **Neotevírejte port 8765 do internetu.**
-Rozhraní pro přímé ovládání kokpitu zatím neexistuje.
-
-## Plánované etapy
-
-1. Základní bridge a mock telemetrie – hotovo.
-2. Diagnostika SimConnect B1 – hotovo.
-3. Windows hostitel a aktualizace – vývojová verze; probíhá ověřování.
-4. Skutečná telemetrie B2, párování zařízení a bezpečný přenos.
-5. PFD, pohyblivá mapa, ovládání autopilota a profilů letadel.
+Etapa B2 připojí skutečné letové údaje z MSFS 2020.
+Následovat budou PFD, mapa, profily letadel a další funkce.
