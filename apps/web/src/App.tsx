@@ -11,6 +11,8 @@ import FlightPlanner from './planning/FlightPlanner';
 import CockpitWorkspace from './workspace/CockpitWorkspace';
 import AircraftCapabilities from './aircraft/AircraftCapabilities';
 import AviationWeather from './weather/AviationWeather';
+import VatsimCenter from './vatsim/VatsimCenter';
+import './vatsim/VatsimCenter.css';
 import './weather/AviationWeather.css';
 import './aircraft/AircraftCapabilities.css';
 
@@ -24,6 +26,7 @@ const panels = [
   { href: '/aircraft', label: 'Letadlo' },
   { href: '/capabilities', label: 'Profily' },
   { href: '/weather', label: 'Počasí' },
+  { href: '/vatsim', label: 'VATSIM' },
   { href: '/controls', label: 'Ovládání' },
   { href: '/g1000', label: 'G1000' },
   { href: '/avionics', label: 'Avionika' },
@@ -36,6 +39,7 @@ const pageMeta = {
   '/flight-plan': { eyebrow: 'PLÁNOVÁNÍ C9', heading: 'Letový plán SimBrief', description: 'Import posledního OFP na vyžádání.' },
   '/workspace': { eyebrow: 'KOKPIT C11', heading: 'Vlastní sestava displejů', description: 'Uspořádání přístrojů pro tablet a notebook.' },
   '/flights': { eyebrow: 'LETOVÝ DENÍK', heading: 'Historie letů', description: 'Záznamy letů, jejich statistiky a přehrávání.' },
+  '/vatsim': { eyebrow: 'ATC C16', heading: 'Online provoz VATSIM', description: 'Piloti a frekvence VATSIM bez další instalace.' },
   '/weather': { eyebrow: 'AVIATION C15', heading: 'Letecké počasí', description: 'Aktuální METAR a TAF bez dalšího softwaru.' },
   '/capabilities': { eyebrow: 'AVIONIKA C13', heading: 'Dostupné ovládací prvky', description: 'Nativní inventura avioniky v aktuálním letadle.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
@@ -65,6 +69,7 @@ export default function App() {
   const isAircraft = pathname === '/aircraft';
   const isCapabilities = pathname === '/capabilities';
   const isWeather = pathname === '/weather';
+  const isVatsim = pathname === '/vatsim';
   const isControls = pathname === '/controls';
   const isG1000 = pathname === '/g1000';
   const isAvionics = pathname === '/avionics';
@@ -145,7 +150,7 @@ export default function App() {
           </details>
         )}
 
-        {!isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isControls && !isG1000 && !isAvionics && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
+        {!isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -164,6 +169,8 @@ export default function App() {
           <CockpitWorkspace telemetry={validTelemetry} live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : isFlights ? (
           <FlightHistory />
+        ) : isVatsim ? (
+          <VatsimCenter telemetry={validTelemetry} />
         ) : isWeather ? (
           <AviationWeather />
         ) : isCapabilities ? (
