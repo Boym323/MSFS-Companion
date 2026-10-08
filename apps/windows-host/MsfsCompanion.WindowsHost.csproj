@@ -7,6 +7,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>MsfsCompanion.WindowsHost</AssemblyName>
+    <AssemblyTitle>MSFS Companion</AssemblyTitle>
+    <Product>MSFS Companion</Product>
+    <Description>MSFS Companion – aplikace na pozadí</Description>
+    <Company>MSFS Companion</Company>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+    <FileVersion>0.2.0.0</FileVersion>
     <Version>0.2.0</Version>
   </PropertyGroup>
   <ItemGroup>

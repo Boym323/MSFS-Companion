@@ -51,7 +51,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
         _icon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application,
             Text = "MSFS Companion – běží na pozadí",
             Visible = true,
             ContextMenuStrip = menu

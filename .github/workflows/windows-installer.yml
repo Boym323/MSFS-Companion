@@ -58,7 +58,7 @@ jobs:
           if ($env:APP_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid SemVer version' }
           dotnet publish apps/bridge/MsfsCompanion.Bridge.csproj -c Release -r win-x64 --self-contained true -o staging/app/bridge
           if ($LASTEXITCODE -ne 0) { throw 'Bridge publish failed' }
-          dotnet publish apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release -r win-x64 --self-contained true -o staging/app
+          dotnet publish apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release -r win-x64 --self-contained true -p:Version=$env:APP_VERSION -o staging/app
           if ($LASTEXITCODE -ne 0) { throw 'Tray host publish failed' }
           New-Item -ItemType Directory -Force staging/app/bridge/wwwroot | Out-Null
           Copy-Item apps/web/dist/* staging/app/bridge/wwwroot/ -Recurse -Force
@@ -106,7 +106,7 @@ jobs:
         run: |
           dotnet tool install --global vpk --version 1.2.161
           if ($LASTEXITCODE -ne 0) { throw 'Installing vpk failed' }
-          vpk pack --packId Boym323.MsfsCompanion --packVersion $env:APP_VERSION --packDir staging/app --mainExe MsfsCompanion.WindowsHost.exe --packTitle "MSFS Companion" --packAuthors "Boym323" --shortcuts "Startup,StartMenuRoot" --channel win --outputDir staging/releases
+          vpk pack --packId Boym323.MsfsCompanion --packVersion $env:APP_VERSION --packDir staging/app --mainExe MsfsCompanion.WindowsHost.exe --packTitle "MSFS Companion" --icon apps/windows-host/Assets/app.ico --packAuthors "Boym323" --shortcuts "Startup,StartMenuRoot" --channel win --outputDir staging/releases
           if ($LASTEXITCODE -ne 0) { throw 'Velopack pack failed' }
 
       - name: Upload Windows installer artifact

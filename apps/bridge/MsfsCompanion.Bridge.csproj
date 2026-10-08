@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
+    <AssemblyTitle>MSFS Companion Bridge</AssemblyTitle>
+    <Product>MSFS Companion</Product>
+    <Description>MSFS Companion – datový most</Description>
+    <Company>MSFS Companion</Company>
+    <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64'">../windows-host/Assets/app.ico</ApplicationIcon>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
