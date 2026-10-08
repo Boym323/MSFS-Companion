@@ -4,6 +4,10 @@ import {
   blend, blendAngle, normalizeHeading, pitchUpFromSimConnect,
   bankHorizonRotation,
 } from './math';
+import {
+  PFD_LAYOUT as L, tapeTicks, tapeY, tapeScaleClips,
+  compassMarks, compassLabel, vsNeedleY,
+} from './layout';
 
 type FlightNumbers = {
   speed: number;
@@ -42,21 +46,20 @@ function useSmoothFlight(telemetry: TelemetrySnapshot | null) {
       setDisplay((before) => {
         if (!target) return null;
         if (!before) return target;
+        const bank = blendAngle(before.bank, target.bank, elapsed);
         return {
           speed: blend(before.speed, target.speed, elapsed),
           altitude: blend(before.altitude, target.altitude, elapsed),
           vs: blend(before.vs, target.vs, elapsed),
           heading: blendAngle(before.heading, target.heading, elapsed),
           pitch: blend(before.pitch, target.pitch, elapsed),
-          bank: blendAngle(before.bank, target.bank, elapsed) > 180
-            ? blendAngle(before.bank, target.bank, elapsed) - 360
-            : blendAngle(before.bank, target.bank, elapsed),
+          bank: bank > 180 ? bank - 360 : bank,
         };
       });
-      frameId = requestAnimationFrame(render);
+      frameId = window.requestAnimationFrame(render);
     };
-    frameId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(frameId);
+    frameId = window.requestAnimationFrame(render);
+    return () => window.cancelAnimationFrame(frameId);
   }, []);
 
   return display;
@@ -64,23 +67,32 @@ function useSmoothFlight(telemetry: TelemetrySnapshot | null) {
 
 const font = { fontFamily: 'Inter, system-ui, sans-serif' };
 const white = '#f0f8ff';
-const ticks = Array.from({ length: 15 }, (_, index) => index - 7);
-const ladder = Array.from({ length: 13 }, (_, index) => (index - 6) * 5);
+const cyan = '#8ed6ff';
+const amber = '#ffd15e';
+const ladder = Array.from({ length: 15 }, (_, index) => (index - 7) * 5);
+const speedClip = tapeScaleClips(L.speed);
+const altitudeClip = tapeScaleClips(L.altitude);
+const vsiTicks = [-3000, -2000, -1000, 0, 1000, 2000, 3000];
 
 export default function Pfd({ telemetry }: { telemetry: TelemetrySnapshot | null }) {
   const smoothed = useSmoothFlight(telemetry);
   const flight: FlightNumbers = smoothed ?? {
     speed: 0, altitude: 0, vs: 0, heading: 0, pitch: 0, bank: 0,
   };
-  const speedMarks = ticks.map((n) => Math.max(0, Math.round(flight.speed / 10) * 10 + n * 10));
-  const altMarks = ticks.map((n) => Math.round(flight.altitude / 100) * 100 + n * 100);
-  const headingMarks = ticks.map((n) => normalizeHeading(Math.round(flight.heading / 10) * 10 + n * 10));
+
+  const speedMarks = tapeTicks(flight.speed, 10, 8, 0);
+  const altitudeMarks = tapeTicks(flight.altitude, 100, 7);
+  const headingMarks = compassMarks(flight.heading);
+  const compassNumber = normalizeHeading(Math.round(flight.heading)).toString().padStart(3, '0');
+  const vsText = Math.round(flight.vs);
+  const bankText = Math.abs(flight.bank) < 0.1
+    ? '0°' : (flight.bank > 0 ? 'LEVÝ ' : 'PRAVÝ ') + Math.abs(flight.bank).toFixed(1) + '°';
 
   return (
     <section className="pfd-panel" aria-label="Primární letový displej">
       <div className="pfd-panel-head">
         <div>
-          <span className="eyebrow">B3 · PRIMARY FLIGHT DISPLAY</span>
+          <span className="eyebrow">B3.1 · PRIMARY FLIGHT DISPLAY</span>
           <h2>Letové přístroje</h2>
         </div>
         <span className={telemetry ? 'pfd-indicator pfd-indicator--live' : 'pfd-indicator'}>
@@ -88,44 +100,53 @@ export default function Pfd({ telemetry }: { telemetry: TelemetrySnapshot | null
         </span>
       </div>
 
-      <div className="pfd-stage">
-        <svg viewBox="0 0 900 560" role="img"
-          aria-label={telemetry
-            ? `Umělý horizont: rychlost ${Math.round(flight.speed)} uzlů, výška ${Math.round(flight.altitude)} stop, klopení ${flight.pitch.toFixed(1)} stupně, náklon ${flight.bank.toFixed(1)} stupně.`
-            : 'PFD bez platných dat. Čekám na telemetrii.'}>
+      <div className="pfd-stage" role="region" aria-label="Letový displej, na menší obrazovce vodorovně posuvný" tabIndex={0}>
+        <svg viewBox="0 0 1000 590" role="img" aria-label={telemetry
+          ? 'Umělý horizont. Rychlost ' + Math.round(flight.speed)
+            + ' uzlů, výška ' + Math.round(flight.altitude)
+            + ' stop, klopení ' + flight.pitch.toFixed(1)
+            + ' stupně, náklon ' + flight.bank.toFixed(1) + ' stupně.'
+          : 'PFD bez platných letových dat.'}>
           <defs>
-            <clipPath id="pfd-horizon"><rect x="205" y="23" width="490" height="402" rx="6" /></clipPath>
-            <clipPath id="pfd-ias"><rect x="32" y="70" width="166" height="310" /></clipPath>
-            <clipPath id="pfd-alt"><rect x="704" y="70" width="162" height="310" /></clipPath>
+            <clipPath id="pfd-horizon"><rect {...L.horizon} rx="7" /></clipPath>
+            <clipPath id="pfd-speed-scale">
+              {speedClip.map((region, i) => <rect key={i} {...region} />)}
+            </clipPath>
+            <clipPath id="pfd-altitude-scale">
+              {altitudeClip.map((region, i) => <rect key={i} {...region} />)}
+            </clipPath>
+            <clipPath id="pfd-vsi-scale"><rect {...L.vsi} /></clipPath>
+            <clipPath id="pfd-compass-scale"><rect {...L.compassTicks} /></clipPath>
             <linearGradient id="pfd-sky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#153c79" />
-              <stop offset="1" stopColor="#397bab" />
+              <stop offset="0" stopColor="#123e74" />
+              <stop offset="1" stopColor="#397fa9" />
             </linearGradient>
             <linearGradient id="pfd-ground" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#a26f40" />
-              <stop offset="1" stopColor="#55351e" />
+              <stop offset="0" stopColor="#a07343" />
+              <stop offset="1" stopColor="#53351e" />
             </linearGradient>
           </defs>
-          <rect width="900" height="560" rx="12" fill="#090f1b" />
+          <rect width={L.width} height={L.height} rx="12" fill="#080f1b" />
+
+          {/* Uzavřený horizont a pitch ladder: obsah se nedostane do pásek. */}
           <g clipPath="url(#pfd-horizon)">
-            {/* Horizont zůstává v globálním souřadném systému a otáčí se proti letadlu. */}
-            <g transform={`translate(450 224) rotate(${bankHorizonRotation(flight.bank)})`}>
-              <g transform={`translate(0 ${Math.max(-450, Math.min(450, flight.pitch * 5.5))})`}>
+            <g transform={'translate(' + L.centerX + ' ' + L.centerY + ') rotate('
+              + bankHorizonRotation(flight.bank) + ')'}>
+              <g transform={'translate(0 ' + Math.max(-450, Math.min(450, flight.pitch * 5.2)) + ')'}>
                 <rect x="-1000" y="-1200" width="2000" height="1200" fill="url(#pfd-sky)" />
                 <rect x="-1000" y="0" width="2000" height="1200" fill="url(#pfd-ground)" />
                 <line x1="-1000" y1="0" x2="1000" y2="0" stroke={white} strokeWidth="3" />
                 {ladder.filter((n) => n !== 0).map((angle) => {
-                  const positive = angle > 0;
-                  const y = -angle * 5.5;
+                  const y = -angle * 5.2;
                   const major = angle % 10 === 0;
-                  const width = major ? 58 : 32;
+                  const halfWidth = major ? 51 : 29;
                   return (
                     <g key={angle} stroke={white} strokeWidth="2" fill={white} style={font}>
-                      <line x1={-width} x2={width} y1={y} y2={y}
-                        strokeDasharray={positive ? undefined : '9 6'} />
+                      <line x1={-halfWidth} x2={halfWidth} y1={y} y2={y}
+                        strokeDasharray={angle < 0 ? '8 6' : undefined} />
                       {major && <>
-                        <text x={-width - 16} y={y + 5} fontSize="14" textAnchor="end" stroke="none">{Math.abs(angle)}</text>
-                        <text x={width + 16} y={y + 5} fontSize="14" stroke="none">{Math.abs(angle)}</text>
+                        <text x={-halfWidth - 12} y={y + 5} fontSize="15" textAnchor="end" stroke="none">{Math.abs(angle)}</text>
+                        <text x={halfWidth + 12} y={y + 5} fontSize="15" stroke="none">{Math.abs(angle)}</text>
                       </>}
                     </g>
                   );
@@ -133,85 +154,113 @@ export default function Pfd({ telemetry }: { telemetry: TelemetrySnapshot | null
               </g>
             </g>
           </g>
+          <rect {...L.horizon} rx="7" fill="none" stroke="#4b6883" strokeWidth="2" />
 
-          <rect x="205" y="23" width="490" height="402" rx="6" fill="none" stroke="#405a76" strokeWidth="2" />
-          {/* Pevný symbol letadla – nezávislý na rotujícím horizontu. */}
-          <g transform="translate(450 224)" stroke="#f9d052" fill="none" strokeWidth="5" strokeLinejoin="round">
-            <path d="M -137 -2 L -76 -2 L -57 13 L -22 13 M 22 13 L 57 13 L 76 -2 L 137 -2" />
-            <line x1="-15" y1="0" x2="15" y2="0" />
-            <circle cx="0" cy="0" r="4" fill="#f9d052" stroke="none" />
-          </g>
-          {/* Bank stupnice s indexem pro náklon. */}
-          <g stroke="#f0f8ff" strokeWidth="2" fill="none">
-            {[-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60].map((deg) => {
-              const rad = (deg * Math.PI) / 180;
-              const x1 = 450 + Math.sin(rad) * 183;
-              const y1 = 224 - Math.cos(rad) * 183;
-              const r2 = Math.abs(deg) % 30 === 0 ? 198 : 192;
-              return <line key={deg} x1={x1} y1={y1}
-                x2={450 + Math.sin(rad) * r2} y2={224 - Math.cos(rad) * r2} />;
+          {/* Stupnice náklonu a pevná referenční silueta letadla. */}
+          <g stroke="#f1f6ff" strokeWidth="2.4" fill="none">
+            {[-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60].map((degrees) => {
+              const angle = degrees * Math.PI / 180;
+              const outer = Math.abs(degrees) % 30 === 0 ? 181 : 175;
+              const inner = 164;
+              return <line key={degrees}
+                x1={L.centerX + Math.sin(angle) * inner}
+                y1={L.centerY - Math.cos(angle) * inner}
+                x2={L.centerX + Math.sin(angle) * outer}
+                y2={L.centerY - Math.cos(angle) * outer} />;
             })}
           </g>
-          <g transform={`translate(450 224) rotate(${-flight.bank})`} fill="#f9d052">
-            <path d="M 0 -203 L -9 -184 L 9 -184 Z" />
+          <g transform={'translate(' + L.centerX + ' ' + L.centerY
+            + ') rotate(' + (-flight.bank) + ')'} fill={amber}>
+            <path d="M 0 -190 L -9 -170 L 9 -170 Z" />
+          </g>
+          <g transform={'translate(' + L.centerX + ' ' + L.centerY + ')'}
+            stroke={amber} fill="none" strokeWidth="5" strokeLinejoin="round">
+            <path d="M -125 0 L -70 0 L -49 12 L -24 12 M 24 12 L 49 12 L 70 0 L 125 0" />
+            <line x1="-16" y1="0" x2="16" y2="0" />
+            <circle cx="0" cy="0" r="4" fill={amber} stroke="none" />
           </g>
 
-          {/* Indikovaná rychlost – levá páska. */}
-          <rect x="30" y="70" width="170" height="310" fill="#0e2033" stroke="#55718a" />
-          <g clipPath="url(#pfd-ias)" fill={white} style={font}>
-            {speedMarks.filter((v) => v >= 0).map((v, i) => {
-              const y = 225 - (v - flight.speed) * 3.8;
-              return <g key={`${v}-${i}`}><line x1="158" x2="198" y1={y} y2={y} stroke="#c8d9ee" strokeWidth="2" />
-                <text x="147" y={y + 6} textAnchor="end" fontSize="21">{v}</text></g>;
+          {/* IAS: jen kladné a jedinečné tick hodnoty, maskované kolem kurzoru. */}
+          <rect {...L.speed} rx="5" fill="#102339" stroke="#58748c" strokeWidth="2" />
+          <text x="109" y="86" textAnchor="middle" fontSize="17" fill={cyan} style={font}>IAS · KT</text>
+          <g clipPath="url(#pfd-speed-scale)" style={font} fill={white}>
+            {speedMarks.map((mark) => {
+              const y = tapeY(mark, flight.speed, 4.85);
+              return (
+                <g key={mark}>
+                  <line x1="161" x2="199" y1={y} y2={y} stroke="#bfd6e8" strokeWidth="2" />
+                  <text x="151" y={y + 6} textAnchor="end" fontSize="20">{mark}</text>
+                </g>
+              );
             })}
           </g>
-          <path d="M 26 202 L 177 202 L 199 225 L 177 248 L 26 248 Z"
-            fill="#040b13" stroke="#f1f6ff" strokeWidth="3" />
-          <text x="104" y="233" fill={white} fontSize="28" fontWeight="700" textAnchor="middle"
-            style={font}>{flight.speed.toFixed(0)}</text>
-          <text x="100" y="57" fill="#8dd0fd" fontSize="16" textAnchor="middle" style={font}>IAS · KT</text>
+          <path d="M 21 233 L 185 233 L 203 255 L 185 277 L 21 277 Z"
+            fill="#040b16" stroke="#f1f7ff" strokeWidth="3" />
+          <text x="106" y="265" fill={white} fontSize="30" fontWeight="700"
+            textAnchor="middle" style={font}>{Math.max(0, flight.speed).toFixed(0)}</text>
 
-          {/* Indikovaná výška – pravá páska. */}
-          <rect x="703" y="70" width="165" height="310" fill="#0e2033" stroke="#55718a" />
-          <g clipPath="url(#pfd-alt)" fill={white} style={font}>
-            {altMarks.map((v, i) => {
-              const y = 225 - (v - flight.altitude) * 0.55;
-              return <g key={`${v}-${i}`}><line x1="704" x2="741" y1={y} y2={y} stroke="#c8d9ee" strokeWidth="2" />
-                <text x="751" y={y + 6} fontSize="20">{v.toLocaleString('cs-CZ')}</text></g>;
+          {/* Výškoměr: clippath má uprostřed mezeru přes celou šířku kurzoru. */}
+          <rect {...L.altitude} rx="5" fill="#102339" stroke="#58748c" strokeWidth="2" />
+          <text x="828" y="86" textAnchor="middle" fontSize="17" fill={cyan} style={font}>ALT · FT</text>
+          <g clipPath="url(#pfd-altitude-scale)" style={font} fill={white}>
+            {altitudeMarks.map((mark) => {
+              const y = tapeY(mark, flight.altitude, 0.48);
+              return (
+                <g key={mark}>
+                  <line x1="762" x2="791" y1={y} y2={y} stroke="#bfd6e8" strokeWidth="2" />
+                  <text x="800" y={y + 6} fontSize="17">{Math.round(mark).toLocaleString('cs-CZ')}</text>
+                </g>
+              );
             })}
           </g>
-          <path d="M 725 202 L 868 202 L 868 248 L 725 248 L 704 225 Z"
-            fill="#040b13" stroke="#f1f6ff" strokeWidth="3" />
-          <text x="802" y="233" fill={white} fontSize="27" fontWeight="700" textAnchor="middle"
-            style={font}>{Math.round(flight.altitude).toLocaleString('cs-CZ')}</text>
-          <text x="786" y="57" fill="#8dd0fd" fontSize="16" textAnchor="middle" style={font}>ALT · FT</text>
-          <text x="786" y="403" fill="#9ab7cf" fontSize="14" textAnchor="middle" style={font}>
-            VS {flight.vs >= 0 ? '+' : ''}{Math.round(flight.vs)} FT/MIN
+          <path d="M 757 255 L 773 233 L 899 233 L 899 277 L 773 277 Z"
+            fill="#040b16" stroke="#f1f7ff" strokeWidth="3" />
+          <text x="833" y="265" fill={white} fontSize="25" fontWeight="700"
+            textAnchor="middle" style={font}>
+            {Math.round(flight.altitude).toLocaleString('cs-CZ')}
           </text>
 
-          {/* Kompasová páska: heading modulo 360 a správný průchod severem. */}
-          <rect x="204" y="440" width="492" height="95" fill="#0e2033" stroke="#55718a" />
-          <g stroke="#d7e8fa" fill={white} style={font}>
-            {headingMarks.map((heading, index) => {
-              const relative = (index - 7) * 10 + (Math.round(flight.heading / 10) * 10 - flight.heading);
-              const x = 450 + relative * 5;
-              return <g key={index}>
-                <line x1={x} x2={x} y1="440" y2="459" strokeWidth="2" />
-                <text x={x} y="484" textAnchor="middle" fontSize="17" stroke="none">
-                  {heading === 0 ? 'N' : heading === 90 ? 'E' : heading === 180 ? 'S' : heading === 270 ? 'W' : heading.toFixed(0)}
-                </text>
+          {/* Vlastní VSI: stupnice + ukazatel bez překryvu s výškoměrem. */}
+          <rect {...L.vsi} rx="5" fill="#101f31" stroke="#58748c" strokeWidth="2" />
+          <text x="946" y="86" textAnchor="middle" fontSize="15" fill={cyan} style={font}>VS · FT/MIN</text>
+          <g clipPath="url(#pfd-vsi-scale)" style={font} fill="#d3e5f3">
+            <line x1="919" y1="120" x2="919" y2="389" stroke="#44617b" strokeWidth="2" />
+            {vsiTicks.map((rate) => {
+              const y = vsNeedleY(rate);
+              const major = rate % 2000 === 0;
+              return <g key={rate}>
+                <line x1="919" x2={major ? 937 : 931} y1={y} y2={y}
+                  stroke="#c5dceb" strokeWidth={rate === 0 ? 3 : 1.6} />
+                <text x="944" y={y + 4} fontSize="12">{rate === 0 ? '0' : Math.abs(rate / 1000)}</text>
               </g>;
             })}
+            <path d={'M 908 ' + (vsNeedleY(flight.vs) - 8)
+              + ' L 935 ' + vsNeedleY(flight.vs)
+              + ' L 908 ' + (vsNeedleY(flight.vs) + 8) + ' Z'}
+              fill={amber} stroke="#0a1423" strokeWidth="1.4" />
           </g>
-          <path d="M 436 441 L 464 441 L 450 457 Z" fill="#f9d052" />
-          <rect x="392" y="491" width="116" height="36" rx="5" fill="#040b13" stroke="#f1f6ff" strokeWidth="2" />
-          <text x="450" y="517" fill={white} fontSize="24" fontWeight="700" textAnchor="middle"
-            style={font}>{normalizeHeading(Math.round(flight.heading)).toString().padStart(3, '0')}°</text>
-          <text x="112" y="488" fill="#8dd0fd" fontSize="15" textAnchor="middle" style={font}>MAGNETICKÝ KURZ</text>
-          <text x="793" y="488" fill="#8dd0fd" fontSize="15" textAnchor="middle" style={font}>VÝŠKA · RYCHLOST</text>
-          <text x="793" y="516" fill="#cbdced" fontSize="16" textAnchor="middle" style={font}>
-            {flight.altitude.toFixed(0)} FT
+          <text x="946" y="448" textAnchor="middle" fontSize="14" fill={white} style={font}>
+            {(vsText > 0 ? '+' : '') + vsText} FPM
           </text>
+
+          {/* Kompas: VŠECHNY tick popisky i značky jsou ořezané v pásce. */}
+          <rect {...L.compass} rx="6" fill="#102339" stroke="#55758f" strokeWidth="2" />
+          <g clipPath="url(#pfd-compass-scale)" stroke="#d9ebfa" fill={white} style={font}>
+            {headingMarks.map((mark) => (
+              <g key={mark.key}>
+                <line x1={mark.x} x2={mark.x} y1="484" y2="498" strokeWidth="2" />
+                <text x={mark.x} y="521" textAnchor="middle" fontSize="18" stroke="none">
+                  {compassLabel(mark.value)}
+                </text>
+              </g>
+            ))}
+          </g>
+          <path d={'M ' + (L.centerX - 13) + ' 479 L ' + (L.centerX + 13)
+            + ' 479 L ' + L.centerX + ' 498 Z'} fill={amber} />
+          <rect x="421" y="537" width="116" height="33" rx="5"
+            fill="#030b16" stroke="#f1f7ff" strokeWidth="2.3" />
+          <text x={L.centerX} y="561" textAnchor="middle" fontSize="25"
+            fontWeight="700" fill={white} style={font}>{compassNumber}°</text>
         </svg>
         {!telemetry && (
           <div className="pfd-cover" role="status">
@@ -220,9 +269,17 @@ export default function Pfd({ telemetry }: { telemetry: TelemetrySnapshot | null
           </div>
         )}
       </div>
+      <div className="pfd-readouts" aria-label="Doplňující hodnoty letových přístrojů">
+        <span><small>MAGNETICKÝ KURZ</small><strong>{telemetry ? compassNumber + '°' : '—'}</strong></span>
+        <span><small>KLOPENÍ</small><strong>{telemetry ? flight.pitch.toFixed(1) + '°' : '—'}</strong></span>
+        <span><small>NÁKLON</small><strong>{telemetry ? bankText : '—'}</strong></span>
+        <span><small>VERTIKÁLNÍ RYCHLOST</small>
+          <strong>{telemetry ? (vsText > 0 ? '+' : '') + vsText + ' FT/MIN' : '—'}</strong></span>
+      </div>
+      <p className="pfd-scroll-hint">Na užší obrazovce lze přístroje vodorovně posunout.</p>
       <p className="pfd-note">
-        PFD je vývojová pomůcka pro simulátor, nikoli certifikovaný letový přístroj.
-        Vyhlazování ovlivňuje pouze obraz, nikoli skutečná data MSFS.
+        Vývojová pomůcka pro simulátor, nikoli certifikovaný letový přístroj.
+        Vyhlazování ovlivňuje pouze vykreslení, nikoli data MSFS.
       </p>
     </section>
   );
