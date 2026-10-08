@@ -25,6 +25,7 @@ builder.Services.AddSingleton<AviationCatalog>();
 builder.Services.AddSingleton<LandingStore>();
 builder.Services.AddSingleton<AviationWeatherService>();
 builder.Services.AddSingleton<VatsimService>();
+builder.Services.AddSingleton<AviationHazardsService>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -123,6 +124,7 @@ app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
+AviationHazardsService.Map(app);
 app.MapHealth();
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
