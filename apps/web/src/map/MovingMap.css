@@ -35,3 +35,5 @@
 .moving-map-pln p { margin:0; width:100%; color:#b6cee8; }
 .moving-map-pln button { cursor:pointer; padding:8px 12px; border:1px solid #445c7b; border-radius:8px; background:#182e46; color:#e6f2ff; }
 .moving-map-imported { display:grid; gap:6px; margin:8px 0 18px; font-size:12px; color:#bca5ff; overflow-wrap:anywhere; }
+
+.moving-map-layer-status { color:#bbd9d1; font-size:12px; margin:6px 0 12px; }
