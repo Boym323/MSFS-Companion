@@ -146,16 +146,50 @@ internal sealed class CompanionTrayContext : ApplicationContext
         return new UpdateManager(feedUrl);
     }
 
+    private void ShowManualUpdateMessage(string message, MessageBoxIcon icon = MessageBoxIcon.Information)
+    {
+        // A tray menu closes as soon as a command is clicked. Updating only
+        // the disabled _updateStatus menu item would be invisible to the user.
+        // Show a dialog ONLY for an explicitly requested manual check; the
+        // background hourly check must remain silent during an MSFS flight.
+        if (!_exiting)
+            MessageBox.Show(message, "MSFS Companion – aktualizace",
+                MessageBoxButtons.OK, icon);
+    }
+
+    private void ShowUpdateBalloon(string message, ToolTipIcon icon = ToolTipIcon.Info)
+    {
+        if (!_exiting && _icon.Visible)
+        {
+            // Non-modal progress: the user can keep using the simulator.
+            _icon.ShowBalloonTip(3500, "MSFS Companion", message, icon);
+        }
+    }
+
     private async Task CheckUpdatesAsync(bool force = false)
     {
-        if (_checking || _applyingUpdate || _exiting || (!_settings.AutomaticUpdates && !force))
+        if (_exiting || (!_settings.AutomaticUpdates && !force))
             return;
+
+        if (_checking || _applyingUpdate)
+        {
+            if (force)
+                ShowManualUpdateMessage("Kontrola nebo instalace aktualizace už právě probíhá.");
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(_settings.UpdateFeedUrl))
         {
-            _updateStatus.Text = "Aktualizace: nastavte HTTPS zdroj";
+            _updateStatus.Text = "Aktualizace: chybí HTTPS zdroj";
+            EventLogFile.Write("Update check skipped: no feed configured.");
+            if (force)
+                ShowManualUpdateMessage("Není nastaven zdroj aktualizací. Ověřte jej v nabídce u hodin.",
+                    MessageBoxIcon.Warning);
             return;
         }
+
+        if (force)
+            ShowUpdateBalloon("Zjišťuji dostupné aktualizace…");
 
         _checking = true;
         try
@@ -164,12 +198,18 @@ internal sealed class CompanionTrayContext : ApplicationContext
             if (!_updateManager.IsInstalled)
             {
                 _updateStatus.Text = "Aktualizace fungují po instalaci Setup.exe";
+                EventLogFile.Write("Update check unavailable: application is not installed with Velopack.");
+                if (force)
+                    ShowManualUpdateMessage("Aplikace neběží jako nainstalovaná verze Velopack. " +
+                        "Pro automatické aktualizace použijte Setup.exe, ne Portable.zip.",
+                        MessageBoxIcon.Warning);
                 return;
             }
 
             var feedAtCheckStart = _settings.UpdateFeedUrl;
             var manager = _updateManager;
             _updateStatus.Text = "Zjišťuji aktualizace…";
+            EventLogFile.Write($"Checking GitHub updates (manual={force}) from {feedAtCheckStart}");
             var latest = await manager.CheckForUpdatesAsync();
             if (_exiting || !string.Equals(feedAtCheckStart, _settings.UpdateFeedUrl, StringComparison.Ordinal))
                 return;
@@ -177,10 +217,17 @@ internal sealed class CompanionTrayContext : ApplicationContext
             {
                 _pendingUpdate = null;
                 _updateStatus.Text = "Aktuální verze je nejnovější";
+                EventLogFile.Write("Update check completed: already on the latest available release.");
+                if (force)
+                    ShowManualUpdateMessage("Používáte nejnovější dostupnou verzi MSFS Companion. " +
+                        "Žádná nová aktualizace momentálně není k dispozici.");
                 return;
             }
 
             _updateStatus.Text = "Stahuji aktualizaci…";
+            EventLogFile.Write($"Update available: {latest.TargetFullRelease.Version}. Download starting.");
+            if (force)
+                ShowUpdateBalloon($"Nalezena verze {latest.TargetFullRelease.Version}. Stahuji aktualizaci…");
             await manager.DownloadUpdatesAsync(latest);
             if (_exiting || !string.Equals(feedAtCheckStart, _settings.UpdateFeedUrl, StringComparison.Ordinal))
                 return;
@@ -189,12 +236,20 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _updateStatus.Text = "Aktualizace stažena";
             EventLogFile.Write($"Downloaded version {latest.TargetFullRelease.Version}");
             if (_settings.AutomaticUpdates || force)
+            {
+                if (force)
+                    ShowUpdateBalloon("Aktualizace je stažena, MSFS Companion se nyní restartuje.");
                 ApplyDownloadedUpdate();
+            }
         }
         catch (Exception ex)
         {
             _updateStatus.Text = "Kontrola aktualizací se nezdařila (viz log)";
             EventLogFile.Write($"Update check/download error: {ex}");
+            if (force)
+                ShowManualUpdateMessage("Kontrolu aktualizací se nepodařilo dokončit. " +
+                    "Podrobnosti najdete v nabídce „Otevřít diagnostický log“. " +
+                    $"Typ chyby: {ex.GetType().Name}.", MessageBoxIcon.Error);
         }
         finally
         {
