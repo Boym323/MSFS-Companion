@@ -49,7 +49,7 @@ export function useTelemetry() {
 
   useEffect(() => {
     let disposed = false;
-    let retry: ReturnType<typeof setTimeout> | undefined;
+    let retry: number | undefined;
     let socket: WebSocket | undefined;
     const connect = () => {
       if (disposed) return;
