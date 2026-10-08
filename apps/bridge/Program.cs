@@ -115,6 +115,7 @@ app.MapG1000();
 app.MapAdvancedAvionics();
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
+app.MapSimBrief();
 
 // Pouze čtení. Záznam probíhá na Windows i bez otevřeného prohlížeče.
 app.MapGet("/api/flights", (FlightRecorder recorder) =>

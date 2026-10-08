@@ -6,6 +6,7 @@ import {
 import MapTileLayer from './MapTileLayer';
 import { useFlightNavigation, FlightNavigationPanel } from './FlightNavigation';
 import { parsePln, type ImportedWaypoint } from './pln';
+import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
 import { useMapBackground } from './useMapBackground';
 import './MovingMap.css';
@@ -25,7 +26,21 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [showAviation, setShowAviation] = useState(false);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null, telemetry?.longitude ?? null);
   const navigation = useFlightNavigation(!!telemetry);
-  const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>([]);
+  const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>(() => {
+    try {
+      const raw = window.sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return [];
+      const data: unknown = JSON.parse(raw);
+      if (!Array.isArray(data) || data.length > 400) return [];
+      return data.filter((point): point is ImportedWaypoint => point !== null &&
+        typeof point === 'object' &&
+        typeof point.id === 'string' && point.id.length <= 32 &&
+        typeof point.latitude === 'number' && Number.isFinite(point.latitude) &&
+        Math.abs(point.latitude) <= 85.05 &&
+        typeof point.longitude === 'number' && Number.isFinite(point.longitude) &&
+        Math.abs(point.longitude) <= 180);
+    } catch { return []; }
+  });
   const [planMessage, setPlanMessage] = useState('');
   const [tilesEnabled, setTilesEnabled] = useMapBackground();
   const [track, setTrack] = useState<TrackPoint[]>([]);
@@ -152,6 +167,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
             void file.text().then(text => {
               const points = parsePln(text);
               setImportedPlan(points);
+              window.sessionStorage.removeItem(SESSION_KEY);
               setPlanMessage(`Načteno ${points.length} waypointů ze souboru. Plán se automaticky nesynchronizuje s MSFS.`);
             }).catch(error => {
               setImportedPlan([]);
@@ -224,7 +240,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       </div>
       <FlightNavigationPanel navigation={navigation} />
       {importedPlan.length > 0 && <div className="moving-map-imported">
-        <strong>Importovaný plán .PLN ({importedPlan.length} waypointů):</strong>
+        <strong>Importovaný plán .PLN / SimBrief ({importedPlan.length} waypointů):</strong>
         <span>{importedPlan.map(point => point.id).join(' → ')}</span>
       </div>}
       <div className="moving-map-stats">

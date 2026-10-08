@@ -1,0 +1,11 @@
+.flight-planner { display:grid; gap:15px; margin-bottom:34px; }
+.flight-planner p { color:#a8c0d9; line-height:1.6; font-size:13px; }
+.flight-planner-actions { display:flex; flex-wrap:wrap; gap:14px; align-items:end; }
+.flight-planner-actions label { display:grid; gap:9px; font-size:13px; }
+.flight-planner-actions input { background:#0d1c2e; color:#eef7ff; border:1px solid #405979; border-radius:8px; padding:10px; min-height:44px; }
+.flight-planner button { border:1px solid #496d90; color:#fff; background:#204864; border-radius:8px; padding:10px 15px; min-height:44px; cursor:pointer; }
+.flight-planner button:disabled { opacity:.4; cursor:not-allowed; }
+.flight-planner-summary { background:#101c2f; border:1px solid #334960; padding:18px; border-radius:12px; overflow-wrap:anywhere; }
+.flight-planner-summary h3 { font-size:20px; margin:0; }
+.flight-planner-summary a { color:#9bdcf9; }
+.flight-planner-note { border-top:1px solid #29415b; padding-top:12px; }
