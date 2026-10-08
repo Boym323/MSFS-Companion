@@ -11,6 +11,7 @@ type RadioValues = {
 };
 type RadioStatus = { connected: boolean; radios: RadioValues | null; transponderCode: string | null };
 type Systems = {
+  flapsPercent: number;
   autopilotMaster: boolean;
   autopilotSelectedHeadingDegrees: number;
   autopilotSelectedAltitudeFeet: number;
