@@ -71,3 +71,5 @@
 .moving-map-sigmet-status{font-size:12px;color:#eecb9a;line-height:1.5;margin:7px 0}
 
 .moving-map-traffic-status,.moving-map-traffic-legend{color:#a1f0b9;font-size:12px;line-height:1.6;margin:8px 0}.moving-map-traffic-legend span{font-size:15px;color:#a1f0b9}
+
+.moving-map-airspace-import,.moving-map-ground-tools,.moving-map-plan-match{border:1px solid #37546e;background:#0f2234;border-radius:10px;padding:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;color:#c0d7ee;font-size:13px;margin:12px 0}.moving-map-airspace-import label,.moving-map-ground-tools label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.moving-map-airspace-import p,.moving-map-ground-tools p{width:100%;margin:0;line-height:1.5}.moving-map-airspace-import a{color:#81d5f4;text-decoration:underline}.moving-map-ground-tools button{background:#234d6c;color:#fff;border:1px solid #78badf;padding:12px;border-radius:8px;min-height:44px}.moving-map-ground-tools button:disabled{opacity:.45}.moving-map-plan-match{line-height:1.5}

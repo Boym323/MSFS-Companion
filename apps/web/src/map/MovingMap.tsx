@@ -11,6 +11,9 @@ import { useAviationFeatures } from './useAviationFeatures';
 import { useVatsimMapLayer } from './useVatsimMapLayer';
 import useSigmet from './useSigmet';
 import {useSimTraffic} from './useSimTraffic';
+import {parseOpenAir, type Airspace} from './openAir';
+import {groundQuery,parseGroundMap,type GroundMap} from './groundMap';
+import {comparePlan} from './planCrosscheck';
 import AviationAirportDetails from './AviationAirportDetails';
 import AirportSearch from './AirportSearch';
 import { useMapBackground } from './useMapBackground';
@@ -34,6 +37,14 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [showVatsim, setShowVatsim] = useState(false);
   const [showSigmet, setShowSigmet] = useState(false);
   const [showSimTraffic, setShowSimTraffic] = useState(false);
+  const [airspaces,setAirspaces] = useState<Airspace[]>([]);
+  const [showAirspaces,setShowAirspaces] = useState(false);
+  const [airspaceMessage,setAirspaceMessage] = useState('');
+  const [ground,setGround] = useState<GroundMap | null>(null);
+  const [groundOrigin,setGroundOrigin] = useState<{latitude:number;longitude:number}|null>(null);
+  const [groundMessage,setGroundMessage] = useState('');
+  const [groundLoading,setGroundLoading] = useState(false);
+  const [showGround,setShowGround] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
     telemetry?.longitude ?? null, zoom);
@@ -132,6 +143,28 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const fromXY = navigation?.waypointActive && navigation.previousWaypoint
     ? mapPosition(navigation.previousWaypoint)
     : telemetry ? mapPosition(telemetry) : null;
+  const planCheck=comparePlan(importedPlan,navigation);
+  const groundValid=!!(ground&&groundOrigin&&telemetry
+    && metersBetween(groundOrigin,telemetry)<3500);
+  async function loadGround(){
+    if(!telemetry||groundLoading||zoom<13)return;
+    setGroundLoading(true);setGroundMessage('Načítám mapované pojezdové cesty z OSM…');
+    const origin={latitude:telemetry.latitude,longitude:telemetry.longitude};
+    const cancel=new AbortController();
+    const timeout=window.setTimeout(()=>cancel.abort(),18000);
+    try{
+      const query=groundQuery(origin.latitude,origin.longitude);
+      const response=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query),
+        {signal:cancel.signal,cache:'no-store'});
+      if(!response.ok)throw Error('OSM server není dostupný.');
+      const payload=await response.text();
+      if(payload.length>2_000_000)throw Error('OSM odpověď je příliš velká.');
+      const parsed=parseGroundMap(JSON.parse(payload));
+      setGround(parsed);setGroundOrigin(origin);setShowGround(true);
+      setGroundMessage('OSM: '+parsed.ways.length+' úseků pojíždění, '+parsed.holding.length+' vyčkávacích pozic. Neověřená komunitní data.');
+    }catch{setGroundMessage('OSM pojezdové cesty se nepodařilo načíst. Zkuste později.');}
+    finally{window.clearTimeout(timeout);setGroundLoading(false);}
+  }
   const distance = track.reduce((total, point, index) => {
     if (index === 0) return total;
     return total + metersBetween(track[index - 1], point);
@@ -220,6 +253,33 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
             ? ` · Data: ${new Date(aviation.updatedAt).toLocaleDateString('cs-CZ')}` : ''}
         </p>
       </>}
+      <div className="moving-map-airspace-import">
+        <label>Vzdušné prostory · ruční import OpenAir (C35)
+          <input type="file" accept=".txt,.openair,text/plain" onChange={event=>{
+            const file=event.currentTarget.files?.[0];if(!file)return;
+            if(file.size>2_000_000){setAirspaceMessage('Soubor je větší než 2 MB.');return;}
+            void file.text().then(text=>{
+              const result=parseOpenAir(text);
+              setAirspaces(result.regions);setShowAirspaces(true);
+              setAirspaceMessage('Import: '+result.regions.length+' polygonů; '+result.skipped+
+                ' nepodporovaných (například oblouky).');
+            }).catch(()=>setAirspaceMessage('Soubor OpenAir nelze načíst.'));
+          }}/>
+        </label>
+        <label><input type="checkbox" checked={showAirspaces} onChange={e=>setShowAirspaces(e.target.checked)}
+          disabled={!airspaces.length}/> Zobrazit načtené prostory ({airspaces.length})</label>
+        {airspaceMessage&&<p role="status">{airspaceMessage}</p>}
+        <p>Podklady nejsou automaticky aktuální. Exporty ve formátu OpenAir lze získat
+          například z <a href="https://openflightmaps.org/" target="_blank" rel="noreferrer">open flightmaps</a>.
+          Nezpracované obloukové hranice nejsou vykresleny.</p>
+      </div>
+      <div className="moving-map-ground-tools">
+        <button type="button" disabled={!telemetry||groundLoading||zoom<13}
+          onClick={()=>void loadGround()}>{groundLoading?'Načítám…':'Načíst pojezdové cesty OSM (C36)'}</button>
+        <label><input type="checkbox" checked={showGround} disabled={!groundValid}
+          onChange={e=>setShowGround(e.target.checked)}/> Zobrazit pojezdové cesty</label>
+        <p role="status">{zoom<13?'Pro zobrazení pojezdových cest přibližte na zoom 13–15.':groundMessage}</p>
+      </div>
       <div className="moving-map-pln">
         <label>Volitelně načíst kompletní plán ze souboru .PLN
           <input type="file" accept=".pln,.xml,text/xml,application/xml" onChange={event => {
@@ -268,6 +328,30 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
                 fill="#c7f1e2" stroke="#13283d" strokeWidth="2" paintOrder="stroke"
                 fontSize="11">{feature.ident}</text>}
             </g>;
+          })}
+          {showAirspaces && airspaces.map((space,index)=>{
+            const positions=space.points.map(mapPosition);
+            if(positions.some(p=>!p))return null;
+            const d=positions.map((p,i)=>(i?'L':'M')+' '+p!.x.toFixed(1)+' '+p!.y.toFixed(1)).join(' ')+' Z';
+            return <path key={'airspace-'+index} d={d} fill="#64a7e0" fillOpacity=".10"
+              stroke="#65b4ef" strokeWidth="1.5" strokeDasharray="8 4">
+              <title>{space.name+' · '+space.category+' · '+space.lower+' až '+space.upper}</title>
+            </path>;
+          })}
+          {showGround && groundValid && zoom>=13 && ground?.ways.map(way=>{
+            const positions=way.points.map(mapPosition);
+            if(positions.some(p=>!p))return null;
+            const d=positions.map((p,i)=>(i?'L':'M')+' '+p!.x.toFixed(1)+' '+p!.y.toFixed(1)).join(' ');
+            return <path key={'taxiway-'+way.id} d={d} fill="none"
+              stroke={way.kind==='taxiway'?'#efc46b':'#b2c4a7'} strokeWidth="3" strokeLinecap="round">
+              <title>{way.kind+' '+way.ref+' (OpenStreetMap, neověřeno)'}</title>
+            </path>;
+          })}
+          {showGround && groundValid && zoom>=13 && ground?.holding.map((hold,i)=>{
+            const p=mapPosition(hold);
+            return p?<circle key={'hold-'+i} cx={p.x} cy={p.y} r="4"
+              fill="#ff7f65" stroke="#471b23" strokeWidth="2">
+              <title>Vyčkávací pozice · OSM</title></circle>:null;
           })}
           {showSigmet && sigmet.hazards.map((hazard,index)=>{
             const positions=hazard.boundary.map(point=>mapPosition(point));
@@ -373,6 +457,10 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       {showAviation && selectedAirport && <AviationAirportDetails ident={selectedAirport}
         onClose={() => setSelectedAirport(null)} />}
       <FlightNavigationPanel navigation={navigation} />
+      <p className="moving-map-plan-match" role="status">
+        C37 · Porovnání plánu s GPS: {planCheck.description}
+        {' '}Importovaný plán nikdy neodesíláme do avioniky.
+      </p>
       {importedPlan.length > 0 && <div className="moving-map-imported">
         <strong>Importovaný plán .PLN / SimBrief ({importedPlan.length} waypointů):</strong>
         <span>{importedPlan.map(point => point.id).join(' → ')}</span>
