@@ -9,3 +9,5 @@
 .weather-reports article { background:#0f2238; border:1px solid #34516e; border-radius:10px; padding:15px; min-width:0; }
 .weather-reports h3 { margin:0 0 11px; }
 .weather-reports pre { white-space:pre-wrap; overflow-wrap:anywhere; color:#daf0ff; font:14px/1.6 monospace; margin:0; }
+
+.weather-reports .weather-stale { padding:12px; border:1px solid #a77c40; border-radius:8px; background:#342b1c; color:#f5d5a0; }

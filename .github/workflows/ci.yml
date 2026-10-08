@@ -130,6 +130,9 @@ jobs:
       - name: C4 GPS navigace
         if: needs.changes.outputs.navigation == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/navigation-logic/MsfsCompanion.NavigationCheck.csproj --configuration Release
+      - name: C19 NOAA weather failure recovery
+        if: needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/weather-logic/MsfsCompanion.WeatherCheck.csproj --configuration Release
       - name: C13 Aircraft Capabilities
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/capabilities/MsfsCompanion.CapabilitiesCheck.csproj --configuration Release
