@@ -8,9 +8,10 @@ namespace MsfsCompanion.WindowsHost;
 internal sealed class CompanionTrayContext : ApplicationContext
 {
     private readonly NotifyIcon _icon;
-    private readonly BridgeProcess _bridge = new();
+    private readonly BridgeProcess _bridge = new(AdminControl.GetOrCreateToken());
     private readonly System.Windows.Forms.Timer _healthTimer;
     private readonly System.Windows.Forms.Timer _updateTimer;
+    private readonly System.Windows.Forms.Timer _webRequestTimer;
     private readonly ToolStripMenuItem _updateStatus;
     private readonly ToolStripMenuItem _automaticUpdates;
     private HostSettings _settings = HostSettings.Load();
@@ -45,20 +46,38 @@ internal sealed class CompanionTrayContext : ApplicationContext
         menu.Items.Add(_automaticUpdates);
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(new ToolStripMenuItem("Zkopírovat správcovský klíč", null, (_, _) =>
+        {
+            Clipboard.SetText(AdminControl.GetOrCreateToken());
+            MessageBox.Show("Správcovský klíč byl zkopírován. Vkládejte ho pouze do svého webového dashboardu. " +
+                "Nesdílejte jej veřejně.", "MSFS Companion", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }));
         menu.Items.Add(new ToolStripMenuItem("Otevřít diagnostický log", null, (_, _) =>
             Process.Start(new ProcessStartInfo("notepad.exe", $"\"{EventLogFile.PathOnDisk}\"") { UseShellExecute = true })));
         menu.Items.Add(new ToolStripMenuItem("Ukončit MSFS Companion", null, (_, _) => ExitThread()));
 
         _icon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application,
             Text = "MSFS Companion – běží na pozadí",
             Visible = true,
             ContextMenuStrip = menu
         };
         _icon.DoubleClick += (_, _) => OpenDashboard();
 
+        AdminControl.WriteStatus("idle", "Připraveno ke kontrole aktualizací.");
         _bridge.EnsureStarted();
+
+        _webRequestTimer = new System.Windows.Forms.Timer { Interval = 1800 };
+        _webRequestTimer.Tick += async (_, _) =>
+        {
+            if (_exiting || _checking || _applyingUpdate || !AdminControl.HasPendingRequests())
+                return;
+
+            EventLogFile.Write("Vzdálená autorizovaná žádost o kontrolu aktualizací.");
+            await CheckUpdatesAsync(force: true, fromWeb: true);
+        };
+        _webRequestTimer.Start();
 
         _healthTimer = new System.Windows.Forms.Timer { Interval = 10000 };
         _healthTimer.Tick += (_, _) => _bridge.EnsureStarted();
@@ -166,14 +185,14 @@ internal sealed class CompanionTrayContext : ApplicationContext
         }
     }
 
-    private async Task CheckUpdatesAsync(bool force = false)
+    private async Task CheckUpdatesAsync(bool force = false, bool fromWeb = false)
     {
         if (_exiting || (!_settings.AutomaticUpdates && !force))
             return;
 
         if (_checking || _applyingUpdate)
         {
-            if (force)
+            if (force && !fromWeb)
                 ShowManualUpdateMessage("Kontrola nebo instalace aktualizace už právě probíhá.");
             return;
         }
@@ -181,25 +200,28 @@ internal sealed class CompanionTrayContext : ApplicationContext
         if (string.IsNullOrWhiteSpace(_settings.UpdateFeedUrl))
         {
             _updateStatus.Text = "Aktualizace: chybí HTTPS zdroj";
+            AdminControl.WriteStatus("error", "Není nastaven zdroj aktualizací.");
             EventLogFile.Write("Update check skipped: no feed configured.");
-            if (force)
+            if (force && !fromWeb)
                 ShowManualUpdateMessage("Není nastaven zdroj aktualizací. Ověřte jej v nabídce u hodin.",
                     MessageBoxIcon.Warning);
             return;
         }
 
-        if (force)
+        if (force && !fromWeb)
             ShowUpdateBalloon("Zjišťuji dostupné aktualizace…");
 
         _checking = true;
+        AdminControl.WriteStatus("checking", "Kontroluji dostupné verze na GitHubu.");
         try
         {
             _updateManager ??= CreateUpdateManager(_settings.UpdateFeedUrl);
             if (!_updateManager.IsInstalled)
             {
                 _updateStatus.Text = "Aktualizace fungují po instalaci Setup.exe";
+                AdminControl.WriteStatus("error", "Aplikace nebyla nainstalována pomocí Setup.exe.");
                 EventLogFile.Write("Update check unavailable: application is not installed with Velopack.");
-                if (force)
+                if (force && !fromWeb)
                     ShowManualUpdateMessage("Aplikace neběží jako nainstalovaná verze Velopack. " +
                         "Pro automatické aktualizace použijte Setup.exe, ne Portable.zip.",
                         MessageBoxIcon.Warning);
@@ -217,16 +239,18 @@ internal sealed class CompanionTrayContext : ApplicationContext
             {
                 _pendingUpdate = null;
                 _updateStatus.Text = "Aktuální verze je nejnovější";
+                AdminControl.WriteStatus("up_to_date", "Používáte nejnovější dostupnou verzi.");
                 EventLogFile.Write("Update check completed: already on the latest available release.");
-                if (force)
+                if (force && !fromWeb)
                     ShowManualUpdateMessage("Používáte nejnovější dostupnou verzi MSFS Companion. " +
                         "Žádná nová aktualizace momentálně není k dispozici.");
                 return;
             }
 
             _updateStatus.Text = "Stahuji aktualizaci…";
+            AdminControl.WriteStatus("downloading", "Stahuji novou verzi.", latest.TargetFullRelease.Version.ToString());
             EventLogFile.Write($"Update available: {latest.TargetFullRelease.Version}. Download starting.");
-            if (force)
+            if (force && !fromWeb)
                 ShowUpdateBalloon($"Nalezena verze {latest.TargetFullRelease.Version}. Stahuji aktualizaci…");
             await manager.DownloadUpdatesAsync(latest);
             if (_exiting || !string.Equals(feedAtCheckStart, _settings.UpdateFeedUrl, StringComparison.Ordinal))
@@ -234,10 +258,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
             _pendingUpdate = latest;
             _updateStatus.Text = "Aktualizace stažena";
+            AdminControl.WriteStatus("downloaded", "Aktualizace stažena.", latest.TargetFullRelease.Version.ToString());
             EventLogFile.Write($"Downloaded version {latest.TargetFullRelease.Version}");
             if (_settings.AutomaticUpdates || force)
             {
-                if (force)
+                if (force && !fromWeb)
                     ShowUpdateBalloon("Aktualizace je stažena, MSFS Companion se nyní restartuje.");
                 ApplyDownloadedUpdate();
             }
@@ -245,8 +270,9 @@ internal sealed class CompanionTrayContext : ApplicationContext
         catch (Exception ex)
         {
             _updateStatus.Text = "Kontrola aktualizací se nezdařila (viz log)";
+            AdminControl.WriteStatus("error", "Kontrola aktualizací selhala. Podrobnosti jsou v místním diagnostickém logu.");
             EventLogFile.Write($"Update check/download error: {ex}");
-            if (force)
+            if (force && !fromWeb)
                 ShowManualUpdateMessage("Kontrolu aktualizací se nepodařilo dokončit. " +
                     "Podrobnosti najdete v nabídce „Otevřít diagnostický log“. " +
                     $"Typ chyby: {ex.GetType().Name}.", MessageBoxIcon.Error);
@@ -272,6 +298,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _healthTimer.Stop();
             _bridge.Stop();
             _icon.Visible = false;
+            AdminControl.WriteStatus("applying", "Instaluji aktualizaci a restartuji MSFS Companion.");
             EventLogFile.Write("Applying Companion update; MSFS is left running.");
             _updateManager.ApplyUpdatesAndRestart(_pendingUpdate!);
             // Velopack schedules replacing our files and exits/restarts our host.
@@ -291,11 +318,13 @@ internal sealed class CompanionTrayContext : ApplicationContext
     {
         _exiting = true;
         _updateTimer.Stop();
+        _webRequestTimer.Stop();
         _healthTimer.Stop();
         _icon.Visible = false;
         _bridge.Dispose();
         _icon.Dispose();
         _updateTimer.Dispose();
+        _webRequestTimer.Dispose();
         _healthTimer.Dispose();
         base.ExitThreadCore();
     }

@@ -1,87 +1,75 @@
-# B1 — MSFS 2020 SimConnect Compatibility Probe
+# B1 – Diagnostika kompatibility SimConnect s MSFS 2020
 
-The diagnostic project lives at `apps/probe` and **does not change simulator
-settings**. It reads SimVars, optionally enumerates Input Events, and writes
-a JSON report. It is separate from the web bridge (`apps/bridge`).
+Diagnostická aplikace v `apps/probe` **nemění nastavení simulátoru**.
+Čte standardní SimVars, volitelně vypisuje Input Events a vytváří
+JSON report. Je oddělená od webového bridge.
 
-## How to get the executable
+## Stažení a spuštění
 
-1. Open **Actions → SimConnect Probe (Windows)** in GitHub.
-2. Open a successful run from the B1 PR (or use **Run workflow** after merge).
-3. Download the **MSFS-Companion-SimConnect-Probe-win-x64** artifact.
-4. Extract the ZIP into a folder on your Windows PC.
-5. Keep all files in the folder together, including **SimConnect.dll**.
-
-This is a self-contained .NET 10 Windows x64 build: you do not need VS Code,
-Visual Studio or the .NET SDK on the simulator computer. The CI's offline
-self-test does not establish actual simulator compatibility; that requires
-testing on the Windows PC running MSFS 2020.
-
-## Windows simulator test
-
-1. Start MSFS 2020 and load an aircraft into a flight (Cessna 172 recommended).
-2. Open PowerShell **in the extracted directory**.
-3. Run:
+1. Na GitHubu otevřete **Actions → SimConnect Probe (Windows)**.
+2. Vyberte úspěšný běh a stáhněte artefakt
+   `MSFS-Companion-SimConnect-Probe-win-x64`.
+3. Rozbalte ZIP na Windows PC, všechny soubory nechte ve stejné složce
+   (včetně `SimConnect.dll`).
+4. Spusťte MSFS 2020 a načtěte let, například s Cessnou 172.
+5. V rozbalené složce otevřete PowerShell a zadejte:
 
 ```powershell
 .\MsfsCompanion.Probe.exe --duration 30 --wait 90
 ```
 
-4. Leave the flight running until collection finishes. The tool displays live
-   IAS/ALT/HDG/VS/pitch/bank readings as they arrive.
-5. The resulting report is written to:
+Aplikace zobrazuje rychlost IAS, výšku, kurz, vertikální rychlost,
+klopení a náklon. Výsledný report uloží do:
 
 ```text
 %USERPROFILE%\Documents\MSFS Companion\simconnect-report.json
 ```
 
-   The tool also prints the exact absolute path.
+Report obsahuje také **GPS souřadnice** a technickou diagnostiku.
+Před veřejným sdílením jej zkontrolujte.
 
-6. Share the report for review. **It contains GPS coordinates and technical
-   diagnostics**, so inspect it before sharing it publicly.
+Sestavení obsahuje potřebný .NET runtime pro Windows x64;
+na PC se simulátorem není třeba instalovat vývojové nástroje.
+Automatický CI self-test ověřuje jen běh aplikace mimo MSFS,
+nikoli skutečné připojení.
 
-If MSFS is not running, the probe attempts reconnection until `--wait` expires
-and writes a failure report. Restarting MSFS during the collection also causes
-the probe to try again; failures and the number of connection attempts are recorded.
-
-## Options
+## Parametry
 
 ```text
---wait SECONDS           Startup connection wait (5–600, default 90)
---duration SECONDS       Telemetry collection window (5–300, default 30)
---report PATH            Change JSON output destination
---lvar L:KNOWN_NAME      Optional read of one known aircraft-specific LVar
---skip-input-events      Skip enumerating Input Events
---self-test              Test JSON reporting only, without simulator connection
---help                   Show all options
+--wait SECONDS           Čekání na počáteční spojení (5–600, výchozí 90)
+--duration SECONDS       Doba měření (5–300, výchozí 30)
+--report PATH            Jiná cílová cesta JSON reportu
+--lvar L:KNOWN_NAME      Volitelný read-only test známé LVar
+--skip-input-events      Vynechání výpisu Input Events
+--self-test              Test reportu bez připojení k simulátoru
+--help                   Nápověda
 ```
 
-**LVars:** the probe does not invent LVar names. If a known LVar is supplied,
-it attempts a read, but a zero value alone does not prove the variable exists.
-Input Event enumeration is read-only; an error or timeout does not automatically
-mean the MSFS 2020 installation lacks all Input Event support.
+Při nedostupném simulátoru aplikace zkouší opakované spojení
+po dobu určenou parametrem `--wait`. Chyby a počet pokusů
+zaznamenává do reportu.
 
-**Standard events:** no autopilot or radio commands are sent by the B1 probe.
-Actual write-event compatibility belongs in a separate, explicitly confirmed
-test after passive telemetry works.
+**LVars:** diagnostika nevymýšlí názvy proměnných. Hodnota nula
+sama o sobě nedokazuje existenci konkrétní LVar.
 
-## Build details and dependencies
+**Input Events:** jejich výpis je pouze pro čtení. Chyba nebo timeout
+neprokazuje, že je všechny daný simulátor nepodporuje.
 
-- .NET 10, RID `win-x64`, self-contained publish.
-- NuGet `SimConnect.NET` **0.2.2**, MIT-licensed C# wrapper.
-- The package bundles the native Microsoft `SimConnect.dll`; CI checks its
-  presence in the output. Review Microsoft SDK redistribution terms before
-  publishing binaries outside private testing.
-- The wrapper is beta; behavior must be confirmed against the user's installed
-  MSFS 2020 version.
-- Simulator read frequency is intentionally low. B1 validates connectivity and
-  field units; B2 will use subscriptions and bounded update rates for PFD.
+**Ovládání:** diagnostika neposílá povely autopilotu ani rádia.
+Ověření zápisových událostí vyžaduje samostatný potvrzený test.
 
-## JSON report schema
+## Technické informace
 
-`schemaVersion: "simconnect-probe-v1"`, timestamps, simulator/connection
-diagnostics, read-only feature checks, errors, and `samples` containing
-latitude/longitude, IAS, ALT, VS, HDG, pitch, bank, and measured request latency.
+- .NET 10, samostatné sestavení pro `win-x64`.
+- Balíček `SimConnect.NET` 0.2.2 s licencí MIT.
+- Obsahuje nativní Microsoft `SimConnect.dll`; před veřejnou
+  distribucí je nutné ověřit podmínky dalšího šíření.
+- Knihovna je ve vývoji a chování se ověřuje proti konkrétní
+  instalaci MSFS 2020.
+- B1 provádí záměrně pomalé jednotlivé dotazy. Rychlé
+  subscriptions pro PFD patří do B2.
 
-An offline CI self-test emits `connection: "self_test_only"` and no samples.
-Only Windows-with-simulator testing can produce real samples.
+Report používá schéma `simconnect-probe-v1` s časovými značkami,
+stavem připojení, testy funkcí, chybami a naměřenými vzorky.
+Režim `--self-test` vytváří `connection: "self_test_only"` bez
+skutečných vzorků ze simulátoru.

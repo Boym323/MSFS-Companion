@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text.Json;
 using MsfsCompanion.Bridge.Telemetry;
+using MsfsCompanion.Bridge.Admin;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +35,10 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryStore store) =>
 
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
+
+// Správa aktualizací vyžaduje náhodný klíč ze spuštěného Windows hostitele.
+// Samostatně spuštěný bridge tyto cesty vůbec neregistruje.
+app.MapAdminUpdates();
 
 // Read-only telemetry stream. Cockpit commands require a separately
 // authenticated, allow-listed API and are deliberately not exposed yet.

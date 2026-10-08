@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PanelAktualizaci from './PanelAktualizaci';
 
 type TelemetrySnapshot = {
   timestampUtc: string;
@@ -122,6 +123,8 @@ export default function App() {
             <span className="help">{lastUpdateAgeMs === null ? 'Dosud bez dat' : `Stáří vzorku cca ${lastUpdateAgeMs} ms`}</span>
           </article>
         </section>
+
+        {!isPlaceholder && <PanelAktualizaci />}
 
         <h2>Aktuální telemetrie</h2>
         <section className="metrics">

@@ -1,43 +1,55 @@
-# Architecture — Foundation V1
+# Architektura MSFS Companion
 
-MSFS Companion is a local cockpit companion for Microsoft Flight Simulator 2020.
+MSFS Companion je webová aplikace pro Microsoft Flight Simulator 2020
+se samostatným backendem a volitelným hostitelem pro Windows.
 
-## Data path
+## Datový tok
 
+```text
+MockTelemetrySource -> TelemetryStore -> GET /api/telemetry
+                                      -> GET /api/status
+                                      -> WebSocket /ws -> React dashboard
 ```
-MockTelemetrySource  -- TelemetryStore -- GET /api/telemetry
-                                          GET /api/status
-                                          WS /ws
-                                              |
-                                         React dashboard
-```
 
-The application currently supports **mock data only**. The future Windows-specific
-SimConnect source will implement `ITelemetrySource` and update the same store.
-The web frontend intentionally does not depend on the source of telemetry.
+Produkční bridge zatím používá **simulovaná data**. V plánované etapě
+B2 nahradí tento zdroj implementace `SimConnectTelemetrySource`
+na Windows. Frontend zůstane na zdroji dat nezávislý.
 
-## API (v0.1)
+## Rozhraní
 
-- `GET /api/status` — source mode and bridge status.
-- `GET /api/telemetry` — latest immutable snapshot.
-- `WS /ws` — read-only JSON telemetry at approximately 20 messages/second.
+- `GET /api/status` – režim a stav zdroje dat.
+- `GET /api/telemetry` – poslední snímek telemetrie.
+- `WS /ws` – pouze čtení; JSON přibližně 20× za sekundu.
+- `GET /api/admin/updates/status` – stav updateru; vyžaduje klíč Windows hostitele.
+- `POST /api/admin/updates/check` – požadavek na kontrolu a instalaci novější verze;
+  vyžaduje stejný klíč.
 
-The WebSocket payload uses camelCase JSON property names. Geographic coordinates
-are decimal degrees, altitudes feet, airspeed knots, heading/pitch/bank degrees,
-vertical speed feet/minute, and timestamps UTC ISO 8601.
+Telemetrie používá JSON s názvy vlastností ve formátu camelCase.
+GPS souřadnice jsou ve stupních, výška ve stopách, rychlost v uzlech,
+vertikální rychlost ve stopách za minutu a čas v UTC ISO 8601.
 
-## Security boundary
+## Hranice zabezpečení
 
-The backend listens on **127.0.0.1:8765** by default. This milestone has no
-remote pairing, authentication, or command endpoint. Do not expose it to a public
-network or change the bind address for remote access until a pairing/authentication
-scheme and command allow-list are implemented.
+Backend standardně naslouchá **jen na 127.0.0.1:8765**.
+Správcovská API jsou při samostatném spuštění bridge **vypnutá**;
+hostitel pro Windows jim předává náhodný přístupový klíč a cestu
+k souborovému kanálu v profilu aktuálního uživatele.
 
-## Planned future adapters
+Autorizovaný požadavek z webu vytvoří lokální souborový požadavek.
+Windows hostitel jej převezme a spustí svou již existující
+aktualizační proceduru. Web nikdy nespouští libovolné příkazy systému.
 
-- `SimConnectTelemetrySource` (Windows/MSFS 2020, SDK compatibility probe first).
-- Aircraft-specific input-event profiles.
-- Validated, authenticated commands for autopilot and radio operation.
-- Tray application, auto-start and signed update launcher.
+Pro vzdálený přístup doporučujeme **Tailscale Serve**: šifrovaný tunel
+přeposílá soukromý HTTPS provoz na místní `127.0.0.1:8765`.
+Klíč nikdy nevkládejte do URL a nezpřístupňujte bridge veřejným portem.
+`Tailscale Funnel` se pro tento účel nesmí použít.
 
-No AGPL source code from MSFS Mobile Companion App or MSFS Glass is included.
+## Další plánované funkce
+
+- `SimConnectTelemetrySource` a konzistentní vzorkování dat.
+- Bezpečné párování dalších zařízení a profily vstupních událostí.
+- Explicitně povolené povely autopilota a rádií.
+- Podepisování Windows sestavení a obnova po selhání aktualizace.
+
+Projekt neobsahuje kód pod licencí AGPL z MSFS Mobile Companion App
+ani MSFS Glass.
