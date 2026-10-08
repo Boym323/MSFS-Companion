@@ -65,6 +65,17 @@ jobs:
           if (!(Test-Path staging/app/MsfsCompanion.WindowsHost.exe)) { throw 'Tray executable missing' }
           if (!(Test-Path staging/app/bridge/MsfsCompanion.Bridge.exe)) { throw 'Bridge executable missing' }
           if (!(Test-Path staging/app/bridge/wwwroot/index.html)) { throw 'Frontend missing' }
+          # Ověření identity produktu pro Správce úloh a ikony ve Windows.
+          $exeInfo = (Get-Item staging/app/MsfsCompanion.WindowsHost.exe).VersionInfo
+          $bridgeInfo = (Get-Item staging/app/bridge/MsfsCompanion.Bridge.exe).VersionInfo
+          Write-Host "Windows host: $($exeInfo.FileDescription) | $($exeInfo.ProductName)"
+          Write-Host "Windows bridge: $($bridgeInfo.FileDescription) | $($bridgeInfo.ProductName)"
+          if ($exeInfo.FileDescription -notlike '*MSFS Companion*') { throw 'Missing Windows host file description' }
+          if ($bridgeInfo.FileDescription -notlike '*MSFS Companion*') { throw 'Missing Windows bridge file description' }
+          Add-Type -AssemblyName System.Drawing
+          $appIcon = [System.Drawing.Icon]::ExtractAssociatedIcon((Resolve-Path staging/app/MsfsCompanion.WindowsHost.exe).Path)
+          if ($null -eq $appIcon) { throw 'Windows executable is missing its icon' }
+          $appIcon.Dispose()
 
       - name: Smoke test packaged HTTP API and React dashboard
         shell: pwsh
