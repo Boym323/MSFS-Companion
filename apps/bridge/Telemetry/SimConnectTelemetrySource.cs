@@ -125,6 +125,7 @@ public sealed class SimConnectTelemetrySource(
 
         using var systemsSubscription = SubscribeSystems(client, stoppingToken);
         using var radioSubscription = SubscribeRadios(client, stoppingToken);
+        using var xpdrSubscription = SubscribeTransponder(client, stoppingToken);
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -156,6 +157,22 @@ public sealed class SimConnectTelemetrySource(
 
             store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
             health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
+        }
+    }
+
+    private ISimVarSubscription? SubscribeTransponder(SimConnectClient client, CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<SimConnectTransponderData>(
+                SimConnectPeriod.Second,
+                data => radioStore.UpdateTransponder(data.CodeBcd16, DateTimeOffset.UtcNow),
+                cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Transpondér není podporován; COM/NAV a PFD zůstávají dostupné.");
+            return null;
         }
     }
 

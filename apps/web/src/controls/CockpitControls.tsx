@@ -9,7 +9,7 @@ type RadioValues = {
   nav1ActiveMHz: number; nav1StandbyMHz: number;
   nav2ActiveMHz: number; nav2StandbyMHz: number;
 };
-type RadioStatus = { connected: boolean; radios: RadioValues | null };
+type RadioStatus = { connected: boolean; radios: RadioValues | null; transponderCode: string | null };
 type Systems = {
   autopilotMaster: boolean;
   autopilotSelectedHeadingDegrees: number;
@@ -191,7 +191,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
     <div className="control-grid">{radios}</div>
     <section className="control-tile">
       <h3>Transpondér</h3>
-      <p>Zadání čtyř osmičkových číslic. Stav ověřte také v kokpitu MSFS.</p>
+      <p>Skutečný kód z MSFS: <strong>{radio?.connected ? (radio.transponderCode ?? '—') : '—'}</strong>. Ověřte také v kokpitu.</p>
       <label>Kód squawk
         <input inputMode="numeric" maxLength={4} value={xpdr}
           onChange={e => setXpdr(e.target.value.replace(/[^0-7]/g, '').slice(0, 4))} />
