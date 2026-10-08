@@ -427,12 +427,37 @@ internal sealed class CompanionTrayContext : ApplicationContext
     /// V případě selhání vypneme budoucí automatické aktualizace, nikoliv
     /// automaticky neověřeně manipulujeme s instalací.
     /// </summary>
+    private bool IsExpectedVersionInstalled(string targetVersion)
+    {
+        try
+        {
+            // Čtení verze z lokální instalace Velopack; žádný HTTP request.
+            // Nepoužíváme AssemblyVersion (v csproj zůstává konstantní).
+            var manager = CreateUpdateManager(HostSettings.DefaultFeedUrl);
+            var installedVersion = manager.IsInstalled ? manager.CurrentVersion?.ToString() : null;
+            if (!UpdateRecoveryJournal.MatchesTargetVersion(targetVersion, installedVersion))
+            {
+                EventLogFile.Write($"C33: očekávaná verze {targetVersion}, lokálně nalezena {installedVersion ?? "neznámá"}.");
+                return false;
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            EventLogFile.Write("C33: verzi instalace nelze potvrdit: " + ex.GetType().Name);
+            return false;
+        }
+    }
+
     private async Task VerifyUpdatedHostAsync()
     {
+        var pending = UpdateRecoveryJournal.Load();
+        var expectedVersionInstalled = pending is not null &&
+            IsExpectedVersionInstalled(pending.TargetVersion);
         using var handler=new HttpClientHandler { UseProxy=false };
         using var client=new HttpClient(handler) { Timeout=TimeSpan.FromSeconds(3) };
         var healthy=false;
-        for(var attempt=0;attempt<10&&!_exiting;attempt++)
+        for(var attempt=0;attempt<10&&!_exiting&&expectedVersionInstalled;attempt++)
         {
             try
             {
@@ -463,7 +488,9 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _updateStatus.Text="Po aktualizaci selhala kontrola webu – automatické aktualizace vypnuty";
             AdminControl.WriteStatus("error",
                 "Po aktualizaci selhal lokální smoke test. Další aktualizace jsou pozastaveny.");
-            EventLogFile.Write("C33: neověřený start; automatické aktualizace vypnuty, rollback není dostupný.");
+            EventLogFile.Write(expectedVersionInstalled
+                ? "C33: health/web test selhal; aktualizace pozastaveny, rollback není dostupný."
+                : "C33: verze po aktualizaci nebyla potvrzena; aktualizace pozastaveny, rollback není dostupný.");
             ShowUpdateBalloon("Po aktualizaci nebyl potvrzen web. Automatické aktualizace pozastaveny.",
                 ToolTipIcon.Warning);
         }

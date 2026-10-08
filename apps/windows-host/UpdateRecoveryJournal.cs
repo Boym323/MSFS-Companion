@@ -48,6 +48,12 @@ internal static class UpdateRecoveryJournal
     internal static bool NeedsQuarantine(bool pendingExists, Pending? validPending) =>
         pendingExists && validPending is null;
 
+    // Lokální HTTP readiness není důkaz, že je instalována požadovaná verze.
+    // Při neznámé nebo jiné verzi zůstává pokus neověřený.
+    internal static bool MatchesTargetVersion(string? target, string? installed) =>
+        ValidVersion(target) && ValidVersion(installed) &&
+        string.Equals(target, installed, StringComparison.OrdinalIgnoreCase);
+
     internal static Pending? Load()
     {
         try
@@ -91,5 +97,9 @@ internal static class UpdateRecoveryJournal
         &&IsValid(new Pending(1,"0.2.100",DateTimeOffset.UtcNow))
         &&NeedsQuarantine(true,null)
         &&!NeedsQuarantine(false,null)
-        &&!NeedsQuarantine(true,new Pending(1,"0.2.100",DateTimeOffset.UtcNow));
+        &&!NeedsQuarantine(true,new Pending(1,"0.2.100",DateTimeOffset.UtcNow))
+        &&MatchesTargetVersion("0.2.100","0.2.100")
+        &&!MatchesTargetVersion("0.2.100","0.2.99")
+        &&!MatchesTargetVersion("0.2.100",null)
+        &&!MatchesTargetVersion("0.2.100","../0.2.100");
 }
