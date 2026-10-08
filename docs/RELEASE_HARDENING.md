@@ -83,3 +83,17 @@ aktualizaci, přesun journalu do failed stavu a pozastavení auto-update.
 hostu pro každé PR zasahující host/workflow. Stále nejde o nezávislý watchdog
 ani automatický rollback; integrační test chybného restartu Velopack na
 skutečné instalaci nadále zůstává podmínkou jejich aktivace.
+
+## C33 – smoke test skutečné instalace ve Windows CI
+
+Workflow `windows-installer.yml` nyní po zabalení zkušebně **instaluje
+skutečný Setup.exe** pomocí `--silent --installto` do oddělené dočasné
+složky GitHub Windows runneru. Instalovaný host umí read-only argument
+`--verify-installed-version <semver>`, který čte verzi z lokálního
+Velopack kontextu, nikoliv ze statické `AssemblyVersion`.
+
+CI ověřuje správnou verzi a odmítnutí chybné verze ještě před publikací
+release. V tomto módu se nespouští tray, bridge ani kontrola aktualizací.
+Nejde však o integrační test aktualizačního přechodu či rollbacku. Tyto
+scénáře musí projít na skutečné instalaci Windows včetně simulace pádu
+nového hostitele; automatický rollback proto zůstává záměrně vypnutý.
