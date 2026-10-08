@@ -70,6 +70,12 @@ class ControlsSmoke(unittest.TestCase):
             status, _ = request("POST", "/api/avionics/advanced/command",
                                 {"id": "arbitrary-event", "value": 1}, auth)
             self.assertEqual(status, 400)
+            status, cockpit = request("GET", "/api/cockpit/systems")
+            self.assertEqual(status, 200)
+            self.assertFalse(cockpit["connected"])
+            status, _ = request("POST", "/api/controls/command",
+                                {"command": "brakes.parking.set", "value": 2}, auth)
+            self.assertEqual(status, 400)
             status, radios = request("GET", "/api/radios")
             self.assertEqual(status, 200)
             self.assertFalse(radios["connected"])

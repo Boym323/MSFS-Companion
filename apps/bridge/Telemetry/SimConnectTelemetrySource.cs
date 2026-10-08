@@ -17,6 +17,7 @@ public sealed class SimConnectTelemetrySource(
     RadioStore radioStore,
     AutopilotModesStore autopilotModes,
     NavigationStore navigationStore,
+    CockpitSystemsStore cockpitSystems,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -38,6 +39,7 @@ public sealed class SimConnectTelemetrySource(
             radioStore.Reset();
             autopilotModes.Reset();
             navigationStore.Reset();
+            cockpitSystems.Reset();
             store.Reset("Čekám na MSFS 2020");
             try
             {
@@ -57,6 +59,7 @@ public sealed class SimConnectTelemetrySource(
             radioStore.Reset();
             autopilotModes.Reset();
             navigationStore.Reset();
+            cockpitSystems.Reset();
             store.Reset("MSFS není připojen");
             if (stoppingToken.IsCancellationRequested)
                 break;
@@ -136,6 +139,7 @@ public sealed class SimConnectTelemetrySource(
         using var apModesSubscription = SubscribeAutopilotModes(client, stoppingToken);
         using var navSubscription = SubscribeNavigation(client, stoppingToken);
         using var waypointIdSubscription = SubscribeWaypointId(client, stoppingToken);
+        using var cockpitSystemsSubscription = SubscribeCockpitSystems(client, stoppingToken);
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -167,6 +171,22 @@ public sealed class SimConnectTelemetrySource(
 
             store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
             health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
+        }
+    }
+
+    private ISimVarSubscription? SubscribeCockpitSystems(SimConnectClient client, CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<SimConnectCockpitSystemsData>(
+                SimConnectPeriod.Second,
+                value => cockpitSystems.Update(value, DateTimeOffset.UtcNow),
+                cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Další kokpitní systémy nejsou dostupné.");
+            return null;
         }
     }
 

@@ -22,6 +22,26 @@ public static class CockpitCommands
         ["autopilot.alt.off"] = "AP_ALT_HOLD_OFF",
         ["autopilot.vs.on"] = "AP_VS_ON",
         ["autopilot.vs.off"] = "AP_VS_OFF",
+        ["lights.landing.on"] = "LANDING_LIGHTS_ON",
+        ["lights.landing.off"] = "LANDING_LIGHTS_OFF",
+        ["lights.taxi.on"] = "TAXI_LIGHTS_ON",
+        ["lights.taxi.off"] = "TAXI_LIGHTS_OFF",
+        ["lights.nav.on"] = "NAV_LIGHTS_ON",
+        ["lights.nav.off"] = "NAV_LIGHTS_OFF",
+        ["lights.beacon.on"] = "BEACON_LIGHTS_ON",
+        ["lights.beacon.off"] = "BEACON_LIGHTS_OFF",
+        ["lights.strobe.on"] = "STROBES_ON",
+        ["lights.strobe.off"] = "STROBES_OFF",
+        ["pitot.on"] = "PITOT_HEAT_ON",
+        ["pitot.off"] = "PITOT_HEAT_OFF",
+        ["gear.down"] = "GEAR_DOWN",
+        ["gear.up"] = "GEAR_UP",
+        ["flaps.up"] = "FLAPS_UP",
+        ["flaps.down"] = "FLAPS_DOWN",
+        ["flaps.increment"] = "FLAPS_INCR",
+        ["flaps.decrement"] = "FLAPS_DECR",
+        ["trim.up"] = "ELEV_TRIM_UP",
+        ["trim.down"] = "ELEV_TRIM_DN",
     };
 
     public static bool TryResolve(ControlCommand? input, out MappedCockpitEvent? result)
@@ -41,6 +61,10 @@ public static class CockpitCommands
         var n = value.Value;
         switch (input.Command)
         {
+            case "brakes.parking.set":
+                if (n is not (0 or 1)) return false;
+                result = new("PARKING_BRAKE_SET", (uint)n);
+                return true;
             case "radio.com1.set" or "radio.com2.set":
                 if (n < 118_000_000 || n > 136_990_000 || n % 5_000 != 0) return false;
                 result = new(input.Command == "radio.com1.set"
