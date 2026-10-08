@@ -24,6 +24,12 @@ const actions: Action[] = [
   { id: 'mfd.menu', label: 'Menu', rotary: false },
   { id: 'mfd.clr', label: 'CLR', rotary: false },
 ];
+for (const display of ['pfd', 'mfd']) {
+  for (let number = 1; number <= 12; number++) {
+    actions.push({ id: display + '.softkey.' + number,
+      label: 'Softkey ' + number, rotary: false });
+  }
+}
 
 export default function G1000Remote({ live }: { live: boolean }) {
   const [availability, setAvailability] = useState<Availability | null>(null);
