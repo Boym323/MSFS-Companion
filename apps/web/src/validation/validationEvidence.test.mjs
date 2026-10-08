@@ -8,7 +8,7 @@ test('C31 evidence is a strict allowlist without position, credentials or raw er
       sampleAgeMs: 500, sampleRateHz: 20, incomingRateHz: 29.5, samplesReceived: 10,
       latitude: 50.1001, longitude: 14.3002, lastError: 'secret-private-path' },
     { connected: true, sampleAgeMs: 300, systems: {
-      onGround: false, altitudeAglFeet: 1999, trueAirspeedKnots: 110.5,
+      mode: 'simconnect', onGround: false, altitudeAglFeet: 1999, trueAirspeedKnots: 110.5,
       engineRpm: 2200, fuelGallons: 29, latitude: 50.1, token: 'secret-token',
     }},
     { connected: true, sampleAgeMs: 50, navigation: {
@@ -47,7 +47,7 @@ test('C31 refuses stale/offline/mock data and discards invalid measurements', ()
 
   const invalid = buildValidationEvidence(
     { mode: 'simconnect', connected: true },
-    { connected: true, systems: { engineRpm: -900, altitudeAglFeet: '1000' }},
+    { connected: true, systems: { mode: 'simconnect', engineRpm: -900, altitudeAglFeet: '1000' }},
     { connected: true, navigation: { waypointIndex: -9, distanceNauticalMiles: NaN }},
     '2026-10-08T20:00:00Z',
   );
@@ -55,4 +55,16 @@ test('C31 refuses stale/offline/mock data and discards invalid measurements', ()
   assert.equal(invalid.systems.altitudeAglFeet, null);
   assert.equal(invalid.navigation.waypointIndex, null);
   assert.equal(invalid.navigation.distanceNauticalMiles, null);
+});
+
+test('C31 rejects lingering mock system samples after source transition', () => {
+  const snap = buildValidationEvidence(
+    {mode:'simconnect',connected:true,sampleAgeMs:250},
+    {connected:true,systems:{mode:'mock',engineRpm:2500,onGround:true}},
+    {connected:false,navigation:null},
+    '2026-10-08T20:00:00Z',
+  );
+  assert.equal(snap.systems.available,false);
+  assert.equal(snap.systems.engineRpm,null);
+  assert.equal(snap.systems.onGround,null);
 });
