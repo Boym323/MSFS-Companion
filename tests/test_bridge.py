@@ -168,6 +168,11 @@ class BridgeSmokeTests(unittest.TestCase):
             urllib.request.urlopen(req, timeout=3)
         self.assertIn(error.exception.code, (404, 405))
 
+    def test_simbrief_rejects_invalid_pilot_id_without_network(self):
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            get_json("/api/flightplans/simbrief/invalid")
+        self.assertEqual(failure.exception.code, 400)
+
     def test_aviation_map_rejects_invalid_coordinates(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/map/aviation?lat=999&lon=0")
