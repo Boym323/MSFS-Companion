@@ -55,3 +55,18 @@ požadavek projektu). Umožňuje kterémukoli zařízení ve stejné
 důvěryhodné podsíti číst historii poloh a vyvolat aktualizaci.
 Nezveřejňujte TCP 8765 na internetu; pro cizí nebo sdílenou síť
 je nutná autentizace, TLS a revize bezpečnostního modelu.
+
+## C33 – kontrola neplatného update journalu
+
+Po restartu Windows host kontroluje, zda pending-update.json existuje a zda lze
+jeho verzi, čas a schema platně přečíst. Pokud soubor existuje, ale data jsou
+poškozená, neplatná nebo starší než povolené okno, další automatické aktualizace
+se **pozastaví** a záznam se přesune mezi neověřené pokusy
+(`failed-update.json`). Uživatel jej může vyšetřit v lokálním logu a po opravě
+aktualizace znovu vědomě povolit. Jde o fail-closed ochranu proti tomu,
+aby se neznámý stav vydával za potvrzený úspěch.
+
+Tato změna **neimplementuje rollback** při pádu Windows hostitele ani jeho
+nezávislý watchdog. Nedotýká se procesu MSFS, historii letů nemaže a nemění
+formát dříve vytvořených platných journalů. Nutné ověřit na skutečné Windows
+instalaci simulací poškozeného pending souboru i úspěšného restartu.
