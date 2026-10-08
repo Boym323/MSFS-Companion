@@ -1,6 +1,6 @@
 namespace MsfsCompanion.Bridge.Avionics;
 
-public sealed record G1000Action(string Id, string Label, string InputEvent, bool Rotary);
+public sealed record G1000Action(string Id, string Label, string InputEvent, bool Rotary, string? AlternateInputEvent = null);
 
 /// <summary>
 /// Kandidátní oficiální Input Events; dostupnost se VŽDY ověřuje enumerací
@@ -28,6 +28,12 @@ public static class G1000Catalog
         new("mfd.menu", "MFD Menu", "AS1000_MENU_MFD", false),
         new("pfd.clr", "PFD Clear", "AS1000_CLR_PFD", false),
         new("mfd.clr", "MFD Clear", "AS1000_CLR_MFD", false),
+        ..Enumerable.Range(1, 12).Select(n => new G1000Action(
+            $"pfd.softkey.{n}", $"PFD softkey {n}", $"AS1000_PFD_SOFTKEYS_{n}",
+            false, $"AS1000_SOFTKEYS_{n}_PFD")),
+        ..Enumerable.Range(1, 12).Select(n => new G1000Action(
+            $"mfd.softkey.{n}", $"MFD softkey {n}", $"AS1000_MFD_SOFTKEYS_{n}",
+            false, $"AS1000_SOFTKEYS_{n}_MFD")),
     ];
 
     public static bool TryResolve(string? id, double? value, out G1000Action? action)
