@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import MovingMap from '../map/MovingMap';
 import Pfd from '../pfd/Pfd';
@@ -7,6 +7,7 @@ import FuelMonitor from '../fuel/FuelMonitor';
 import SmartRadio from '../radio/SmartRadio';
 import AircraftChecklists from '../checklists/AircraftChecklists';
 import { pilotHints, pilotPhase, phaseTitles } from './pilotLogic';
+import { readPhaseEvidence, type PhaseEvidence } from './systemsPhase';
 import './PilotAssistant.css';
 
 type Tab = 'map' | 'progress' | 'fuel' | 'radio' | 'checklists' | 'pfd';
@@ -19,7 +20,40 @@ export default function PilotAssistant({telemetry, live}: {
   telemetry: TelemetrySnapshot | null; live: boolean;
 }) {
   const [tab, setTab] = useState<Tab>('map');
-  const phase = pilotPhase(live ? telemetry : null);
+  const [evidence, setEvidence] = useState<PhaseEvidence | null>(null);
+  const aircraft = telemetry?.aircraft ?? '';
+  useEffect(() => {
+    if (!live || !aircraft) { setEvidence(null); return; }
+    let closed = false;
+    let busy = false;
+    const controller = new AbortController();
+    const refresh = async () => {
+      if (busy || closed) return;
+      busy = true;
+      try {
+        const response = await fetch('/api/aircraft/systems',
+          { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error('Systémová telemetrie není dostupná');
+        const result: unknown = await response.json();
+        if (!closed) setEvidence(readPhaseEvidence(result, aircraft, Date.now()));
+      } catch {
+        if (!closed) setEvidence(null);
+      } finally { busy = false; }
+    };
+    void refresh();
+    const interval = window.setInterval(() => { void refresh(); }, 2000);
+    return () => { closed = true; controller.abort(); window.clearInterval(interval); };
+  }, [live, aircraft]);
+
+  // Pomalá 1Hz SimConnect data doplňují již existující rychlý WebSocket,
+  // nikoli další SimConnect subscription. Staré nebo cizí letadlo se ignoruje.
+  const currentEvidence = live && telemetry && evidence?.aircraft === aircraft
+    && Date.now() - evidence.observedAtMs < 5000 ? evidence : null;
+  const phase = pilotPhase(live && telemetry ? {
+    ...telemetry,
+    onGround: currentEvidence?.onGround ?? null,
+    altitudeAglFeet: currentEvidence?.altitudeAglFeet ?? null,
+  } : null);
   const display = (n: number | undefined, unit: string) =>
     n != null && Number.isFinite(n) && live ? Math.round(n).toLocaleString('cs-CZ') + ' ' + unit : '—';
   return <section className="pilot-assistant">
