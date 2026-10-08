@@ -21,6 +21,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
     private bool _checking;
     private bool _applyingUpdate;
     private bool _exiting;
+    private bool _verifyingUpdate;
 
     public CompanionTrayContext()
     {
@@ -131,6 +132,8 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
         AdminControl.WriteStatus("idle", "Připraveno ke kontrole aktualizací.");
         _bridge.EnsureStarted();
+        _verifyingUpdate = UpdateRecoveryJournal.Load() is not null;
+        if (_verifyingUpdate) _ = VerifyUpdatedHostAsync();
         _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
 
         _webRequestTimer = new System.Windows.Forms.Timer { Interval = 1800 };
@@ -308,6 +311,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
     private async Task CheckUpdatesAsync(bool force = false, bool fromWeb = false)
     {
+        if (_verifyingUpdate) return; // Neopakovat update před ověřením nového hostitele.
         if (_exiting || (!_settings.AutomaticUpdates && !force))
             return;
 
@@ -404,12 +408,67 @@ internal sealed class CompanionTrayContext : ApplicationContext
         }
     }
 
+    /// <summary>
+    /// Aktualizace je potvrzena teprve po lokálním HTTP health a web smoke.
+    /// V případě selhání vypneme budoucí automatické aktualizace, nikoliv
+    /// automaticky neověřeně manipulujeme s instalací.
+    /// </summary>
+    private async Task VerifyUpdatedHostAsync()
+    {
+        using var handler=new HttpClientHandler { UseProxy=false };
+        using var client=new HttpClient(handler) { Timeout=TimeSpan.FromSeconds(3) };
+        var healthy=false;
+        for(var attempt=0;attempt<10&&!_exiting;attempt++)
+        {
+            try
+            {
+                using var a=await client.GetAsync("http://127.0.0.1:8765/api/health/overview");
+                using var b=await client.GetAsync("http://127.0.0.1:8765/admin");
+                if(a.IsSuccessStatusCode && b.IsSuccessStatusCode)
+                {
+                    healthy=true; break;
+                }
+            }
+            catch(HttpRequestException) { /* bridge se teprve spouští */ }
+            catch(TaskCanceledException) { /* krátký health timeout */ }
+            if(attempt<9)await Task.Delay(3000);
+        }
+        if (_exiting)return;
+        if (healthy)
+        {
+            UpdateRecoveryJournal.Confirm();
+            EventLogFile.Write("C33: start po aktualizaci potvrzen health + web.");
+        }
+        else
+        {
+            _settings.AutomaticUpdates=false;
+            _settings.Save();
+            _automaticUpdates.Checked=false;
+            _pendingUpdate=null;
+            UpdateRecoveryJournal.MarkFailed();
+            _updateStatus.Text="Po aktualizaci selhala kontrola webu – automatické aktualizace vypnuty";
+            AdminControl.WriteStatus("error",
+                "Po aktualizaci selhal lokální smoke test. Další aktualizace jsou pozastaveny.");
+            EventLogFile.Write("C33: neověřený start; automatické aktualizace vypnuty, rollback není dostupný.");
+            ShowUpdateBalloon("Po aktualizaci nebyl potvrzen web. Automatické aktualizace pozastaveny.",
+                ToolTipIcon.Warning);
+        }
+        _verifyingUpdate=false;
+    }
+
     private void ApplyDownloadedUpdate()
     {
         if (!UpdatePolicy.MayApply(_pendingUpdate is not null, _exiting, _applyingUpdate)
             || _updateManager is null)
             return;
 
+        if(!UpdateRecoveryJournal.TryArm(_pendingUpdate!.TargetFullRelease.Version.ToString()))
+        {
+            _updateStatus.Text="Nelze vytvořit bezpečnostní záznam aktualizace";
+            AdminControl.WriteStatus("error","Aktualizaci nelze bezpečně zaznamenat.");
+            EventLogFile.Write("C33: update blocked because journal cannot be armed.");
+            return;
+        }
         _applyingUpdate = true;
         try
         {
@@ -427,6 +486,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            UpdateRecoveryJournal.MarkFailed();
             EventLogFile.Write($"Update apply failure: {ex}");
             _icon.Visible = true;
             _bridge.EnsureStarted();
