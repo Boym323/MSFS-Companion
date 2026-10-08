@@ -150,6 +150,20 @@ public sealed class AviationCatalog(ILogger<AviationCatalog> logger)
         }
     }
 
+    public object CacheHealth()
+    {
+        var snapshot = Volatile.Read(ref _snapshot);
+        return new {
+            available = snapshot is not null,
+            updatedAt = snapshot?.UpdatedAt,
+            stale = snapshot is not null &&
+                DateTimeOffset.UtcNow - snapshot.UpdatedAt > TimeSpan.FromHours(48),
+            refreshRunning = _refreshTask is { IsCompleted: false },
+            lastError = _error,
+            airports = snapshot?.Airports.Length ?? 0
+        };
+    }
+
     public object Nearby(double lat, double lon, double radiusKm)
     {
         RequestRefresh();

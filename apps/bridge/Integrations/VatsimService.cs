@@ -28,6 +28,14 @@ public sealed class VatsimService
         return c;
     }
 
+    public object CacheHealth() => new {
+        loaded = _fetchedAt != DateTimeOffset.MinValue,
+        updatedAt = _fetchedAt == DateTimeOffset.MinValue ? (DateTimeOffset?)null : _fetchedAt,
+        stale = _fetchedAt != DateTimeOffset.MinValue &&
+            DateTimeOffset.UtcNow - _fetchedAt > TimeSpan.FromMinutes(3),
+        lastError = _lastError
+    };
+
     public async Task<object> NearbyAsync(double lat, double lon, double radiusKm,
         string? airport, CancellationToken ct)
     {
