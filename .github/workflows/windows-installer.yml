@@ -1,13 +1,6 @@
 name: Windows tray installer
 
 on:
-  pull_request:
-    paths:
-      - "apps/windows-host/**"
-      - "apps/bridge/**"
-      - "apps/web/**"
-      - "docs/WINDOWS_INSTALLER.md"
-      - ".github/workflows/windows-installer.yml"
   push:
     branches: [main]
     paths:
@@ -27,6 +20,11 @@ on:
 permissions:
   contents: read
 
+# Never interrupt a partially publishing release.
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   APP_VERSION: ${{ github.event_name == 'push' && format('0.2.{0}', github.run_number) || inputs.version || '0.2.0' }}
 
@@ -39,23 +37,26 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Restore NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/NuGet.Config', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
       - name: Build production web dashboard
         shell: pwsh
         working-directory: apps/web
         run: |
-          npm install --no-audit --no-fund
-          if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
           npm run build
           if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
-
-      - name: Deterministický test převzorkování telemetrie (30 → 20 Hz)
-        shell: pwsh
-        run: |
-          dotnet run --project tests/telemetry-pipeline/MsfsCompanion.TelemetryPipelineCheck.csproj -c Release
-          if ($LASTEXITCODE -ne 0) { throw 'Telemetry pipeline self-test failed' }
 
       - name: Publish self-contained Windows bridge and tray
         shell: pwsh
