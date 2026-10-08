@@ -23,8 +23,16 @@ public static class CapabilityEndpoints
             var advanced = await avionics.StatusAdvancedAsync(ct);
             var g1000 = await avionics.StatusAsync(ct);
             var availableIds = advanced.AvailableActions.Concat(g1000.AvailableActions);
-            return Results.Ok(new { connected, profile, status = advanced.Status,
-                entries = CapabilityCatalog.ForAircraft(aircraft, availableIds) });
+            var entries = CapabilityCatalog.ForAircraft(aircraft, availableIds);
+            var assessment = CompatibilityAssessment.Evaluate(connected, aircraft,
+                g1000, advanced, entries.Count(e => e.Enumerated), entries.Length,
+                DateTimeOffset.UtcNow);
+            return Results.Ok(new {
+                connected, aircraft, profile, status = assessment.State,
+                assessment, scannedAt = g1000.CheckedAt,
+                g1000Status = g1000.Status, advancedStatus = advanced.Status,
+                entries
+            });
         });
     }
 }
