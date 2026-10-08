@@ -12,6 +12,8 @@ export type TelemetrySnapshot = {
   // B10: pouze u nových záznamů letu; živý PFD je nevyužívá.
   altitudeAglFeet?: number | null;
   onGround?: boolean | null;
+  touchdownRateFpm?: number | null;
+  gForce?: number | null;
 };
 
 export type TelemetryStatus = {

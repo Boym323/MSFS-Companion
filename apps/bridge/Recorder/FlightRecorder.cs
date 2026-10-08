@@ -24,13 +24,19 @@ public sealed record FlightRecordedSample(
     double Latitude, double Longitude, double AirspeedKnots,
     double AltitudeFeet, double VerticalSpeedFeetPerMinute,
     double HeadingDegrees, double PitchDegrees, double BankDegrees,
-    double? AltitudeAglFeet = null, bool? OnGround = null)
+    double? AltitudeAglFeet = null, bool? OnGround = null,
+    double? TouchdownRateFpm = null, double? GForce = null)
 {
-    public static FlightRecordedSample From(TelemetrySnapshot sample, AircraftSystemsSnapshot? systems) =>
+    public static FlightRecordedSample From(TelemetrySnapshot sample, AircraftSystemsSnapshot? systems,
+        LandingObservation? landing = null) =>
         new(sample.TimestampUtc, sample.Aircraft, sample.Latitude, sample.Longitude,
             sample.AirspeedKnots, sample.AltitudeFeet, sample.VerticalSpeedFeetPerMinute,
             sample.HeadingDegrees, sample.PitchDegrees, sample.BankDegrees,
-            systems?.AltitudeAglFeet, systems?.OnGround);
+            systems?.AltitudeAglFeet, systems?.OnGround,
+            landing?.TouchdownAtUtc is { } touchdownAt &&
+                (sample.TimestampUtc - touchdownAt).TotalSeconds is >= -2 and < 4
+                ? landing.TouchdownRateFpm : null,
+            landing?.GForce);
 }
 
 public sealed record FlightDetail(FlightSummary Summary, IReadOnlyList<FlightRecordedSample> Samples);
@@ -43,6 +49,7 @@ public sealed class FlightRecorder(
     TelemetryStore store,
     TelemetryHealth health,
     AircraftSystemsStore systemsStore,
+    LandingStore landingStore,
     ITelemetrySource source,
     ILogger<FlightRecorder> logger) : BackgroundService
 {
@@ -158,7 +165,8 @@ public sealed class FlightRecorder(
                 && (now - slow.TimestampUtc).TotalSeconds is >= -1 and < 3
                 ? slow : null;
             File.AppendAllText(DataPath(summary.Id),
-                JsonSerializer.Serialize(FlightRecordedSample.From(sample, freshSystems), JsonOptions)
+                JsonSerializer.Serialize(FlightRecordedSample.From(sample, freshSystems,
+                    source.Mode == "simconnect" ? landingStore.Fresh(now) : null), JsonOptions)
                     + Environment.NewLine);
             _active = updated;
             _previous = sample;

@@ -20,6 +20,7 @@ builder.Services.AddSingleton<ControlAccess>();
 builder.Services.AddSingleton<NativeCockpitEventSender>();
 builder.Services.AddSingleton<G1000Service>();
 builder.Services.AddSingleton<NavigationStore>();
+builder.Services.AddSingleton<LandingStore>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -94,6 +95,8 @@ app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
 
 // Oddělené 1Hz systémové údaje (pouze čtení, bez kokpitových příkazů).
+app.MapGet("/api/landings/latest", (LandingStore landings) => Results.Ok(landings.Status()));
+
 app.MapGet("/api/aircraft/systems", (AircraftSystemsStore systemsStore) =>
     Results.Ok(systemsStore.Status()));
 

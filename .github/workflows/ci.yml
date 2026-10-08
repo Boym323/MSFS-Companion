@@ -115,6 +115,9 @@ jobs:
       - name: Deterministický test 30 FPS příjmu a 20 Hz publikace
         if: needs.changes.outputs.telemetry == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/telemetry-pipeline/MsfsCompanion.TelemetryPipelineCheck.csproj --configuration Release
+      - name: C10 Touchdown rate a G-force
+        if: needs.changes.outputs.telemetry == 'true' || needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/landing-logic/MsfsCompanion.LandingCheck.csproj --configuration Release
       - name: C1/C2 testy validace příkazů
         if: needs.changes.outputs.controls == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/controls-logic/MsfsCompanion.ControlsCheck.csproj --configuration Release

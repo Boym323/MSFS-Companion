@@ -7,6 +7,7 @@ const duration = (seconds: number) => seconds > 0 ? `${Math.round(seconds / 60)}
 
 export default function FlightInsights({ samples, mode }: { samples: TelemetrySnapshot[]; mode: 'mock' | 'simconnect' }) {
   const result = analyzeFlight(samples);
+  const landings = result.events.filter(event => event.kind === 'touchdown');
   return (
     <section className="flight-insights" aria-label="Letová analýza">
       <div className="flight-insights-heading">
@@ -20,6 +21,19 @@ export default function FlightInsights({ samples, mode }: { samples: TelemetrySn
         <div><small>Nejvyšší stoupání</small><strong>{Math.round(result.climbPeakFpm)} FT/MIN</strong></div>
         <div><small>Nejvyšší klesání</small><strong>{Math.round(result.descentPeakFpm)} FT/MIN</strong></div>
       </div>
+      <h4>C10 · Přistávací analytika</h4>
+      {landings.length === 0
+        ? <p>Nemáme potvrzený kontakt se zemí. U starších letů mohou chybět
+          rozšířené touchdown SimVars.</p>
+        : <div className="flight-insights-grid">{landings.map((landing, index) =>
+          <div key={landing.at + index}>
+            <small>Dosednutí {index + 1} · {new Date(landing.at).toLocaleTimeString('cs-CZ')}</small>
+            <strong>{landing.touchdownRateFpm == null
+              ? '— ft/min'
+              : Math.round(landing.touchdownRateFpm) + ' ft/min'}</strong>
+            <small>G poblíž dosednutí: {landing.gForce == null ? '—' : landing.gForce.toFixed(2)}
+              {' '}· vzorková hodnota, nikoli peak G</small>
+          </div>)}</div>}
       <h4>Rozpoznané události</h4>
       {result.events.length === 0
         ? <p>V tomto záznamu není dost podkladů pro spolehlivé rozpoznání událostí.</p>
@@ -33,7 +47,7 @@ export default function FlightInsights({ samples, mode }: { samples: TelemetrySn
         Pozemní fáze a kontakt se zemí lze určit pouze tam, kde nové záznamy obsahují
         čerstvou SimVar „SIM ON GROUND“. Starší lety bez tohoto údaje nemohou vykazovat
         potvrzené vzlety či přistání. Přiblížení je jen orientační odhad z AGL, IAS a VS.
-        Při převzorkování dlouhého letu jsou časy přibližné.
+        Při převzorkování dlouhého letu jsou časy přibližné. C10 používá poslední známou normálovou rychlost dosednutí ze SimConnectu; záznam po 1 s nemusí zachytit odskok ani špičkové přetížení.
       </p>
     </section>
   );
