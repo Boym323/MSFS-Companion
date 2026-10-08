@@ -200,3 +200,11 @@ jobs:
             nuget-${{ runner.os }}-
       - name: Compile Windows tray host (no installer)
         run: dotnet build apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release --nologo
+      - name: Verify Windows host recovery policy
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Get-ChildItem 'apps/windows-host/bin/Release' -Recurse -File -Filter 'MsfsCompanion.WindowsHost.exe' | Select-Object -First 1
+          if ($null -eq $exe) { throw 'Windows host executable not found' }
+          $test = Start-Process -FilePath $exe.FullName -ArgumentList '--self-test' -PassThru -Wait
+          if ($test.ExitCode -ne 0) { throw "Recovery self-test failed: $($test.ExitCode)" }
