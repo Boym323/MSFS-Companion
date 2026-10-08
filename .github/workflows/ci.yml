@@ -1,30 +1,131 @@
 name: CI
 
+# PR checks are selective. Weekly or manual runs exercise the complete suite.
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect changed modules
+    runs-on: ubuntu-latest
+    outputs:
+      bridge: ${{ steps.paths.outputs.bridge }}
+      web: ${{ steps.paths.outputs.web }}
+      host: ${{ steps.paths.outputs.host }}
+      all: ${{ steps.paths.outputs.all }}
+      telemetry: ${{ steps.paths.outputs.telemetry }}
+      controls: ${{ steps.paths.outputs.controls }}
+      g1000: ${{ steps.paths.outputs.g1000 }}
+      navigation: ${{ steps.paths.outputs.navigation }}
+      smoke: ${{ steps.paths.outputs.smoke }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Determine which checks are needed
+        id: paths
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          bridge=false; web=false; host=false; all=false
+          telemetry=false; controls=false; g1000=false; navigation=false; smoke=false
+
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            bridge=true; web=true; host=true; all=true
+            telemetry=true; controls=true; g1000=true; navigation=true; smoke=true
+          else
+            git diff --name-only "$BASE_SHA...$HEAD_SHA" > changed-files.txt
+            echo "Changed files:"
+            cat changed-files.txt
+            while IFS= read -r path; do
+              case "$path" in
+                .github/workflows/*|global.json|Directory.Build.*|Directory.Packages.*)
+                  bridge=true; web=true; host=true; all=true; smoke=true ;;
+                apps/web/*)
+                  web=true ;;
+                apps/windows-host/*)
+                  host=true; bridge=true; all=true; smoke=true ;;
+                apps/bridge/*)
+                  bridge=true; smoke=true
+                  case "$path" in
+                    apps/bridge/Telemetry/*) telemetry=true ;;
+                    apps/bridge/Controls/*) controls=true ;;
+                    apps/bridge/Avionics/*) g1000=true ;;
+                    apps/bridge/Navigation/*) navigation=true ;;
+                    *) all=true ;;
+                  esac ;;
+                tests/telemetry-pipeline/*)
+                  bridge=true; telemetry=true ;;
+                tests/controls-logic/*)
+                  bridge=true; controls=true ;;
+                tests/g1000-logic/*)
+                  bridge=true; g1000=true ;;
+                tests/navigation-logic/*)
+                  bridge=true; navigation=true ;;
+                tests/*)
+                  bridge=true; smoke=true ;;
+              esac
+            done < changed-files.txt
+          fi
+
+          {
+            echo "bridge=$bridge"
+            echo "web=$web"
+            echo "host=$host"
+            echo "all=$all"
+            echo "telemetry=$telemetry"
+            echo "controls=$controls"
+            echo "g1000=$g1000"
+            echo "navigation=$navigation"
+            echo "smoke=$smoke"
+          } >> "$GITHUB_OUTPUT"
+
   bridge:
+    name: bridge
+    needs: changes
+    if: needs.changes.outputs.bridge == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Restore NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/NuGet.Config', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
       - name: Build bridge
         run: dotnet build apps/bridge/MsfsCompanion.Bridge.csproj --configuration Release --nologo
       - name: Deterministický test 30 FPS příjmu a 20 Hz publikace
+        if: needs.changes.outputs.telemetry == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/telemetry-pipeline/MsfsCompanion.TelemetryPipelineCheck.csproj --configuration Release
-
-      - name: C1/C2 deterministické testy validace příkazů
+      - name: C1/C2 testy validace příkazů
+        if: needs.changes.outputs.controls == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/controls-logic/MsfsCompanion.ControlsCheck.csproj --configuration Release
-      - name: C3 G1000 allowlist test
+      - name: C3 G1000 allowlist
+        if: needs.changes.outputs.g1000 == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/g1000-logic/MsfsCompanion.G1000Check.csproj --configuration Release
-      - name: C4 GPS navigace deterministický test
+      - name: C4 GPS navigace
+        if: needs.changes.outputs.navigation == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/navigation-logic/MsfsCompanion.NavigationCheck.csproj --configuration Release
-      - name: Runtime smoke tests (HTTP, WebSocket, mock telemetry)
+      - name: Runtime smoke tests (HTTP, WebSocket, mock)
+        if: needs.changes.outputs.smoke == 'true' || needs.changes.outputs.all == 'true'
         run: |
           set -euo pipefail
           recordings_dir="$(mktemp -d)"
@@ -34,18 +135,44 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_*.py' -v
 
   web:
+    name: web
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Install dependencies
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install locked dependencies
         working-directory: apps/web
-        run: npm install --no-audit --no-fund
-      - name: Ověření úhlových převodů a interpolace PFD
+        run: npm ci --no-audit --no-fund
+      - name: Webové regresní testy
         working-directory: apps/web
         run: node --experimental-strip-types --test src/pfd/math.test.mjs src/pfd/layout.test.mjs src/map/geo.test.mjs src/map/routeMap.test.mjs src/map/pln.test.mjs src/aircraft/compatibility.test.mjs src/flights/analysis.test.mjs
       - name: Build frontend
         working-directory: apps/web
         run: npm run build
+
+  windows-host:
+    name: Windows host compile
+    needs: changes
+    if: needs.changes.outputs.host == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore NuGet cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/NuGet.Config', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+      - name: Compile Windows tray host (no installer)
+        run: dotnet build apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release --nologo
