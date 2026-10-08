@@ -12,6 +12,11 @@ builder.Services.AddHostedService(
     provider => provider.GetRequiredService<MockTelemetrySource>());
 
 var app = builder.Build();
+
+// The Windows installer bundles the Vite production build into wwwroot.
+// Vite development continues to proxy requests from port 5173 as before.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseWebSockets(new WebSocketOptions
 {
     KeepAliveInterval = TimeSpan.FromSeconds(20)
@@ -67,5 +72,9 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
         // Browser disconnected unexpectedly. Reconnection is handled by the UI.
     }
 });
+
+// API and WebSocket endpoints are registered above. Unknown client-side routes
+// use the production React entry point when the static build is present.
+app.MapFallbackToFile("index.html");
 
 app.Run();

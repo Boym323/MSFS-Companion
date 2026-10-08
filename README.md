@@ -67,6 +67,16 @@ cockpit-control endpoints in this milestone.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Windows background installation and updates
+
+The Windows tray app is under development in `apps/windows-host`, with an
+installer workflow at `.github/workflows/windows-installer.yml`.
+It starts automatically at Windows login, supervises the bridge, and defers
+updates while MSFS is running. An approved public **binary-only** update
+feed must be configured before automatic downloads are possible; the
+private source repository cannot be queried anonymously. See
+[Windows installer and updates](docs/WINDOWS_INSTALLER.md).
+
 ## Roadmap
 
 1. Foundation: mock bridge, live React dashboard, CI.

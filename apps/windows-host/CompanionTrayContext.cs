@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Drawing;
 using Velopack;
+using Velopack.Sources;
 
 namespace MsfsCompanion.WindowsHost;
 
@@ -30,6 +32,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         {
             _settings.AutomaticUpdates = _automaticUpdates.Checked;
             _settings.Save();
+            if (!_settings.AutomaticUpdates) _pendingUpdate = null;
             _updateStatus.Text = _settings.AutomaticUpdates ? "Aktualizace: zapnuté" : "Aktualizace: vypnuté";
             if (_settings.AutomaticUpdates) _ = CheckUpdatesAsync();
         };
@@ -128,6 +131,18 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _ = CheckUpdatesAsync();
     }
 
+    private static UpdateManager CreateUpdateManager(string feedUrl)
+    {
+        var uri = new Uri(feedUrl);
+        if (uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            // Public binary-only GitHub repository. Never embed a PAT.
+            return new UpdateManager(new GithubSource(feedUrl, null, false));
+        }
+
+        return new UpdateManager(feedUrl);
+    }
+
     private async Task CheckUpdatesAsync(bool force = false)
     {
         if (_checking || _exiting || ( !_settings.AutomaticUpdates && !force))
@@ -148,7 +163,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _checking = true;
         try
         {
-            _updateManager ??= new UpdateManager(_settings.UpdateFeedUrl);
+            _updateManager ??= CreateUpdateManager(_settings.UpdateFeedUrl);
             if (!_updateManager.IsInstalled)
             {
                 _updateStatus.Text = "Aktualizace fungují po instalaci Setup.exe";
