@@ -231,7 +231,7 @@ export default function Pfd({ telemetry }: { telemetry: TelemetrySnapshot | null
               return <g key={rate}>
                 <line x1="919" x2={major ? 937 : 931} y1={y} y2={y}
                   stroke="#c5dceb" strokeWidth={rate === 0 ? 3 : 1.6} />
-                <text x="944" y={y + 4} fontSize="12">{rate === 0 ? '0' : Math.abs(rate / 1000)}</text>
+                <text x="944" y={y + 4} fontSize="12">{rate === 0 ? '0' : (rate > 0 ? '+' : '−') + Math.abs(rate / 1000)}</text>
               </g>;
             })}
             <path d={'M 908 ' + (vsNeedleY(flight.vs) - 8)
