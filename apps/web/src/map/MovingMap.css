@@ -69,3 +69,5 @@
 .moving-map-vatsim-legend a { color:#a9d8ec; text-decoration:underline; }
 
 .moving-map-sigmet-status{font-size:12px;color:#eecb9a;line-height:1.5;margin:7px 0}
+
+.moving-map-traffic-status,.moving-map-traffic-legend{color:#a1f0b9;font-size:12px;line-height:1.6;margin:8px 0}.moving-map-traffic-legend span{font-size:15px;color:#a1f0b9}
