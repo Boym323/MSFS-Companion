@@ -7,8 +7,8 @@ import CockpitControls from '../controls/CockpitControls';
 import G1000Remote from '../g1000/G1000Remote';
 import AdvancedAvionics from '../avionics/AdvancedAvionics';
 import './CockpitWorkspace.css';
+import { normalizeWorkspace, type PanelId, type Layout } from './layout';
 
-type PanelId = 'pfd' | 'map' | 'aircraft' | 'controls' | 'g1000' | 'avionics';
 const panels: { id: PanelId; name: string; path: string }[] = [
   { id:'pfd', name:'PFD', path:'/pfd' },
   { id:'map', name:'Mapa', path:'/map' },
@@ -17,27 +17,12 @@ const panels: { id: PanelId; name: string; path: string }[] = [
   { id:'g1000', name:'Garmin G1000', path:'/g1000' },
   { id:'avionics', name:'Další avionika', path:'/avionics' },
 ];
-const allowed = new Set(panels.map(p => p.id));
 const presets: Record<string, PanelId[]> = {
   'Pilot / PFD + mapa': ['pfd','map'],
   'Navigace': ['map','aircraft'],
   'IFR avionika': ['pfd','controls','g1000'],
 };
 const storageKey = 'msfs-companion-workspace-v1';
-type Layout = { columns: 1 | 2; visible: PanelId[] };
-export function normalizeWorkspace(input: unknown): Layout {
-  if (typeof input !== 'object' || !input) return { columns:1, visible:['pfd','map'] };
-  const value = input as Partial<Layout>;
-  const columns = value.columns === 2 ? 2 : 1;
-  const visible: PanelId[] = [];
-  if (Array.isArray(value.visible)) {
-    for (const item of value.visible) {
-      if (allowed.has(item) && !visible.includes(item)) visible.push(item);
-      if (visible.length === 3) break; // bounded rendering on iPad
-    }
-  }
-  return { columns, visible: visible.length ? visible : ['pfd','map'] };
-}
 function saved(): Layout {
   try {
     const raw = window.localStorage.getItem(storageKey);
