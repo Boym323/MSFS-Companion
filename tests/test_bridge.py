@@ -125,6 +125,17 @@ class BridgeSmokeTests(unittest.TestCase):
             urllib.request.urlopen(BASE + "/ws", timeout=3)
         self.assertEqual(error.exception.code, 400)
 
+    def test_admin_update_endpoints_are_unavailable_without_windows_host(self):
+        # Samostatně spuštěný bridge nesmí zpřístupnit vzdálenou správu.
+        for method, path in [
+            ("GET", "/api/admin/updates/status"),
+            ("POST", "/api/admin/updates/check"),
+        ]:
+            request = urllib.request.Request(BASE + path, method=method)
+            with self.assertRaises(urllib.error.HTTPError) as error:
+                urllib.request.urlopen(request, timeout=3)
+            self.assertEqual(error.exception.code, 404)
+
     def test_no_unauthenticated_command_api(self):
         payload = b'{"command":"autopilot.heading.set","value":90}'
         request = urllib.request.Request(
