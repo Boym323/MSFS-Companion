@@ -53,3 +53,20 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
   .metric { min-height: 115px; }
   .reading { margin-top: 15px; }
 }
+
+/* Ovládání aktualizací na Windows – funkční i na užším displeji. */
+.update-panel { margin: -15px 0 40px; background: #101a2d; border: 1px solid #294261; border-radius: 14px; padding: 22px; }
+.update-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.update-heading h2 { margin-bottom: 8px; }
+.update-heading p, .update-hint { color: #93a6c4; font-size: 12px; line-height: 1.6; }
+.update-panel button { cursor: pointer; color: #061426; background: #82cef7; border: 1px solid #94d5f7; padding: 11px 15px; border-radius: 9px; font-weight: 650; font: inherit; }
+.update-panel button:disabled { opacity: .6; cursor: not-allowed; }
+.update-panel .update-secondary { color: #d5e7f8; background: #213751; border-color: #345276; }
+.update-form { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 480px; gap: 10px; margin-top: 12px; }
+.update-form label { color: #b6c8e3; font-size: 13px; }
+.update-form input[type="password"] { min-width: 0; background: #091629; border: 1px solid #46617e; color: #f1f8ff; padding: 12px; border-radius: 9px; }
+.update-checkbox { display: flex; align-items: center; gap: 9px; }
+.update-status { display: grid; gap: 7px; justify-items: start; margin-top: 15px; }
+.update-status p { margin: 0; color: #b6c8e3; font-size: 13px; }
+.update-notice { font-size: 13px; color: #9edbf9; margin-top: 16px; }
+.update-hint { margin: 17px 0 0; }
