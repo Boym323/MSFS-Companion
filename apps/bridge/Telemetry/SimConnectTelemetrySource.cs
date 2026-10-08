@@ -13,6 +13,7 @@ public sealed class SimConnectTelemetrySource(
     TelemetryStore store,
     TelemetryHealth health,
     AircraftSystemsStore systemsStore,
+    RadioStore radioStore,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -31,6 +32,7 @@ public sealed class SimConnectTelemetrySource(
         {
             health.StartConnecting();
             systemsStore.Reset();
+            radioStore.Reset();
             store.Reset("Čekám na MSFS 2020");
             try
             {
@@ -47,6 +49,7 @@ public sealed class SimConnectTelemetrySource(
             }
 
             systemsStore.Reset();
+            radioStore.Reset();
             store.Reset("MSFS není připojen");
             if (stoppingToken.IsCancellationRequested)
                 break;
@@ -121,6 +124,7 @@ public sealed class SimConnectTelemetrySource(
             cancellationToken: stoppingToken);
 
         using var systemsSubscription = SubscribeSystems(client, stoppingToken);
+        using var radioSubscription = SubscribeRadios(client, stoppingToken);
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -152,6 +156,26 @@ public sealed class SimConnectTelemetrySource(
 
             store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
             health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
+        }
+    }
+
+    private ISimVarSubscription? SubscribeRadios(SimConnectClient client, CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<SimConnectRadioData>(
+                SimConnectPeriod.Second,
+                data =>
+                {
+                    if (data.IsValid())
+                        radioStore.Update(data, DateTimeOffset.UtcNow);
+                },
+                cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Radio SimVars nejsou dostupné; PFD zůstává v provozu.");
+            return null;
         }
     }
 

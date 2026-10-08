@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using MsfsCompanion.Bridge.Telemetry;
 using MsfsCompanion.Bridge.Admin;
+using MsfsCompanion.Bridge.Controls;
 using MsfsCompanion.Bridge.Recorder;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<TelemetryStore>();
 builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
+builder.Services.AddSingleton<RadioStore>();
+builder.Services.AddSingleton<ControlAccess>();
+builder.Services.AddSingleton<NativeCockpitEventSender>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -85,6 +89,12 @@ app.MapGet("/api/telemetry", (TelemetryStore store) =>
 // Oddělené 1Hz systémové údaje (pouze čtení, bez kokpitových příkazů).
 app.MapGet("/api/aircraft/systems", (AircraftSystemsStore systemsStore) =>
     Results.Ok(systemsStore.Status()));
+
+// C1: radio readback bez oprávnění k zápisu.
+app.MapGet("/api/radios", (RadioStore radios) => Results.Ok(radios.Status()));
+
+// Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
+app.MapCockpitControls();
 
 // Pouze čtení. Záznam probíhá na Windows i bez otevřeného prohlížeče.
 app.MapGet("/api/flights", (FlightRecorder recorder) =>
