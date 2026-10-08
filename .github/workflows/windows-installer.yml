@@ -136,6 +136,40 @@ jobs:
             $bridgeProcess.Dispose()
           }
 
+      - name: Ověřit live SimConnect režim bez simulátoru
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path staging/app/bridge/SimConnect.dll)) { throw 'Chybí SimConnect.dll v balíčku bridge' }
+          $env:MSFS_COMPANION_TELEMETRY_MODE = 'simconnect'
+          $env:Kestrel__Endpoints__Http__Url = 'http://127.0.0.1:8766'
+          $exe = (Resolve-Path staging/app/bridge/MsfsCompanion.Bridge.exe).Path
+          $workDir = (Resolve-Path staging/app/bridge).Path
+          $simProcess = Start-Process -FilePath $exe -WorkingDirectory $workDir -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Milliseconds 250
+              try {
+                $status = Invoke-RestMethod 'http://127.0.0.1:8766/api/status' -TimeoutSec 2
+                if ($status.mode -eq 'simconnect') { $ready = $true; break }
+              } catch { }
+            }
+            if (!$ready) { throw 'SimConnect bridge nedokázal nastartovat' }
+            Start-Sleep -Seconds 2
+            $status = Invoke-RestMethod 'http://127.0.0.1:8766/api/status' -TimeoutSec 5
+            if ($status.mode -ne 'simconnect' -or $status.connected -ne $false) { throw 'SimConnect bez MSFS nesmí předstírat připojení' }
+            if ($null -ne $status.lastTelemetryUtc -or $status.samplesReceived -ne 0) { throw 'SimConnect bez MSFS vrátil falešné letové vzorky' }
+            $sample = Invoke-RestMethod 'http://127.0.0.1:8766/api/telemetry' -TimeoutSec 5
+            if ($sample.aircraft -like '*mock*') { throw 'Windows live režim se nečekaně přepnul do mocku' }
+            Write-Host 'SimConnect režim bez MSFS správně čeká; žádná falešná data'
+          } finally {
+            if (!$simProcess.HasExited) { Stop-Process -Id $simProcess.Id -Force }
+            $simProcess.Dispose()
+            Remove-Item Env:MSFS_COMPANION_TELEMETRY_MODE -ErrorAction SilentlyContinue
+            Remove-Item Env:Kestrel__Endpoints__Http__Url -ErrorAction SilentlyContinue
+          }
+
       - name: Verify safety policy without running the simulator
         shell: pwsh
         run: |
