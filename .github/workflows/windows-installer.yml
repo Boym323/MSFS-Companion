@@ -1,0 +1,86 @@
+name: Windows tray installer
+
+on:
+  pull_request:
+    paths:
+      - "apps/windows-host/**"
+      - "apps/bridge/**"
+      - "apps/web/**"
+      - "docs/WINDOWS_INSTALLER.md"
+      - ".github/workflows/windows-installer.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/windows-host/**"
+      - "apps/bridge/**"
+      - "apps/web/**"
+      - ".github/workflows/windows-installer.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "SemVer of the package to build (e.g. 0.2.0)"
+        required: true
+        default: "0.2.0"
+
+permissions:
+  contents: read
+
+jobs:
+  windows-installer:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      APP_VERSION: ${{ inputs.version || '0.2.0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build production web dashboard
+        shell: pwsh
+        working-directory: apps/web
+        run: |
+          npm install --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
+
+      - name: Publish self-contained Windows bridge and tray
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:APP_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid SemVer version' }
+          dotnet publish apps/bridge/MsfsCompanion.Bridge.csproj -c Release -r win-x64 --self-contained true -o staging/app/bridge
+          if ($LASTEXITCODE -ne 0) { throw 'Bridge publish failed' }
+          dotnet publish apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release -r win-x64 --self-contained true -o staging/app
+          if ($LASTEXITCODE -ne 0) { throw 'Tray host publish failed' }
+          New-Item -ItemType Directory -Force staging/app/bridge/wwwroot | Out-Null
+          Copy-Item apps/web/dist/* staging/app/bridge/wwwroot/ -Recurse -Force
+          if (!(Test-Path staging/app/MsfsCompanion.WindowsHost.exe)) { throw 'Tray executable missing' }
+          if (!(Test-Path staging/app/bridge/MsfsCompanion.Bridge.exe)) { throw 'Bridge executable missing' }
+          if (!(Test-Path staging/app/bridge/wwwroot/index.html)) { throw 'Frontend missing' }
+
+      - name: Verify safety policy without running the simulator
+        shell: pwsh
+        run: |
+          & ./staging/app/MsfsCompanion.WindowsHost.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Update safety policy test failed' }
+
+      - name: Package Velopack installer and update feed
+        shell: pwsh
+        run: |
+          dotnet tool install --global vpk --version 1.2.161
+          if ($LASTEXITCODE -ne 0) { throw 'Installing vpk failed' }
+          vpk pack --packId Boym323.MsfsCompanion --packVersion $env:APP_VERSION --packDir staging/app --mainExe MsfsCompanion.WindowsHost.exe --packTitle "MSFS Companion" --packAuthors "Boym323" --shortcuts "Startup,StartMenuRoot" --channel win --outputDir staging/releases
+          if ($LASTEXITCODE -ne 0) { throw 'Velopack pack failed' }
+
+      - name: Upload private installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSFS-Companion-Windows-Installer
+          path: staging/releases/*
+          retention-days: 14
+          if-no-files-found: error
