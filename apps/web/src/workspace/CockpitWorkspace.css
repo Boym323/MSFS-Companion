@@ -1,0 +1,19 @@
+.cockpit-workspace { display:grid; gap:20px; margin-bottom:40px; }
+.cockpit-workspace-settings { background:#0f1d30; border:1px solid #36506e; border-radius:14px; padding:18px; display:grid; gap:14px; }
+.cockpit-workspace-settings h2 { margin:0; }
+.cockpit-workspace-settings p { margin:0; color:#aec3de; font-size:13px; line-height:1.6; }
+.cockpit-workspace-choices { display:flex; gap:8px; flex-wrap:wrap; }
+.cockpit-workspace-settings fieldset { display:flex; gap:10px 16px; flex-wrap:wrap; border:1px solid #36506e; border-radius:10px; padding:14px; }
+.cockpit-workspace-settings legend { font-size:13px; color:#b2c7dc; }
+.cockpit-workspace-settings label { font-size:13px; color:#e0ecf9; display:flex; gap:8px; align-items:center; }
+.cockpit-workspace-settings input[type=checkbox] { width:18px; height:18px; }
+.cockpit-workspace-settings select { min-height:44px; padding:8px; color:#e8f5ff; background:#10243b; border:1px solid #35506e; border-radius:7px; }
+.cockpit-workspace button { padding:8px 12px; min-height:40px; border-radius:8px; border:1px solid #426487; color:#eaf4ff; background:#163550; cursor:pointer; }
+.cockpit-workspace button:disabled { opacity:.35; cursor:not-allowed; }
+.cockpit-workspace-panels { display:grid; gap:18px; grid-template-columns:minmax(0,1fr); }
+.cockpit-workspace-panel { min-width:0; overflow:hidden; padding:8px; border:1px solid #354860; border-radius:12px; }
+.cockpit-workspace-panel-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:5px 5px 14px; }
+.cockpit-workspace-panel-head div { display:flex; align-items:center; gap:6px; }
+.cockpit-workspace-panel-head a { font-size:12px; color:#a7d8ed; white-space:nowrap; }
+@media(min-width:1100px) { .cockpit-workspace-panels--2 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:620px) { .cockpit-workspace-panel-head { flex-wrap:wrap; } .cockpit-workspace-panel { padding:3px; } }

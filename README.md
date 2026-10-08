@@ -209,3 +209,10 @@ Nové read-only `/api/aircraft/profile` a panel `/aircraft` rozpoznávají
 kandidátní avioniku podle `TITLE`. Nejisté varianty zůstávají označené
 jako neověřené; profil sám o sobě nepovoluje G1000 ani jiné příkazy.
 Viz [C5 – profily letadel](docs/AIRCRAFT_C5.md).
+
+## Vlastní kokpit C11
+
+Na `/workspace` lze sestavit až tři panely (PFD, mapa, letadlo,
+COM/NAV, G1000 nebo další avionika), vybrat jeden či dva sloupce a
+přesouvat jejich pořadí. Rozložení se ukládá pouze v prohlížeči.
+Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
