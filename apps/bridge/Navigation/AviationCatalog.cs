@@ -164,6 +164,29 @@ public sealed class AviationCatalog(ILogger<AviationCatalog> logger)
             error = _error, features = FindNearby(data, lat, lon, radiusKm) };
     }
 
+    /// <summary>Lokální textový index nad již staženými daty, žádný další API fetch.</summary>
+    public object Search(string? query)
+    {
+        RequestRefresh();
+        var catalog = Volatile.Read(ref _snapshot);
+        if (catalog is null)
+            return new { available = false, source = Source, airports = Array.Empty<AirportData>() };
+        var term = (query ?? "").Trim();
+        if (term.Length is < 2 or > 70)
+            return new { available = true, source = Source, airports = Array.Empty<AirportData>() };
+        var exact = catalog.Airports
+            .Where(x => x.Ident.Equals(term, StringComparison.OrdinalIgnoreCase));
+        var prefix = catalog.Airports
+            .Where(x => x.Ident.StartsWith(term, StringComparison.OrdinalIgnoreCase) ||
+                x.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase));
+        var partial = catalog.Airports
+            .Where(x => x.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
+        var matches = exact.Concat(prefix).Concat(partial)
+            .DistinctBy(x => x.Ident, StringComparer.OrdinalIgnoreCase)
+            .Take(25).ToArray();
+        return new { available = true, source = Source, airports = matches };
+    }
+
     public object? Airport(string ident)
     {
         RequestRefresh();
