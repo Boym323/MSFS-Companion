@@ -17,7 +17,9 @@ export function buildValidationEvidence(
   const nav = obj(rawNavigation);
   const mode = status.mode === 'simconnect' || status.mode === 'mock' ? status.mode : null;
   const online = mode === 'simconnect' && status.connected === true;
-  const systemValues = online && systems.connected === true ? obj(systems.systems) : {};
+  const systemReady = online && systems.connected === true &&
+    obj(systems.systems).mode === 'simconnect';
+  const systemValues = systemReady ? obj(systems.systems) : {};
   const navValues = online && nav.connected === true ? obj(nav.navigation) : {};
   return {
     schema: 'kokpit-c31-evidence-v1',
@@ -35,7 +37,7 @@ export function buildValidationEvidence(
       samplesReceived: num(status.samplesReceived, 0, Number.MAX_SAFE_INTEGER),
     },
     systems: {
-      available: online && systems.connected === true && systems.systems != null,
+      available: systemReady,
       sampleAgeMs: num(systems.sampleAgeMs, 0, 600000),
       onGround: bool(systemValues.onGround),
       altitudeAglFeet: num(systemValues.altitudeAglFeet, -5000, 100000),
