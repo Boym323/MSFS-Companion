@@ -7,11 +7,13 @@ import PanelAktualizaci from './PanelAktualizaci';
 import CockpitControls from './controls/CockpitControls';
 import G1000Remote from './g1000/G1000Remote';
 import AdvancedAvionics from './avionics/AdvancedAvionics';
+import FlightPlanner from './planning/FlightPlanner';
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
   { href: '/pfd', label: 'PFD' },
   { href: '/map', label: 'Mapa' },
+  { href: '/flight-plan', label: 'Plán letu' },
   { href: '/flights', label: 'Historie letů' },
   { href: '/aircraft', label: 'Letadlo' },
   { href: '/controls', label: 'Ovládání' },
@@ -23,6 +25,7 @@ const pageMeta = {
   '/admin': { eyebrow: 'PALUBNÍ PŘEHLED', heading: 'Přehled systému', description: 'Stav propojení s MSFS 2020 a aktuální letové údaje.' },
   '/pfd': { eyebrow: 'LETOVÉ PŘÍSTROJE', heading: 'Primární letový displej', description: 'Umělý horizont, rychlost, výška, vertikální rychlost a magnetický kurz.' },
   '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
+  '/flight-plan': { eyebrow: 'PLÁNOVÁNÍ C9', heading: 'Letový plán SimBrief', description: 'Načtení posledního OFP a waypointů na vyžádání.' },
   '/flights': { eyebrow: 'LETOVÝ DENÍK', heading: 'Historie letů', description: 'Záznamy letů, jejich statistiky a přehrávání.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
   '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
@@ -45,6 +48,7 @@ export default function App() {
   const page = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta['/admin'];
   const isPfd = pathname === '/pfd';
   const isMap = pathname === '/map';
+  const isFlightPlan = pathname === '/flight-plan';
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
   const isControls = pathname === '/controls';
@@ -127,7 +131,7 @@ export default function App() {
           </details>
         )}
 
-        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && !isG1000 && !isAvionics && <PanelAktualizaci />}
+        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && !isG1000 && !isAvionics && !isFlightPlan && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -140,6 +144,8 @@ export default function App() {
           <Pfd telemetry={validTelemetry} />
         ) : isMap ? (
           <MovingMap telemetry={validTelemetry} />
+        ) : isFlightPlan ? (
+          <FlightPlanner />
         ) : isFlights ? (
           <FlightHistory />
         ) : isAircraft ? (
