@@ -22,6 +22,8 @@ jobs:
         run: dotnet run --project tests/controls-logic/MsfsCompanion.ControlsCheck.csproj --configuration Release
       - name: C3 G1000 allowlist test
         run: dotnet run --project tests/g1000-logic/MsfsCompanion.G1000Check.csproj --configuration Release
+      - name: C4 GPS navigace deterministický test
+        run: dotnet run --project tests/navigation-logic/MsfsCompanion.NavigationCheck.csproj --configuration Release
       - name: Runtime smoke tests (HTTP, WebSocket, mock telemetry)
         run: |
           set -euo pipefail
