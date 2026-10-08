@@ -22,7 +22,7 @@ public static class CapabilityCatalog
             .Where(a => candidate.Contains(a.Family, StringComparer.Ordinal))
             .Select(a => new Entry(a.Id, a.Label, a.Family, a.EventName,
                 allowed.Contains(a.Id), a.Rotary));
-        var g1000 = candidate.Contains("g1000", StringComparer.Ordinal)
+        IEnumerable<Entry> g1000 = candidate.Contains("g1000", StringComparer.Ordinal)
             ? G1000Catalog.All.Select(a => new Entry(a.Id, a.Label, "g1000",
                 a.InputEvent, allowed.Contains(a.Id), a.Rotary))
             : [];
