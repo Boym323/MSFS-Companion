@@ -70,3 +70,16 @@ Tato změna **neimplementuje rollback** při pádu Windows hostitele ani jeho
 nezávislý watchdog. Nedotýká se procesu MSFS, historii letů nemaže a nemění
 formát dříve vytvořených platných journalů. Nutné ověřit na skutečné Windows
 instalaci simulací poškozeného pending souboru i úspěšného restartu.
+
+## C33 – ověření skutečně instalované verze
+
+Při startu po aktualizaci již **nestačí**, že odpoví lokální HTTP server.
+Windows host nejprve přečte verzi skutečné instalace Velopack a porovná ji
+s `TargetVersion` v pending journalu. Teprve při přesné shodě pokračuje
+HTTP health + web smoke. Jiná nebo neznámá verze znamená neověřenou
+aktualizaci, přesun journalu do failed stavu a pozastavení auto-update.
+
+`--self-test` nyní kontroluje i nesoulad verzí a spouští se v CI Windows
+hostu pro každé PR zasahující host/workflow. Stále nejde o nezávislý watchdog
+ani automatický rollback; integrační test chybného restartu Velopack na
+skutečné instalaci nadále zůstává podmínkou jejich aktivace.
