@@ -92,8 +92,16 @@ tests/                Regresní testy
 .github/              CI a publikování
 ```
 
+## Primární letový displej B3
+
+Na stránce `/pfd` je připravený umělý horizont, rychlostní a výšková
+páska, vertikální rychlost a magnetický kurz. PFD používá skutečná data
+z MSFS 2020 a plynule vyhlazuje **pouze zobrazení**, zatímco telemetrie
+zůstává beze změn. Pokud se SimConnect odpojí, přístroj jasně oznámí
+neplatná data. Více v [českém návodu k PFD](docs/PFD_B3.md).
+
 ## Další vývoj
 
 Etapa B2 přidává skutečné údaje z MSFS 2020 a čeká na ověření
-se simulátorem na Windows PC. Dále připravíme PFD, mapu,
+se simulátorem na Windows PC. Dále rozšíříme PFD, mapu,
 profily letadel a bezpečné ovládání.
