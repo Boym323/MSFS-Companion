@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 type WeatherReport = {
   airport: string; metar: string | null; taf: string | null;
   fetchedAt: string; available: boolean; source: string;
+  stale: boolean; error: string | null;
 };
 export default function AviationWeather() {
   const [icao, setIcao] = useState('LKPR');
@@ -42,7 +43,12 @@ export default function AviationWeather() {
     {error && <p role="alert">{error}</p>}
     {data && <div className="weather-reports">
       <p><strong>{data.airport}</strong> · {data.source} ·
-        {' '}poslední načtení {new Date(data.fetchedAt).toLocaleString('cs-CZ')}</p>
+        {' '}poslední použitelná data {new Date(data.fetchedAt).toLocaleString('cs-CZ')}</p>
+      {data.stale && <p role="status" className="weather-stale">
+        Upozornění: počasí nemusí být aktuální. Některé údaje se nepodařilo obnovit.
+        {data.error ? ' ' + data.error : ''}
+      </p>}
+      {!data.available && <p role="status">NOAA pro toto letiště zatím nemá dostupný METAR ani TAF.</p>}
       <article><h3>METAR</h3><pre>{data.metar || 'METAR není dostupný.'}</pre></article>
       <article><h3>TAF</h3><pre>{data.taf || 'TAF není dostupný.'}</pre></article>
       <p>Výpis je meteorologická informace, nikoliv skutečné nastavení počasí v simulátoru.</p>
