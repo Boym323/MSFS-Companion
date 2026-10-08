@@ -22,6 +22,18 @@ public static class G1000Catalog
         new("mfd.nav.outer", "MFD NAV velký", "AS1000_NAV_LARGE_MFD", true),
         // Následující názvy jsou kandidáti pro různé avionické profily.
         // API je aktivuje pouze pokud je simulator skutečně enumeruje.
+        new("pfd.fpl", "PFD Flight Plan", "AS1000_FPL_PFD", false),
+        new("mfd.fpl", "MFD Flight Plan", "AS1000_FPL_MFD", false),
+        new("pfd.proc", "PFD Procedures", "AS1000_PROC_PFD", false),
+        new("mfd.proc", "MFD Procedures", "AS1000_PROC_MFD", false),
+        new("pfd.ent", "PFD Enter", "AS1000_ENT_PFD", false),
+        new("mfd.ent", "MFD Enter", "AS1000_ENT_MFD", false),
+        new("pfd.cdi", "PFD CDI", "AS1000_CDI_PFD", false),
+        new("mfd.cdi", "MFD CDI", "AS1000_CDI_MFD", false),
+        new("pfd.obs", "PFD OBS", "AS1000_OBS_PFD", false),
+        new("mfd.obs", "MFD OBS", "AS1000_OBS_MFD", false),
+        new("pfd.range", "PFD Range", "AS1000_RANGE_PFD", true),
+        new("mfd.range", "MFD Range", "AS1000_RANGE_MFD", true),
         new("pfd.directto", "PFD Direct-To", "AS1000_DIRECTTO_PFD", false),
         new("mfd.directto", "MFD Direct-To", "AS1000_DIRECTTO_MFD", false),
         new("pfd.menu", "PFD Menu", "AS1000_MENU_PFD", false),
