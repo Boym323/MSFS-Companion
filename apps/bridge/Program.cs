@@ -30,6 +30,7 @@ builder.Services.AddHostedService(p=>p.GetRequiredService<SimTrafficMonitor>());
 builder.Services.AddSingleton<AviationWeatherService>();
 builder.Services.AddSingleton<VatsimService>();
 builder.Services.AddSingleton<AviationHazardsService>();
+builder.Services.AddSingleton<CzechAirspaceService>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -129,6 +130,9 @@ app.MapCapabilityCatalog();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
 AviationHazardsService.Map(app);
+app.MapGet("/api/airspace/czechia", async (CzechAirspaceService service, CancellationToken ct) =>
+    Results.Ok(await service.GetAsync(ct)));
+
 app.MapHealth();
 app.MapGet("/api/traffic/nearby", (ITelemetrySource source,
     TelemetryHealth health,SimTrafficState traffic)=>{
