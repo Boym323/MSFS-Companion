@@ -148,7 +148,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _healthTimer.Tick += (_, _) =>
         {
             _bridge.EnsureStarted();
-            _mdns.Refresh(_settings.MdnsEnabled, LanAccess.Find(), _bridge.IsRunning);
+            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
         };
         _healthTimer.Start();
 
@@ -232,7 +232,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
     {
         using var form = new Form
         {
-            Text = "Zdroj aktualizací – Kokpit",
+            Text = "Zdroj aktualizací – MSFS Companion",
             Width = 550,
             Height = 185,
             StartPosition = FormStartPosition.CenterScreen,
@@ -384,7 +384,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             if (_settings.AutomaticUpdates || force)
             {
                 if (force && !fromWeb)
-                    ShowUpdateBalloon("Aktualizace je stažena, Kokpit se nyní restartuje.");
+                    ShowUpdateBalloon("Aktualizace je stažena, MSFS Companion se nyní restartuje.");
                 ApplyDownloadedUpdate();
             }
         }
@@ -420,7 +420,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _mdns.Stop();
             _bridge.Stop();
             _icon.Visible = false;
-            AdminControl.WriteStatus("applying", "Instaluji aktualizaci a restartuji Kokpit.");
+            AdminControl.WriteStatus("applying", "Instaluji aktualizaci a restartuji MSFS Companion.");
             EventLogFile.Write("Applying Companion update; MSFS is left running.");
             _updateManager.ApplyUpdatesAndRestart(_pendingUpdate!);
             // Velopack schedules replacing our files and exits/restarts our host.
@@ -430,7 +430,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             EventLogFile.Write($"Update apply failure: {ex}");
             _icon.Visible = true;
             _bridge.EnsureStarted();
-            _mdns.Refresh(_settings.MdnsEnabled, LanAccess.Find(), _bridge.IsRunning);
+            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
             _healthTimer.Start();
             _updateStatus.Text = "Instalace aktualizace se nezdařila";
             _applyingUpdate = false;
