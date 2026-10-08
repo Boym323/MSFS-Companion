@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import FlightInsights from './FlightInsights';
 import FlightRouteMap from './FlightRouteMap';
+import { exportFlightCsv } from './performance';
 import './FlightHistory.css';
 
 type FlightSummary = {
@@ -133,6 +134,21 @@ export default function FlightHistory() {
                 <div><span>Max. výška</span><strong>{Math.round(detail.summary.maxAltitudeFeet)} FT</strong></div>
               </div>
 
+              <div className="flight-history-export">
+                <button type="button" disabled={!samples.length} onClick={() => {
+                  const csv = exportFlightCsv(samples);
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = 'msfs-let-' + detail.summary.id.replace(/[^a-zA-Z0-9_-]/g,'_') + '.csv';
+                  document.body.append(link);
+                  link.click();
+                  link.remove();
+                  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}>Exportovat záznam do CSV</button>
+                <span>Soubor zůstává v prohlížeči. Nedochází k odeslání do externí služby.</span>
+              </div>
               <FlightInsights samples={samples} mode={detail.summary.mode} />
               <h3>Průběh výšky a rychlosti</h3>
               <svg className="flight-history-chart" viewBox="0 0 620 224" role="img"
