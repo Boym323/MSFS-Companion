@@ -123,6 +123,7 @@ app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
+app.MapHealth();
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
 app.MapSimBrief();
