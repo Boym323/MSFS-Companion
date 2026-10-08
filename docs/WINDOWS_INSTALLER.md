@@ -44,14 +44,23 @@ Recommended distribution:
    not the source code. Do not publish secret configuration files.
 2. Sign installer and packages and vet dependency/supply-chain provenance
    before wider distribution (current CI builds are **unsigned**).
-3. Publish the Velopack `staging/releases` outputs through a consistent
-   `win` release channel using the documented `vpk upload github`
-   workflow; keep prior releases for recovery. Protect the publishing token
-   as a GitHub Actions secret **only on the CI side** with least permissions,
-   never in app or repo files.
+3. Configure **GitHub Settings → Secrets and variables → Actions** in the
+   **private source repository**:
+   - Repository variable `UPDATE_REPO_URL` =
+     `https://github.com/Boym323/MSFS-Companion-Updates`.
+   - Actions secret `UPDATE_PUBLISH_TOKEN` = a fine-grained GitHub token
+     with **Contents: read/write restricted to that public updates repo only**.
+     The token stays in CI and must never be stored on a client PC.
+   - For a reviewed release, go to **Actions → Windows tray installer →
+     Run workflow** on **main**, choose a *new* SemVer such as `0.2.1`,
+     and check `publish_public`. CI builds and publishes Velopack packages
+     to that public repository using `vpk upload github`. On ordinary pushes
+     and PRs it only creates private artifacts and does not publish.
+     Do not reuse a version number; keep previous release assets for recovery.
 4. In the tray menu select **Nastavit aktualizační zdroj…** and enter:
    `https://github.com/Boym323/MSFS-Companion-Updates`.
    The app uses `GithubSource` anonymously for a public repo.
+   This setup only needs to be done once on the Windows PC.
 5. Future approved stable releases will be detected/downloaded and installed
    automatically at the first safe opportunity, without interrupting MSFS.
 
@@ -62,6 +71,8 @@ through the same menu.
 update logic*, plus a private Actions build artifact. Public update hosting,
 CI publishing credentials, Windows code signing, two-version update/rollback
 acceptance test and real PC install remain separate release prerequisites.
+The CI publishing step is implemented but **disabled by default**; it requires
+an explicit main-branch `workflow_dispatch` with `publish_public` selected.
 Until a valid feed exists, the app still runs the dashboard automatically, but
 can't download new versions. It never substitutes private repo credentials.
 
