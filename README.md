@@ -130,8 +130,21 @@ nebo `null`, pokud nejsou dostupné. Autopilota ani jiné
 systémy není možné tímto API ovládat. Viz
 [česká dokumentace rozšířené telemetrie](docs/SYSTEMS_B6.md).
 
+## Detail letadla B7
+
+Na stránce `/aircraft` je sjednocený read-only přehled
+rychlostí, výšek, systému autopilota, podvozku, klapek,
+motoru, paliva, větru a GPS. Používá stávající rychlou
+telemetrii a nové 1Hz systémové API B6, nezakládá další
+SimConnect spojení. Během výpadku nic nevydává za živé.
+XCub, Cessna a Airbus mají zatím pouze bezpečné univerzální
+štítky; speciální instrumentace jednotlivých letadel přijde
+až po reálném ověření SimVars.
+[Český návod k detailu letadla](docs/AIRCRAFT_B7.md).
+
 ## Další vývoj
 
-Etapa B2 přidává skutečné údaje z MSFS 2020 a čeká na ověření
-se simulátorem na Windows PC. Dále rozšíříme PFD, mapu,
-profily letadel a bezpečné ovládání.
+Etapy B2–B7 tvoří základ reálné telemetrie, PFD, mapy,
+historie letu a read-only systémového panelu. Další vývoj
+se zaměří na test kompatibility letadel, specializované
+avionické profily a volitelná zabezpečená ovládací API.

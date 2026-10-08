@@ -127,3 +127,7 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
 @media (max-width: 420px) {
   .summary--compact { grid-template-columns: 1fr; }
 }
+
+/* Pět modulů navigace musí zůstat použitelné i na 320px tabletu/mobilu. */
+.tabs { overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
+.tabs a { flex-shrink: 0; }
