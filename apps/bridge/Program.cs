@@ -6,6 +6,7 @@ using MsfsCompanion.Bridge.Controls;
 using MsfsCompanion.Bridge.Avionics;
 using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Recorder;
+using MsfsCompanion.Bridge.Aircraft;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,6 +97,13 @@ app.MapGet("/api/aircraft/systems", (AircraftSystemsStore systemsStore) =>
     Results.Ok(systemsStore.Status()));
 
 // C1: radio readback bez oprávnění k zápisu.
+app.MapGet("/api/aircraft/profile", (TelemetryStore store, TelemetryHealth health, ITelemetrySource source) =>
+{
+    var connected = health.Snapshot(source.Mode).Connected;
+    var aircraft = connected ? store.Current.Aircraft : null;
+    return Results.Ok(new { connected, aircraft, profile = connected ? AircraftProfileResolver.Resolve(aircraft) : null });
+});
+
 app.MapGet("/api/radios", (RadioStore radios) => Results.Ok(radios.Status()));
 app.MapGet("/api/autopilot/modes", (AutopilotModesStore modes) => Results.Ok(modes.Status()));
 
