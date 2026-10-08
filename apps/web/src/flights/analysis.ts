@@ -1,7 +1,8 @@
 import type { TelemetrySnapshot } from '../telemetry/types';
 
 export type FlightPhase = 'ground' | 'approach' | 'climb' | 'descent' | 'level';
-export type FlightEvent = { kind: 'takeoff' | 'touchdown' | 'climb' | 'descent' | 'approach'; at: string; label: string };
+export type FlightEvent = { kind: 'takeoff' | 'touchdown' | 'climb' | 'descent' | 'approach';
+  at: string; label: string; touchdownRateFpm?: number | null; gForce?: number | null };
 export type FlightAnalysis = {
   seconds: Record<FlightPhase, number>;
   climbPeakFpm: number;
@@ -60,7 +61,13 @@ export function analyzeFlight(samples: TelemetrySnapshot[]): FlightAnalysis {
     if (a.onGround && b.onGround && !c.onGround && !d.onGround) {
       events.push({ kind: 'takeoff', at: c.timestampUtc, label: 'Opuštění země · podle SimVar' });
     } else if (!a.onGround && !b.onGround && c.onGround && d.onGround) {
-      events.push({ kind: 'touchdown', at: c.timestampUtc, label: 'Kontakt se zemí · podle SimVar' });
+      const velocity = [c.touchdownRateFpm, d.touchdownRateFpm]
+        .find(value => value !== null && value !== undefined && Number.isFinite(value));
+      const g = [c.gForce, d.gForce].find(value =>
+        value !== null && value !== undefined && Number.isFinite(value));
+      events.push({ kind: 'touchdown', at: c.timestampUtc,
+        label: 'Kontakt se zemí · podle SimVar',
+        touchdownRateFpm: velocity ?? null, gForce: g ?? null });
     }
   }
   // Významné letové úseky: aspoň 15 s souvislého stoupání, klesání či přiblížení.
