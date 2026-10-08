@@ -21,3 +21,6 @@
 .cockpit-controls .control-message { color: #a5e4bc; }
 .control-disclaimer { margin-top: 5px; }
 @media(max-width:740px) { .control-grid, .control-grid--values { grid-template-columns: 1fr; } }
+
+.control-system-line { display:grid; gap:5px; border:1px solid #273f59; border-radius:9px; padding:12px; background:#0b1728; min-width:0; }
+.control-system-line strong { color:#e1edfc; font-size:13px; }
