@@ -66,8 +66,10 @@ jobs:
       - name: Verify safety policy without running the simulator
         shell: pwsh
         run: |
-          & ./staging/app/MsfsCompanion.WindowsHost.exe --self-test
-          if ($LASTEXITCODE -ne 0) { throw 'Update safety policy test failed' }
+          # WinExe applications are GUI-subsystem processes. PowerShell's &
+          # operator may return before they exit, leaving LASTEXITCODE stale.
+          $selfTest = Start-Process -FilePath (Resolve-Path ./staging/app/MsfsCompanion.WindowsHost.exe).Path -ArgumentList '--self-test' -PassThru -Wait
+          if ($selfTest.ExitCode -ne 0) { throw "Update safety policy test failed: $($selfTest.ExitCode)" }
 
       - name: Package Velopack installer and update feed
         shell: pwsh
