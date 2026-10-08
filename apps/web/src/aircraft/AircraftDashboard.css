@@ -16,3 +16,19 @@
 .aircraft-dashboard-info { padding: 12px 15px; border: 1px solid #526378; border-radius: 9px; margin-bottom: 18px; }
 @media(max-width: 760px) { .aircraft-dashboard-grid { grid-template-columns: 1fr; } }
 @media(max-width: 440px) { .aircraft-dashboard-grid article { padding: 15px; } .aircraft-measure dd { font-size: 14px; } }
+
+/* B8 · stav přenosu ≠ potvrzená kompatibilita konkrétního kokpitu. */
+.compatibility-panel { margin-top: 22px; padding: 21px; border: 1px solid #304b68; border-radius: 13px; background: #101d30; }
+.compatibility-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.compatibility-heading h3 { margin: 7px 0 0; font-size: 17px; }
+.compatibility-heading button { font: inherit; font-size: 12px; font-weight: 700; padding: 10px 13px; border: 1px solid #4f7899; border-radius: 8px; background: #1e4160; color: #e8f4ff; cursor: pointer; }
+.compatibility-heading button:disabled { opacity: .45; cursor: not-allowed; }
+.compatibility-panel p { color: #afc4da; font-size: 12px; line-height: 1.6; }
+.compatibility-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.compatibility-check { border: 1px solid #345374; border-radius: 9px; padding: 12px; min-width: 0; }
+.compatibility-check strong, .compatibility-check span { display: block; font-size: 12px; }
+.compatibility-check span { margin-top: 6px; color: #a8c1d6; }
+.compatibility-check--suspect { border-color: #ad8166; }
+.compatibility-check--unavailable { opacity: .65; }
+@media (max-width: 760px) { .compatibility-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .compatibility-grid { grid-template-columns: 1fr; } }
