@@ -8,6 +8,7 @@ using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Recorder;
 using MsfsCompanion.Bridge.Aircraft;
 using MsfsCompanion.Bridge.Integrations;
+using MsfsCompanion.Bridge.Traffic;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,9 @@ builder.Services.AddSingleton<G1000Service>();
 builder.Services.AddSingleton<NavigationStore>();
 builder.Services.AddSingleton<AviationCatalog>();
 builder.Services.AddSingleton<LandingStore>();
+builder.Services.AddSingleton<SimTrafficState>();
+builder.Services.AddSingleton<SimTrafficMonitor>();
+builder.Services.AddHostedService(p=>p.GetRequiredService<SimTrafficMonitor>());
 builder.Services.AddSingleton<AviationWeatherService>();
 builder.Services.AddSingleton<VatsimService>();
 builder.Services.AddSingleton<AviationHazardsService>();
@@ -126,6 +130,12 @@ AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
 AviationHazardsService.Map(app);
 app.MapHealth();
+app.MapGet("/api/traffic/nearby", (ITelemetrySource source,
+    TelemetryHealth health,SimTrafficState traffic)=>{
+    if(source.Mode=="simconnect"&&health.Snapshot(source.Mode).Connected)
+        traffic.Touch(); // Explicitní poptávka zapíná oddělený lazy SimConnect reader.
+    return Results.Ok(traffic.Snapshot(DateTimeOffset.UtcNow));
+});
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
 app.MapSimBrief();
