@@ -28,3 +28,10 @@
   .moving-map-controls { width: 100%; }
   .moving-map-header h2 { font-size: 18px; }
 }
+
+.moving-map-pln { display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; margin:8px 0 15px; color:#aec5df; font-size:13px; }
+.moving-map-pln label { display:grid; gap:7px; }
+.moving-map-pln input { max-width:100%; }
+.moving-map-pln p { margin:0; width:100%; color:#b6cee8; }
+.moving-map-pln button { cursor:pointer; padding:8px 12px; border:1px solid #445c7b; border-radius:8px; background:#182e46; color:#e6f2ff; }
+.moving-map-imported { display:grid; gap:6px; margin:8px 0 18px; font-size:12px; color:#bca5ff; overflow-wrap:anywhere; }
