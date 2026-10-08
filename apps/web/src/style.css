@@ -207,3 +207,7 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .tabs a { transition: none; }
 }
+
+/* C1/C2: na iPadu zůstává navigace přístupná horizontálním posunem. */
+.tabs { overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
+.tabs a { flex: 0 0 auto; }
