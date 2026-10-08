@@ -73,8 +73,12 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
     }
 });
 
-// API and WebSocket endpoints are registered above. Unknown client-side routes
-// use the production React entry point when the static build is present.
+// Reject unknown API paths instead of routing them to the SPA fallback.
+// This also keeps unauthenticated cockpit-control endpoints unavailable.
+app.Map("/api/{**unmatched}", () => Results.NotFound());
+app.Map("/api", () => Results.NotFound());
+
+// Unknown frontend routes use the bundled React entry point.
 app.MapFallbackToFile("index.html");
 
 app.Run();
