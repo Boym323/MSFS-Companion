@@ -21,6 +21,10 @@ type Systems = {
   engineRpm: number;
   fuelGallons: number;
 };
+type DetectedProfile = { connected: boolean; profile: {
+  id: string; label: string; avionics: string; candidatePanels: string[];
+  verified: boolean; note: string;
+} | null };
 type SystemsStatus = {
   connected: boolean;
   sampleAgeMs: number | null;
@@ -42,6 +46,7 @@ export default function AircraftDashboard({
 }: { telemetry: TelemetrySnapshot | null }) {
   const [state, setState] = useState<SystemsStatus | null>(null);
   const [error, setError] = useState('');
+  const [detected, setDetected] = useState<DetectedProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +74,21 @@ export default function AircraftDashboard({
     return () => { cancelled = true; window.clearInterval(timer); };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch('/api/aircraft/profile', { cache: 'no-store' });
+        if (!response.ok) throw new Error();
+        const value = await response.json() as DetectedProfile;
+        if (!cancelled) setDetected(value);
+      } catch { if (!cancelled) setDetected(null); }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 3000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, []);
+
   const systems = telemetry && state?.connected ? state.systems : null;
   const aircraft = telemetry?.aircraft ?? 'Čekám na letadlo';
   const fmt = (value: number | undefined, digits = 0) =>
@@ -82,7 +102,9 @@ export default function AircraftDashboard({
         <div>
           <span className="eyebrow">B7 · AIRCRAFT DASHBOARD</span>
           <h2>{aircraft}</h2>
-          <p>{profileLabel(aircraft)} · hodnoty zatím nebyly potvrzeny pro konkrétní kokpit</p>
+          <p>{detected?.connected && detected.profile
+  ? detected.profile.label + ' · ' + detected.profile.avionics
+  : profileLabel(aircraft)} · kandidátní profil, neověřeno v kokpitu</p>
         </div>
         <span className="aircraft-dashboard-signal">
           {systems
@@ -104,6 +126,10 @@ export default function AircraftDashboard({
         </p>
       )}
 
+      {detected?.connected && detected.profile && <p className="aircraft-dashboard-info">
+        C5 · Profil <strong>{detected.profile.id}</strong> · kandidátní panely:
+        {' '}{detected.profile.candidatePanels.join(', ')}. {detected.profile.note}
+      </p>}
       <div className="aircraft-dashboard-grid">
         <article>
           <h3>Letové údaje</h3>
