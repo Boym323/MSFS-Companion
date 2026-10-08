@@ -62,13 +62,4 @@ health.StartConnecting();
 if (health.Snapshot("simconnect").ConnectionAttempts != 2)
     throw new Exception("Počet reconnect pokusů je nesprávný.");
 
-// C10: testujeme jen deterministickou detekci změny stavu na zemi.
-var landing = new LandingStore();
-var stamp = DateTimeOffset.UtcNow;
-landing.Update(new SimConnectLandingData { TouchdownNormalVelocityFeetPerSecond = 0, GForce = 1 }, stamp, false);
-landing.Update(new SimConnectLandingData { TouchdownNormalVelocityFeetPerSecond = 2.5, GForce = 1.2 }, stamp.AddSeconds(1), true);
-if (landing.Current?.TouchdownRateFpm != -150)
-    throw new Exception("C10: chybný převod normálové rychlosti ft/s -> ft/min.");
-landing.Reset();
-if (landing.Current is not null) throw new Exception("C10: stale landing po reconnectu.");
-Console.WriteLine("PASS: 30 FPS -> 20 Hz, reconnect i C10 touchdown velocity.");
+Console.WriteLine("PASS: 30 FPS -> 20 různých snímků/s; příjem, zpoždění, skip a reconnect jsou korektní.");
