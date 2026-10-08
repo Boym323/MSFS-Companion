@@ -11,6 +11,7 @@ builder.Services.AddSingleton<TelemetryStore>();
 builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
 builder.Services.AddSingleton<RadioStore>();
+builder.Services.AddSingleton<AutopilotModesStore>();
 builder.Services.AddSingleton<ControlAccess>();
 builder.Services.AddSingleton<NativeCockpitEventSender>();
 
@@ -92,6 +93,7 @@ app.MapGet("/api/aircraft/systems", (AircraftSystemsStore systemsStore) =>
 
 // C1: radio readback bez oprávnění k zápisu.
 app.MapGet("/api/radios", (RadioStore radios) => Results.Ok(radios.Status()));
+app.MapGet("/api/autopilot/modes", (AutopilotModesStore modes) => Results.Ok(modes.Status()));
 
 // Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
 app.MapCockpitControls();

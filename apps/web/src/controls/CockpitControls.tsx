@@ -17,6 +17,9 @@ type Systems = {
   autopilotSelectedVerticalSpeedFpm: number;
 };
 type SystemStatus = { connected: boolean; systems: Systems | null };
+type ApModesStatus = { connected: boolean; modes: {
+  heading: boolean; nav: boolean; altitude: boolean; verticalSpeed: boolean;
+} | null };
 
 const key = 'msfs-companion-control-session';
 const getToken = () => window.sessionStorage.getItem(key) ?? '';
@@ -28,6 +31,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const [local, setLocal] = useState<Local | null>(null);
   const [radio, setRadio] = useState<RadioStatus | null>(null);
   const [systems, setSystems] = useState<SystemStatus | null>(null);
+  const [modes, setModes] = useState<ApModesStatus | null>(null);
   const [code, setCode] = useState('');
   const [frequency, setFrequency] = useState<Record<string, string>>({
     com1: '118.500', com2: '118.500', nav1: '110.50', nav2: '110.50',
@@ -42,16 +46,18 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const refresh = useCallback(async () => {
     const headers: Record<string, string> = {};
     if (getToken()) headers['X-MSFS-Control-Token'] = getToken();
-    const [a, r, s] = await Promise.all([
+    const [a, r, s, m] = await Promise.all([
       fetch('/api/controls/status', { headers, cache: 'no-store' }),
       fetch('/api/radios', { cache: 'no-store' }),
       fetch('/api/aircraft/systems', { cache: 'no-store' }),
+      fetch('/api/autopilot/modes', { cache: 'no-store' }),
     ]);
-    if (!a.ok || !r.ok || !s.ok) throw new Error('Bridge není dostupný');
+    if (!a.ok || !r.ok || !s.ok || !m.ok) throw new Error('Bridge není dostupný');
     const auth = await a.json() as Access;
     setAccess(auth);
     setRadio(await r.json() as RadioStatus);
     setSystems(await s.json() as SystemStatus);
+    setModes(await m.json() as ApModesStatus);
     if (auth.local) {
       const response = await fetch('/api/controls/local', { cache: 'no-store' });
       if (response.ok) setLocal(await response.json() as Local);
@@ -64,7 +70,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
     let stopped = false;
     const update = async () => {
       try { if (!stopped) await refresh(); }
-      catch { if (!stopped) { setAccess(null); setRadio(null); setSystems(null); } }
+      catch { if (!stopped) { setAccess(null); setRadio(null); setSystems(null); setModes(null); } }
     };
     void update();
     const timer = window.setInterval(() => void update(), 1800);
@@ -134,6 +140,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const canSend = !!access?.paired && access.enabled && live && !busy;
   const selected = systems?.connected ? systems.systems : null;
   const rv = radio?.connected ? radio.radios : null;
+  const ap = modes?.connected ? modes.modes : null;
 
   const radios = (['com1', 'com2', 'nav1', 'nav2'] as const).map((name) => {
     const label = name.toUpperCase();
@@ -203,6 +210,10 @@ export default function CockpitControls({ live }: { live: boolean }) {
     <h2>C2 · Autopilot</h2>
     <section className="control-tile">
       <p>Skutečný stav AP: <strong>{selected ? (selected.autopilotMaster ? 'ZAPNUTO' : 'VYPNUTO') : '—'}</strong></p>
+      <p>Potvrzené režimy: HDG <strong>{ap ? (ap.heading ? 'ON' : 'OFF') : '—'}</strong>
+        {' · '} NAV <strong>{ap ? (ap.nav ? 'ON' : 'OFF') : '—'}</strong>
+        {' · '} ALT <strong>{ap ? (ap.altitude ? 'ON' : 'OFF') : '—'}</strong>
+        {' · '} VS <strong>{ap ? (ap.verticalSpeed ? 'ON' : 'OFF') : '—'}</strong></p>
       <div className="control-actions">
         {(['autopilot.on', 'autopilot.off', 'autopilot.hdg.on', 'autopilot.hdg.off',
           'autopilot.nav.on', 'autopilot.nav.off', 'autopilot.alt.on', 'autopilot.alt.off',

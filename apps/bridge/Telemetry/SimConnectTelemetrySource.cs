@@ -14,6 +14,7 @@ public sealed class SimConnectTelemetrySource(
     TelemetryHealth health,
     AircraftSystemsStore systemsStore,
     RadioStore radioStore,
+    AutopilotModesStore autopilotModes,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -33,6 +34,7 @@ public sealed class SimConnectTelemetrySource(
             health.StartConnecting();
             systemsStore.Reset();
             radioStore.Reset();
+            autopilotModes.Reset();
             store.Reset("Čekám na MSFS 2020");
             try
             {
@@ -50,6 +52,7 @@ public sealed class SimConnectTelemetrySource(
 
             systemsStore.Reset();
             radioStore.Reset();
+            autopilotModes.Reset();
             store.Reset("MSFS není připojen");
             if (stoppingToken.IsCancellationRequested)
                 break;
@@ -126,6 +129,7 @@ public sealed class SimConnectTelemetrySource(
         using var systemsSubscription = SubscribeSystems(client, stoppingToken);
         using var radioSubscription = SubscribeRadios(client, stoppingToken);
         using var xpdrSubscription = SubscribeTransponder(client, stoppingToken);
+        using var apModesSubscription = SubscribeAutopilotModes(client, stoppingToken);
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -157,6 +161,26 @@ public sealed class SimConnectTelemetrySource(
 
             store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
             health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
+        }
+    }
+
+    private ISimVarSubscription? SubscribeAutopilotModes(SimConnectClient client, CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<SimConnectAutopilotModesData>(
+                SimConnectPeriod.Second,
+                data =>
+                {
+                    if (data.IsValid())
+                        autopilotModes.Update(data, DateTimeOffset.UtcNow);
+                },
+                cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Režimy autopilota nejsou pro letadlo dostupné.");
+            return null;
         }
     }
 

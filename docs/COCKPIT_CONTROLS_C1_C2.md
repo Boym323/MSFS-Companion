@@ -20,6 +20,7 @@
 - `POST /api/controls/pair`: `{"code":"123456"}` vrací session token. Má limit neúspěšných pokusů.
 - `POST /api/controls/command`: `{"command":"radio.com1.set","value":118500000}` s `X-MSFS-Control-Token`.
 - `GET /api/radios`: read-only 1Hz frekvence a dostupný stav XPDR.
+- `GET /api/autopilot/modes`: read-only 1Hz aktivní HDG/NAV/ALT/VS režimy, nezávislé na systému PFD.
 
 ## Ověřované funkce C1
 
