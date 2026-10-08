@@ -70,3 +70,14 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
 .update-status p { margin: 0; color: #b6c8e3; font-size: 13px; }
 .update-notice { font-size: 13px; color: #9edbf9; margin-top: 16px; }
 .update-hint { margin: 17px 0 0; }
+
+/* B2 – označení neplatných nebo nedostupných údajů, nikoli falešné hodnoty. */
+.telemetry-offline {
+  margin: 6px 0 24px;
+  border: 1px solid #7a5b4a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  background: #281f23;
+  color: #f4c7ac;
+  line-height: 1.5;
+}

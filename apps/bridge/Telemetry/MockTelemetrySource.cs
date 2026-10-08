@@ -4,6 +4,7 @@ namespace MsfsCompanion.Bridge.Telemetry;
 
 public sealed class MockTelemetrySource(
     TelemetryStore store,
+    TelemetryHealth health,
     ILogger<MockTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "mock";
@@ -21,8 +22,9 @@ public sealed class MockTelemetrySource(
                 var t = clock.Elapsed.TotalSeconds;
                 var heading = (270 + t * 0.25) % 360;
 
+                var at = DateTimeOffset.UtcNow;
                 store.Update(new TelemetrySnapshot(
-                    TimestampUtc: DateTimeOffset.UtcNow,
+                    TimestampUtc: at,
                     Aircraft: "Cessna 172 (mock)",
                     Latitude: 50.1008 + 0.002 * Math.Sin(t / 60),
                     Longitude: 14.2600 + 0.005 * Math.Cos(t / 60),
@@ -33,6 +35,7 @@ public sealed class MockTelemetrySource(
                     PitchDegrees: 2.5 * Math.Sin(t / 7),
                     BankDegrees: 12 * Math.Sin(t / 11)
                 ));
+                health.AcceptSample(at);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
