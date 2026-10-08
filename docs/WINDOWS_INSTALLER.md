@@ -80,9 +80,10 @@ jednoduchým zneužitím z cizích webů. Nejde o přihlášení uživatele.
   adresu přes ikonu Companionu; aplikaci případně restartujte.
 - Místní log: `%LOCALAPPDATA%\MSFS Companion\windows-host.log`.
 
-Dokumentace je v češtině. Samostatná diagnostika B1 už
-prokázala SimConnect, ale produkční bridge stále zobrazuje
-**mock telemetrii**; skutečná data připojí etapa B2.
+Dokumentace je v češtině. Diagnostika B1 už ověřila spojení
+SimConnect a Windows bridge v B2 nyní používá **živá letová data**.
+Při vypnutém MSFS ukazuje čekání, nikoli mock hodnoty.
+Postup prvního testu popisuje [telemetrie B2](LIVE_SIMCONNECT_B2.md).
 
 Instalátory jsou zatím nepodepsaná vývojová vydání a není
 implementovaný automatický rollback.

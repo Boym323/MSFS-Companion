@@ -23,5 +23,6 @@ Přesný návod k Windows Firewallu a použití na Macu:
 [Instalace a ovládání v domácí síti](WINDOWS_INSTALLER.md).
 
 Nepodepsaná vývojová vydání zatím nemají automatické
-obnovení předchozí verze. Ostré B2 SimConnect propojení
-není součástí updateru.
+obnovení předchozí verze. Windows instalace od B2 obsahuje
+živý zdroj SimConnect; jeho skutečný provoz je nutné ověřit
+přímo se spuštěným MSFS 2020.
