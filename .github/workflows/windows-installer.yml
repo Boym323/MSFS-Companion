@@ -18,24 +18,22 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "SemVer of the package to build (e.g. 0.2.0)"
+        description: "Version for manual/test build (for example 0.2.0)"
         required: true
         default: "0.2.0"
-      publish_public:
-        description: "Publish reviewed Windows binaries to configured public update repository (main only)"
-        type: boolean
-        required: false
-        default: false
 
+# Automatic development releases are published only after a successful
+# main-branch Windows build. PRs cannot access release write privileges.
 permissions:
   contents: read
+
+env:
+  APP_VERSION: ${{ github.event_name == 'push' && format('0.2.{0}', github.run_number) || inputs.version || '0.2.0' }}
 
 jobs:
   windows-installer:
     runs-on: windows-2022
     timeout-minutes: 35
-    env:
-      APP_VERSION: ${{ inputs.version || '0.2.0' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -111,7 +109,7 @@ jobs:
           vpk pack --packId Boym323.MsfsCompanion --packVersion $env:APP_VERSION --packDir staging/app --mainExe MsfsCompanion.WindowsHost.exe --packTitle "MSFS Companion" --packAuthors "Boym323" --shortcuts "Startup,StartMenuRoot" --channel win --outputDir staging/releases
           if ($LASTEXITCODE -ne 0) { throw 'Velopack pack failed' }
 
-      - name: Upload private installer artifact
+      - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: MSFS-Companion-Windows-Installer
@@ -119,16 +117,37 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      - name: Publish approved update to public release repository
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_public == true && github.ref == 'refs/heads/main'
+  publish-update:
+    name: Publish development release to GitHub Releases
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: windows-installer
+    runs-on: windows-2022
+    timeout-minutes: 20
+    # Keep privileged publish separate from code running in PR builds.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: MSFS-Companion-Windows-Installer
+          path: staging/releases
+      - name: Check generated Velopack release files
         shell: pwsh
-        env:
-          UPDATE_REPO_URL: ${{ vars.UPDATE_REPO_URL }}
-          VPK_TOKEN: ${{ secrets.UPDATE_PUBLISH_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
-          if ([string]::IsNullOrWhiteSpace($env:UPDATE_REPO_URL)) { throw 'Missing repository variable UPDATE_REPO_URL' }
-          if ([string]::IsNullOrWhiteSpace($env:VPK_TOKEN)) { throw 'Missing Actions secret UPDATE_PUBLISH_TOKEN' }
-          if (!$env:UPDATE_REPO_URL.StartsWith('https://github.com/Boym323/')) { throw 'Unexpected release repository URL' }
-          vpk upload github --repoUrl $env:UPDATE_REPO_URL --outputDir staging/releases --channel win --token $env:VPK_TOKEN --publish --tag "v$env:APP_VERSION" --releaseName "MSFS Companion $env:APP_VERSION"
-          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+          if (!(Test-Path staging/releases/releases.win.json)) { throw 'Velopack update manifest missing' }
+          if (@(Get-ChildItem staging/releases -Filter '*Setup.exe').Count -lt 1) { throw 'Windows Setup.exe missing' }
+          if (@(Get-ChildItem staging/releases -Filter '*.nupkg').Count -lt 1) { throw 'Velopack package missing' }
+      - name: Publish update into the same public repository
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet tool install --global vpk --version 1.2.161
+          if ($LASTEXITCODE -ne 0) { throw 'Installing vpk failed' }
+          vpk upload github --repoUrl https://github.com/Boym323/MSFS-Companion --outputDir staging/releases --channel win --token $env:VPK_TOKEN --publish --tag "v$env:APP_VERSION" --releaseName "MSFS Companion development $env:APP_VERSION" --targetCommitish "${{ github.sha }}"
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing Velopack update failed' }
