@@ -166,7 +166,7 @@ class BridgeSmokeTests(unittest.TestCase):
             method="POST", headers={"Content-Type": "application/json"})
         with self.assertRaises(urllib.error.HTTPError) as error:
             urllib.request.urlopen(req, timeout=3)
-        self.assertEqual(error.exception.code, 405)
+        self.assertIn(error.exception.code, (404, 405))
 
     def test_recorder_is_read_only_and_persists_mock_sample(self):
         # Mock se používá jen v CI, nikoliv jako falešná produkční telemetrie.

@@ -84,3 +84,15 @@ přísnou validací identifikátorů. Data se ukládají do profilu
 aktuálního Windows uživatele, nejvýše 30 relací / 100 MB,
 6 hodin v jedné relaci. Při čtení pro web se počet vrácených
 bodů omezuje na 4000. Viz [B5 – Flight Recorder](FLIGHT_RECORDER_B5.md).
+
+
+## Rozšířená telemetrie B6
+
+Vedle rychlé 30Hz SimFrame subscription pro PFD se čte
+oddělená 1Hz skupina systémových SimVars.
+`AircraftSystemsStore` zveřejňuje aktuální snapshot pouze
+pro čtení přes `GET /api/aircraft/systems`. Při zastaralém
+nebo nedostupném zdroji se vrací `connected=false` a
+`systems=null`. Selhání systémového odběru nesmí zablokovat
+základní telemetrii ani záznam letů. Podrobnosti:
+[Systémová telemetrie B6](SYSTEMS_B6.md).
