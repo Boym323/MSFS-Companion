@@ -1,6 +1,6 @@
 import type { ImportedWaypoint } from './pln';
 import type { Navigation } from './FlightNavigation';
-import { metersBetween } from './geo';
+import { metersBetween } from './geo.ts';
 export type MatchResult = {state:'no-plan'|'no-active'|'match'|'uncertain'|'different';description:string};
 export function comparePlan(points:ImportedWaypoint[], navigation:Navigation|null):MatchResult {
   if(!points.length)return {state:'no-plan',description:'Žádná ručně importovaná ani SimBrief trasa.'};
