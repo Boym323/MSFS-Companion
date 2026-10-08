@@ -9,11 +9,11 @@
   admin login or SDK is needed after first installation.
 - The tray app launches and supervises the packaged ASP.NET Core bridge as a
   hidden child process and restarts it if it exits unexpectedly.
-- It checks for updates at launch and hourly, downloads them in the background,
-  and applies them **only when neither FlightSimulator.exe nor
-  FlightSimulator2024.exe is running**. If the simulator is running, it defers
-  checks/installations. The safety check is repeated before applying.
-- A `LocalAppData/MSFS Companion/settings.json` file stores the update feed.
+- It checks for updates shortly after launch and hourly and applies them
+  automatically **even while MSFS is running**. The game continues running,
+  but the web dashboard/bridge disconnects briefly as Companion restarts.
+- A `LocalAppData/MSFS Companion/settings.json` file stores the update feed,
+  defaulting to this repository's GitHub Releases.
   Logs are at `LocalAppData/MSFS Companion/windows-host.log`.
 - A read-only dashboard runs locally at `http://127.0.0.1:8765/admin`.
   Remote iPad/Mac access is **not yet enabled**: LAN authentication belongs to B2.
@@ -30,51 +30,51 @@
 The diagnostic B1 `MsfsCompanion.Probe.exe` remains separate from this
 persistent tray/bridge app. B2 will replace mock telemetry with SimConnect.
 
-## Automatic update distribution — one-time setup required
+## Automatic updates from public GitHub Releases
 
-The source repository `Boym323/MSFS-Companion` is **private**. Windows
-clients cannot anonymously fetch its Actions artifacts or releases.
-**Never put a PAT or GitHub Actions token into a Windows installer.**
+The source repository **Boym323/MSFS-Companion is public**. The Windows app
+uses GitHub Releases in this **same repository** as its default update channel:
 
-Recommended distribution:
+`https://github.com/Boym323/MSFS-Companion`
 
-1. Create a separate **public** GitHub repository, e.g.
-   `Boym323/MSFS-Companion-Updates`, containing only approved binary releases.
-   The source repo can remain private. Public repo means binaries are public,
-   not the source code. Do not publish secret configuration files.
-2. Sign installer and packages and vet dependency/supply-chain provenance
-   before wider distribution (current CI builds are **unsigned**).
-3. Configure **GitHub Settings → Secrets and variables → Actions** in the
-   **private source repository**:
-   - Repository variable `UPDATE_REPO_URL` =
-     `https://github.com/Boym323/MSFS-Companion-Updates`.
-   - Actions secret `UPDATE_PUBLISH_TOKEN` = a fine-grained GitHub token
-     with **Contents: read/write restricted to that public updates repo only**.
-     The token stays in CI and must never be stored on a client PC.
-   - For a reviewed release, go to **Actions → Windows tray installer →
-     Run workflow** on **main**, choose a *new* SemVer such as `0.2.1`,
-     and check `publish_public`. CI builds and publishes Velopack packages
-     to that public repository using `vpk upload github`. On ordinary pushes
-     and PRs it only creates private artifacts and does not publish.
-     Do not reuse a version number; keep previous release assets for recovery.
-4. In the tray menu select **Nastavit aktualizační zdroj…** and enter:
-   `https://github.com/Boym323/MSFS-Companion-Updates`.
-   The app uses `GithubSource` anonymously for a public repo.
-   This setup only needs to be done once on the Windows PC.
-5. Future approved stable releases will be detected/downloaded and installed
-   automatically at the first safe opportunity, without interrupting MSFS.
+No second updates repository, GitHub personal access token or Windows client
+credentials are required.
 
-A plain HTTPS static Velopack `releases.win.json` feed is also supported
-through the same menu.
+### Normal development workflow
 
-**Important:** This PR implements the *installer, tray runtime and client-side
-update logic*, plus a private Actions build artifact. Public update hosting,
-CI publishing credentials, Windows code signing, two-version update/rollback
-acceptance test and real PC install remain separate release prerequisites.
-The CI publishing step is implemented but **disabled by default**; it requires
-an explicit main-branch `workflow_dispatch` with `publish_public` selected.
-Until a valid feed exists, the app still runs the dashboard automatically, but
-can't download new versions. It never substitutes private repo credentials.
+1. Make a change on a feature branch and open a pull request.
+2. After review and successful CI, merge it to `main`.
+3. The **Windows tray installer** workflow builds the full application
+   and automatically publishes a new numbered GitHub Release, such as
+   `v0.2.37`. Each run on `main` uses an increasing Actions run number.
+4. The installed tray application checks the public release feed shortly
+   after launch and then hourly. If a newer version exists it downloads
+   and applies the update without manual interaction.
+5. Updating is permitted **while MSFS 2020 is running**. Only our own
+   Companion host and its bridge restart; `FlightSimulator.exe` is never
+   terminated or sent controls. Connected PFD/dashboard clients may
+   disconnect briefly and automatically reconnect.
+
+The publish step runs in a separate CI job with narrowly scoped
+`GITHUB_TOKEN` **Contents: write** permissions, on `main` push only,
+and after successful Windows build/tests. Pull requests and manual
+`workflow_dispatch` builds create installer artifacts but **never publish**.
+Ensure GitHub Actions permissions permit creating Releases, otherwise this
+job will fail and the release will not be available to clients.
+
+A custom HTTPS update endpoint remains configurable in the tray, but
+is not required. The update feed defaults to the public source above.
+
+### Development release risks
+
+These are **unsigned development installers and releases**. Windows SmartScreen
+may warn, and Windows Defender or company policies may block execution.
+Public GitHub releases make the binaries downloadable by anyone.
+Review downloaded releases and use only on machines you control.
+A broken update can still take the Companion offline: the current
+version has **no automatic health-gated rollback**. Test the first
+installation and at least one real version-to-version update on Windows
+before treating unattended updates as production-ready.
 
 ### Recovery
 
@@ -85,8 +85,8 @@ computers until a tested upgrade and recovery cycle has passed.
 
 ### Diagnostic test
 
-`MsfsCompanion.WindowsHost.exe --self-test` checks the update safety
-decision matrix and exits immediately. It does not launch any simulator.
+`MsfsCompanion.WindowsHost.exe --self-test` checks the update policy
+(including permission to apply during MSFS) and default GitHub feed and exits immediately. It does not launch any simulator.
 Windows GitHub Actions also builds the production frontend and packages
 the updater. No real Windows login/session or second-version upgrade is
 exercised in Actions.
