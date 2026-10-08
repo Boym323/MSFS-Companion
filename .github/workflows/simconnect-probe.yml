@@ -1,0 +1,61 @@
+name: SimConnect Probe (Windows)
+
+on:
+  pull_request:
+    paths:
+      - 'apps/probe/**'
+      - 'docs/SIMCONNECT_PROBE.md'
+      - '.github/workflows/simconnect-probe.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/probe/**'
+      - '.github/workflows/simconnect-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-probe:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Publish self-contained Windows x64 probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet publish apps/probe/MsfsCompanion.Probe.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishReadyToRun=false --output dist/probe
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
+          if (!(Test-Path dist/probe/MsfsCompanion.Probe.exe)) { throw 'Missing executable' }
+          if (!(Test-Path dist/probe/SimConnect.dll)) { throw 'Missing native SimConnect.dll dependency' }
+
+      - name: Offline self-test (no MSFS required)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./dist/probe/MsfsCompanion.Probe.exe --self-test --report "$env:RUNNER_TEMP/simconnect-selftest.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Probe self-test failed' }
+          $report = Get-Content "$env:RUNNER_TEMP/simconnect-selftest.json" -Raw | ConvertFrom-Json
+          if ($report.schemaVersion -ne 'simconnect-probe-v1') { throw 'Unexpected JSON report schema' }
+          if ($report.connection -ne 'self_test_only') { throw 'Self-test incorrectly attempted simulator access' }
+          if ($report.samples.Count -ne 0) { throw 'Self-test must not invent simulator samples' }
+          & ./dist/probe/MsfsCompanion.Probe.exe --help
+          if ($LASTEXITCODE -ne 0) { throw 'Help command failed' }
+
+      - name: Package diagnostic ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/probe/* -DestinationPath MSFS-Companion-SimConnect-Probe-win-x64.zip -CompressionLevel Optimal
+
+      - name: Upload artifact (private repository)
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSFS-Companion-SimConnect-Probe-win-x64
+          path: MSFS-Companion-SimConnect-Probe-win-x64.zip
+          if-no-files-found: error
+          retention-days: 14
