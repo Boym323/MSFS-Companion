@@ -103,13 +103,14 @@ public sealed class SimConnectTelemetrySource(
             value =>
             {
                 var now = Stopwatch.GetTimestamp();
-                Interlocked.Exchange(ref lastReceivedTicks, now);
                 if (!value.IsValid())
                 {
                     if (Interlocked.Increment(ref invalidPackets) == 1)
                         logger.LogWarning("SimConnect poslal neplatná telemetrická data; vzorek zahazuji.");
+                    // Neplatné snímky nesmí donekonečna udržovat zdroj ve stavu alive.
                     return;
                 }
+                Interlocked.Exchange(ref lastReceivedTicks, now);
 
                 // Odběr nesmí blokovat callback nativní knihovny.
                 var previous = Interlocked.Read(ref lastSentTicks);
