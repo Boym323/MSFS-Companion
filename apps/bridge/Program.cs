@@ -110,6 +110,7 @@ app.MapGet("/api/autopilot/modes", (AutopilotModesStore modes) => Results.Ok(mod
 // Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
 app.MapCockpitControls();
 app.MapG1000();
+app.MapAdvancedAvionics();
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 
 // Pouze čtení. Záznam probíhá na Windows i bez otevřeného prohlížeče.
