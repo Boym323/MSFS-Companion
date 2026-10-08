@@ -154,6 +154,20 @@ class BridgeSmokeTests(unittest.TestCase):
                 urllib.request.urlopen(request, timeout=3)
             self.assertEqual(error.exception.code, 404)
 
+    def test_read_only_aircraft_systems_are_marked_mock_in_ci(self):
+        response = get_json("/api/aircraft/systems")
+        self.assertTrue(response["connected"])
+        self.assertEqual(response["systems"]["mode"], "mock")
+        self.assertEqual(response["systems"]["engineRpm"], 2300)
+        self.assertEqual(response["systems"]["fuelGallons"], 40)
+        self.assertFalse(response["systems"]["autopilotMaster"])
+        req = urllib.request.Request(
+            BASE + "/api/aircraft/systems", data=b'{"autopilotMaster":true}',
+            method="POST", headers={"Content-Type": "application/json"})
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            urllib.request.urlopen(req, timeout=3)
+        self.assertEqual(error.exception.code, 405)
+
     def test_recorder_is_read_only_and_persists_mock_sample(self):
         # Mock se používá jen v CI, nikoliv jako falešná produkční telemetrie.
         time.sleep(1.3)
