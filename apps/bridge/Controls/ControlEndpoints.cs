@@ -13,7 +13,7 @@ public static class ControlEndpoints
         {
             http.Response.Headers.CacheControl = "no-store";
             var token = http.Request.Headers["X-MSFS-Control-Token"].ToString();
-            return Results.Ok(new { enabled = access.Enabled, paired = access.Authorized(token),
+            return Results.Ok(new { enabled = access.Enabled, canControl = access.CanControl(token), paired = access.Authorized(token),
                 local = ControlAccess.IsLoopback(http) });
         });
 
@@ -47,7 +47,7 @@ public static class ControlEndpoints
         {
             if (!ControlAccess.SameOrigin(http)) return Results.StatusCode(403);
             var token = http.Request.Headers["X-MSFS-Control-Token"].ToString();
-            if (!access.Authorized(token)) return Results.Unauthorized();
+            if (!access.CanControl(token)) return Results.Unauthorized();
             if (!CockpitCommands.TryResolve(input, out var command) || command is null)
                 return Results.BadRequest(new { error = "Nepovolený příkaz nebo hodnota." });
             if (telemetry.Mode != "simconnect" || !health.Snapshot(telemetry.Mode).Connected)

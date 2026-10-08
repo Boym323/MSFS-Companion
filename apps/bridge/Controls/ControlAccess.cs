@@ -4,7 +4,8 @@ using System.Net;
 namespace MsfsCompanion.Bridge.Controls;
 
 /// <summary>
-/// Záměrně vypnuto po každém startu. Párovací kód smí zobrazit pouze
+/// Párování je ve výchozím stavu vypnuto, ovládání v důvěryhodné LAN povoleno.
+/// Párovací kód smí zobrazit pouze
 /// browser na Windows hostiteli (loopback), nikdy zařízení v LAN.
 /// Tokeny jsou pouze v paměti; při restartu či vypnutí se zneplatní.
 /// </summary>
@@ -19,7 +20,10 @@ public sealed class ControlAccess
     private int _attemptCount;
     private DateTimeOffset _lastCommand;
 
+    /// <summary>Znamená, že je zapnuté bezpečnostní párování (nikoliv samotné ovládání).</summary>
     public bool Enabled { get { lock (_gate) return _enabled; } }
+
+    public bool CanControl(string? token) => !Enabled || Authorized(token);
 
     public void SetEnabled(bool enabled)
     {
@@ -93,7 +97,7 @@ public sealed class ControlAccess
     {
         lock (_gate)
         {
-            if (!Authorized(token)) return false;
+            if (!CanControl(token)) return false;
             var now = DateTimeOffset.UtcNow;
             if ((now - _lastCommand).TotalMilliseconds < 250) return false;
             _lastCommand = now;
