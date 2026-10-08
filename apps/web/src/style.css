@@ -81,3 +81,23 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
   color: #f4c7ac;
   line-height: 1.5;
 }
+
+/* B2.3 – oddělené frekvence příjmu a publikace, přehledně i na tabletu. */
+.telemetry-diagnostics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin: -29px 0 33px;
+  padding: 12px 16px;
+  background: #0e192a;
+  border: 1px solid #233c53;
+  border-radius: 10px;
+  color: #a5b8d1;
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.telemetry-diagnostics strong { font-weight: 600; color: #bcd8f0; }
+@media (max-width: 760px) {
+  .telemetry-diagnostics { margin: -15px 0 24px; }
+}

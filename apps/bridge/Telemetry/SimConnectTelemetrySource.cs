@@ -4,9 +4,9 @@ using SimConnect.NET;
 namespace MsfsCompanion.Bridge.Telemetry;
 
 /// <summary>
-/// Pouze čtení z MSFS přes jeden SimFrame subscription. Po ztrátě
-/// spojení přestane publikovat stale data a zkusí se připojit znovu.
-/// Žádné SimConnect Set/Transmit/Execute API se nepoužívá.
+/// Pouze čtení z MSFS. Callback přijímá každý validní SimFrame; nezávislý
+/// 20Hz publisher vybírá nejnovější NEPOUŽITÝ snímek ze slotu.
+/// Při výpadku se nepřechází na mock a obnovuje se spojení.
 /// </summary>
 public sealed class SimConnectTelemetrySource(
     TelemetryStore store,
@@ -24,7 +24,7 @@ public sealed class SimConnectTelemetrySource(
             return;
         }
 
-        logger.LogInformation("Startuji živé čtení SimConnect (nejvýše 20 Hz do dashboardu).");
+        logger.LogInformation("SimConnect příjem každým sim frame, předávání do webu maximálně 20 Hz.");
         while (!stoppingToken.IsCancellationRequested)
         {
             health.StartConnecting();
@@ -39,7 +39,7 @@ public sealed class SimConnectTelemetrySource(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "SimConnect není dostupný nebo se přerušilo spojení. Zkusím další pokus.");
+                logger.LogWarning(ex, "SimConnect není dostupný nebo se přerušilo spojení.");
                 health.SetWaiting($"{ex.GetType().Name}: {ex.Message}");
             }
 
@@ -89,46 +89,38 @@ public sealed class SimConnectTelemetrySource(
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Nepodařilo se přečíst TITLE, používám obecný název letadla.");
+            logger.LogDebug(ex, "Nepodařilo se přečíst TITLE.");
         }
 
-        long lastSentTicks = 0;
-        long lastReceivedTicks = 0;
-        int invalidPackets = 0;
+        var buffer = new LatestFrameBuffer<SimConnectAircraftData>();
+        var firstReceivedAt = Stopwatch.GetTimestamp();
+        var invalidPackets = 0;
 
-        // SimConnect posílá jeden strukturovaný vzorek každým sim frame.
-        // Kvůli omezení zátěže pustíme do TelemetryStore maximálně 20 Hz.
+        // Callback nikdy nečeká na publikační časovač. Počítá VŠECHNY
+        // platné snímky ze simulátoru, včetně záměrně přeskočených.
         using var subscription = client.SimVars.Subscribe<SimConnectAircraftData>(
             SimConnectPeriod.SimFrame,
             value =>
             {
-                var now = Stopwatch.GetTimestamp();
                 if (!value.IsValid())
                 {
                     if (Interlocked.Increment(ref invalidPackets) == 1)
-                        logger.LogWarning("SimConnect poslal neplatná telemetrická data; vzorek zahazuji.");
-                    // Neplatné snímky nesmí donekonečna udržovat zdroj ve stavu alive.
+                        logger.LogWarning("SimConnect poslal neplatný snímek; ignoruji ho.");
                     return;
                 }
-                Interlocked.Exchange(ref lastReceivedTicks, now);
 
-                // Odběr nesmí blokovat callback nativní knihovny.
-                var previous = Interlocked.Read(ref lastSentTicks);
-                if (previous != 0 && Stopwatch.GetElapsedTime(previous, now) < TimeSpan.FromMilliseconds(50))
-                    return;
-
-                if (Interlocked.CompareExchange(ref lastSentTicks, now, previous) != previous)
-                    return;
-
-                var timestamp = DateTimeOffset.UtcNow;
-                store.Update(value.ToSnapshot(aircraft, timestamp));
-                health.AcceptSample(timestamp);
+                var receivedTicks = Stopwatch.GetTimestamp();
+                var receivedUtc = DateTimeOffset.UtcNow;
+                buffer.Write(value, receivedUtc, receivedTicks);
+                health.RecordIncoming(receivedUtc);
             },
             cancellationToken: stoppingToken);
 
-        logger.LogInformation("SimConnect subscription aktivní. Čekám na letová data.");
-        var connectedAt = Stopwatch.GetTimestamp();
-        while (!stoppingToken.IsCancellationRequested)
+        logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
+        long lastPublishedSequence = 0;
+        using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
+        while (!stoppingToken.IsCancellationRequested
+               && await publishTimer.WaitForNextTickAsync(stoppingToken))
         {
             if (!client.IsConnected)
                 throw new IOException("SimConnect se odpojil.");
@@ -139,12 +131,23 @@ public sealed class SimConnectTelemetrySource(
                 throw new IOException("Odběr SimConnect skončil.");
             }
 
-            var last = Interlocked.Read(ref lastReceivedTicks);
-            var age = Stopwatch.GetElapsedTime(last == 0 ? connectedAt : last);
-            if (age > TimeSpan.FromSeconds(last == 0 ? 12 : 6))
-                throw new TimeoutException("SimConnect neposílá aktuální snímky (pauza nebo výpadek).");
+            // Watchdog sleduje příchozí validní vzorky, nikoli timer nebo
+            // poslední odeslání do WebSocketu. Neplatné hodnoty jej neudrží naživu.
+            var lastReceived = buffer.LastReceivedTicks;
+            var age = Stopwatch.GetElapsedTime(lastReceived == 0 ? firstReceivedAt : lastReceived);
+            if (age > TimeSpan.FromSeconds(lastReceived == 0 ? 12 : 6))
+                throw new TimeoutException("SimConnect neposílá aktuální platné snímky.");
 
-            await Task.Delay(500, stoppingToken);
+            var previousSequence = lastPublishedSequence;
+            if (!buffer.TryReadNew(ref lastPublishedSequence, out var frame) || frame is null)
+                continue; // žádné opakované publikování starých hodnot
+
+            // Počet záměrně přeskočených snímků (30 Hz -> 20 Hz).
+            var skipped = Math.Max(0, frame.Sequence - previousSequence - 1);
+
+            store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
+            health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
         }
     }
+
 }

@@ -66,7 +66,11 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryHealth health) =>
         sampleRateHz = telemetry.SampleRateHz,
         samplesReceived = telemetry.SamplesReceived,
         connectionAttempts = telemetry.ConnectionAttempts,
-        lastError = telemetry.LastError
+        lastError = telemetry.LastError,
+        incomingRateHz = telemetry.IncomingRateHz,
+        samplesPublished = telemetry.SamplesPublished,
+        framesSkipped = telemetry.FramesSkipped,
+        publicationLagMs = telemetry.PublicationLagMs
     });
 });
 
@@ -90,14 +94,20 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
     using var socket = await context.WebSockets.AcceptWebSocketAsync();
     using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
     var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    DateTimeOffset? lastSentTimestamp = null;
 
     try
     {
         while (socket.State == WebSocketState.Open
                && await timer.WaitForNextTickAsync(context.RequestAborted))
         {
-            var message = JsonSerializer.SerializeToUtf8Bytes(
-                store.Current, jsonOptions);
+            var snapshot = store.Current;
+            // Timer samotný nesmí vytvářet falešných 20 Hz ze starého snímku.
+            if (lastSentTimestamp == snapshot.TimestampUtc)
+                continue;
+
+            lastSentTimestamp = snapshot.TimestampUtc;
+            var message = JsonSerializer.SerializeToUtf8Bytes(snapshot, jsonOptions);
             await socket.SendAsync(
                 message,
                 WebSocketMessageType.Text,
