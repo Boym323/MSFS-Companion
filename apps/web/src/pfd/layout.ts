@@ -1,5 +1,3 @@
-import { normalizeHeading } from './math';
-
 export type Rect = Readonly<{ x: number; y: number; width: number; height: number }>;
 
 export const PFD_LAYOUT = {
@@ -48,7 +46,7 @@ export function compassMarks(heading: number): Array<{ key: number; value: numbe
     const key = base + (i - 8) * 10;
     return {
       key,
-      value: normalizeHeading(key),
+      value: ((key % 360) + 360) % 360,
       x: PFD_LAYOUT.centerX + (key - heading) * 4.75,
     };
   });
