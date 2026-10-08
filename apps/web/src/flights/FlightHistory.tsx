@@ -4,6 +4,8 @@ import FlightInsights from './FlightInsights';
 import FlightRouteMap from './FlightRouteMap';
 import FlightReplayCharts from './FlightReplayCharts';
 import { exportFlightCsv } from './performance';
+import { exportFlightGpx, exportFlightKml } from './logbookExport';
+import { analyzeFlight } from './analysis';
 import './FlightHistory.css';
 
 type FlightSummary = {
@@ -37,6 +39,9 @@ export default function FlightHistory() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [error, setError] = useState('');
+  const [compareId, setCompareId] = useState('');
+  const [comparison, setComparison] = useState<FlightDetail | null>(null);
+  const [compareBusy, setCompareBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +81,31 @@ export default function FlightHistory() {
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [selected]);
 
+  function download(format: 'csv'|'gpx'|'kml') {
+    if (!detail || !detail.samples.length) return;
+    try {
+      const data = format === 'csv' ? exportFlightCsv(detail.samples)
+        : format === 'gpx' ? exportFlightGpx(detail.samples, detail.summary.aircraft)
+        : exportFlightKml(detail.samples, detail.summary.aircraft);
+      const blob = new Blob([data], { type: format === 'csv' ? 'text/csv;charset=utf-8'
+        : 'application/xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a'); link.href=url;
+      link.download='kokpit-let-'+detail.summary.id.replace(/[^a-zA-Z0-9_-]/g,'_')+'.'+format;
+      document.body.append(link);link.click();link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    } catch(e) {setError(e instanceof Error ? e.message : 'Export záznamu selhal.');}
+  }
+  async function compare() {
+    if (!compareId || compareId === selected || compareBusy) return;
+    setCompareBusy(true);setComparison(null);
+    try {const r=await fetch('/api/flights/'+encodeURIComponent(compareId),{cache:'no-store'});
+      if (!r.ok) throw Error(); const data=await r.json() as FlightDetail;
+      if (data.summary.id === compareId && Array.isArray(data.samples)) setComparison(data);
+      else setError('Porovnávaný let nemá platné údaje.');
+    }catch{setError('Druhý let není k dispozici pro porovnání.');}
+    finally{setCompareBusy(false);}
+  }
   const samples = detail?.samples ?? [];
   const index = Math.min(cursor, Math.max(0, samples.length - 1));
   const point = samples[index];
@@ -102,7 +132,7 @@ export default function FlightHistory() {
           {flights.length === 0 && <p>Zatím nebyl zaznamenán žádný let.</p>}
           {flights.map((flight) => (
             <button key={flight.id} type="button" className={flight.id === selected ? 'selected' : ''}
-              onClick={() => { setSelected(flight.id); setDetail(null); setCursor(0); setPlaying(false); }}>
+              onClick={() => { setSelected(flight.id); setDetail(null); setCursor(0); setPlaying(false); setComparison(null); }}>
               <strong>{flight.aircraft}</strong>
               <span>{timestamp(flight.startedAtUtc)}</span>
               <small>{flight.active ? '● Právě se zaznamenává' : elapsed(flight)}
@@ -125,19 +155,41 @@ export default function FlightHistory() {
               </div>
 
               <div className="flight-history-export">
-                <button type="button" disabled={!samples.length} onClick={() => {
-                  const csv = exportFlightCsv(samples);
-                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = 'msfs-let-' + detail.summary.id.replace(/[^a-zA-Z0-9_-]/g,'_') + '.csv';
-                  document.body.append(link);
-                  link.click();
-                  link.remove();
-                  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }}>Exportovat záznam do CSV</button>
+                <button type="button" disabled={!samples.length} onClick={()=>download('csv')}>Export CSV</button>
+                <button type="button" disabled={!samples.length} onClick={()=>download('gpx')}>Export GPX</button>
+                <button type="button" disabled={!samples.length} onClick={()=>download('kml')}>Export KML</button>
                 <span>Soubor zůstává v prohlížeči. Nedochází k odeslání do externí služby.</span>
+              </div>
+              <div className="flight-history-compare">
+                <h3>C39 · Porovnání letů</h3>
+                <label>Druhý let
+                  <select value={compareId} onChange={e=>{setCompareId(e.target.value);setComparison(null);}}>
+                    <option value="">Vyberte let…</option>
+                    {flights.filter(f=>f.id!==detail.summary.id).map(f=>
+                      <option key={f.id} value={f.id}>{f.aircraft} · {timestamp(f.startedAtUtc)}</option>)}
+                  </select>
+                </label>
+                <button type="button" disabled={!compareId||compareBusy} onClick={()=>void compare()}>
+                  {compareBusy?'Porovnávám…':'Porovnat'}
+                </button>
+                {comparison && <div className="flight-history-comparison">
+                  {[detail,comparison].map(row=>{
+                    const report=analyzeFlight(row.samples);
+                    const touchdowns=report.events.filter(e=>e.kind==='touchdown');
+                    const last=touchdowns.at(-1);
+                    return <article key={row.summary.id}>
+                      <strong>{row.summary.aircraft} · {timestamp(row.summary.startedAtUtc)}</strong>
+                      <p>Délka: {(row.summary.distanceMeters/1000).toFixed(1)} km</p>
+                      <p>Max. IAS: {row.summary.maxAirspeedKnots.toFixed(0)} KT</p>
+                      <p>Dosednutí (SimVar): {touchdowns.length||'bez potvrzení'}</p>
+                      <p>Poslední touchdown rate: {last?.touchdownRateFpm!=null
+                        ? last.touchdownRateFpm.toFixed(0)+' FPM':'nezjištěna'}</p>
+                      <p>Důvěryhodných onGround vzorků: {report.reliableGroundSamples}/{report.totalSamples}</p>
+                    </article>;
+                  })}
+                </div>}
+                <p>Porovnáváme lokální záznamy, nikoli kvalitu pilota. Zkrácené a starší lety
+                  mohou mít chybějící údaje nebo nepřesné časy.</p>
               </div>
               <FlightInsights samples={samples} mode={detail.summary.mode} />
               <h3>Průběh výšky a rychlosti</h3>

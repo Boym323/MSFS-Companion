@@ -28,3 +28,16 @@ test('export CSV hlavička, null, booleany a datum',()=>{
   assert.ok(csv.endsWith('\r\n'));
   assert.match(csv,/,0,,/);
 });
+
+import {exportFlightGpx,exportFlightKml,validFlightPositions} from './logbookExport.ts';
+test('C39 GPX/KML chrání XML a filtruje neplatnou GPS',()=>{
+ const point={timestampUtc:'2026-10-08T10:00:00Z',latitude:50,longitude:14,altitudeFeet:1000};
+ const invalid={...point,latitude:999};
+ assert.equal(validFlightPositions([invalid,point]).length,1);
+ const gpx=exportFlightGpx([invalid,point],'<C172 & test>');
+ assert.match(gpx, /&lt;C172 &amp; test&gt;/);
+ assert.match(gpx, /<ele>304.80<\/ele>/);
+ const kml=exportFlightKml([point],'A&B'); assert.match(kml,/14,50,304.80/);
+ assert.match(kml,/A&amp;B/);
+ assert.throws(()=>exportFlightGpx([invalid],'none'));
+});
