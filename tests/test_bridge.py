@@ -187,6 +187,11 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/map/aviation?lat=50&lon=14&radiusKm=20000")
         self.assertEqual(failure.exception.code, 400)
 
+    def test_noaa_weather_validates_icao_before_network(self):
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            get_json("/api/weather/123")
+        self.assertEqual(failure.exception.code, 400)
+
     def test_aviation_map_rejects_invalid_coordinates(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/map/aviation?lat=999&lon=0")
