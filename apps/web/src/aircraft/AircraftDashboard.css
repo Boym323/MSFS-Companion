@@ -1,0 +1,18 @@
+.aircraft-dashboard { margin: 0 0 42px; }
+.aircraft-dashboard-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.aircraft-dashboard-head h2 { font-size: clamp(19px, 3vw, 29px); margin: 8px 0 6px; }
+.aircraft-dashboard-head p { color: #94b2c9; font-size: 13px; margin: 0; }
+.aircraft-dashboard-signal { color: #90d8c2; font-size: 12px; font-weight: 600; }
+.aircraft-dashboard-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 17px; }
+.aircraft-dashboard-grid article { background: #101d30; border: 1px solid #28405c; border-radius: 13px; padding: 20px; }
+.aircraft-dashboard-grid h3 { margin: 0 0 20px; font-size: 15px; color: #e8f4ff; }
+.aircraft-dashboard-grid dl { display: grid; gap: 13px; margin: 0; }
+.aircraft-measure { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid #2b3a4e; padding-bottom: 9px; }
+.aircraft-measure:last-child { border-bottom: 0; }
+.aircraft-measure dt { color: #9db2cc; font-size: 12px; }
+.aircraft-measure dd { color: #f1f9ff; font-size: 17px; font-weight: 650; margin: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aircraft-measure dd small { color: #89b1d2; font-size: 10px; }
+.aircraft-dashboard-note, .aircraft-dashboard-info { font-size: 12px; color: #9eb2c9; line-height: 1.65; margin-top: 18px; }
+.aircraft-dashboard-info { padding: 12px 15px; border: 1px solid #526378; border-radius: 9px; margin-bottom: 18px; }
+@media(max-width: 760px) { .aircraft-dashboard-grid { grid-template-columns: 1fr; } }
+@media(max-width: 440px) { .aircraft-dashboard-grid article { padding: 15px; } .aircraft-measure dd { font-size: 14px; } }
