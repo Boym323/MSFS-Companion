@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<TelemetryStore>();
 builder.Services.AddSingleton<TelemetryHealth>();
+builder.Services.AddSingleton<AircraftSystemsStore>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -80,6 +81,10 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryHealth health) =>
 
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
+
+// Oddělené 1Hz systémové údaje (pouze čtení, bez kokpitových příkazů).
+app.MapGet("/api/aircraft/systems", (AircraftSystemsStore systemsStore) =>
+    Results.Ok(systemsStore.Status()));
 
 // Pouze čtení. Záznam probíhá na Windows i bez otevřeného prohlížeče.
 app.MapGet("/api/flights", (FlightRecorder recorder) =>

@@ -5,6 +5,7 @@ namespace MsfsCompanion.Bridge.Telemetry;
 public sealed class MockTelemetrySource(
     TelemetryStore store,
     TelemetryHealth health,
+    AircraftSystemsStore systemsStore,
     ILogger<MockTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "mock";
@@ -13,6 +14,7 @@ public sealed class MockTelemetrySource(
     {
         logger.LogInformation("Mock telemetry started at 20 Hz");
         var clock = Stopwatch.StartNew();
+        var lastSystemsSecond = -1;
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
 
         try
@@ -36,6 +38,30 @@ public sealed class MockTelemetrySource(
                     BankDegrees: 12 * Math.Sin(t / 11)
                 ));
                 health.AcceptSample(at);
+
+                // Testovací hodnoty jsou explicitně označené mode=mock.
+                var second = (int)clock.Elapsed.TotalSeconds;
+                if (second != lastSystemsSecond)
+                {
+                    lastSystemsSecond = second;
+                    systemsStore.Update(new AircraftSystemsSnapshot(
+                        TimestampUtc: at,
+                        Mode: "mock",
+                        TrueAirspeedKnots: 125,
+                        GroundSpeedKnots: 118,
+                        AltitudeAglFeet: 2800,
+                        WindDirectionDegrees: 280,
+                        WindSpeedKnots: 12,
+                        OnGround: false,
+                        FlapsPercent: 0,
+                        GearDown: true,
+                        AutopilotMaster: false,
+                        AutopilotSelectedHeadingDegrees: 270,
+                        AutopilotSelectedAltitudeFeet: 4500,
+                        AutopilotSelectedVerticalSpeedFpm: 0,
+                        EngineRpm: 2300,
+                        FuelGallons: 40));
+                }
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

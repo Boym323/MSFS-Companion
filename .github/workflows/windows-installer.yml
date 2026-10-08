@@ -171,6 +171,8 @@ jobs:
             Start-Sleep -Seconds 2
             $status = Invoke-RestMethod 'http://127.0.0.1:8766/api/status' -TimeoutSec 5
             if ($status.mode -ne 'simconnect' -or $status.connected -ne $false) { throw 'SimConnect bez MSFS nesmí předstírat připojení' }
+            $systems = Invoke-RestMethod 'http://127.0.0.1:8766/api/aircraft/systems' -TimeoutSec 5
+            if ($systems.connected -or $null -ne $systems.systems) { throw 'Bez MSFS jsou systémové SimVars nedostupné' }
             if ($null -ne $status.lastTelemetryUtc -or $status.samplesReceived -ne 0) { throw 'SimConnect bez MSFS vrátil falešné letové vzorky' }
             $sample = Invoke-RestMethod 'http://127.0.0.1:8766/api/telemetry' -TimeoutSec 5
             if ($sample.aircraft -like '*mock*') { throw 'Windows live režim se nečekaně přepnul do mocku' }

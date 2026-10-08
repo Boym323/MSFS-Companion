@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using SimConnect.NET;
+using SimConnect.NET.SimVar;
 
 namespace MsfsCompanion.Bridge.Telemetry;
 
@@ -11,6 +12,7 @@ namespace MsfsCompanion.Bridge.Telemetry;
 public sealed class SimConnectTelemetrySource(
     TelemetryStore store,
     TelemetryHealth health,
+    AircraftSystemsStore systemsStore,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -28,6 +30,7 @@ public sealed class SimConnectTelemetrySource(
         while (!stoppingToken.IsCancellationRequested)
         {
             health.StartConnecting();
+            systemsStore.Reset();
             store.Reset("Čekám na MSFS 2020");
             try
             {
@@ -43,6 +46,7 @@ public sealed class SimConnectTelemetrySource(
                 health.SetWaiting($"{ex.GetType().Name}: {ex.Message}");
             }
 
+            systemsStore.Reset();
             store.Reset("MSFS není připojen");
             if (stoppingToken.IsCancellationRequested)
                 break;
@@ -116,6 +120,7 @@ public sealed class SimConnectTelemetrySource(
             },
             cancellationToken: stoppingToken);
 
+        using var systemsSubscription = SubscribeSystems(client, stoppingToken);
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -150,4 +155,32 @@ public sealed class SimConnectTelemetrySource(
         }
     }
 
+    private ISimVarSubscription? SubscribeSystems(SimConnectClient client, CancellationToken token)
+    {
+        var invalidFrames = 0;
+        try
+        {
+            // Samostatná strukturovaná 1Hz subscription, oddělená od PFD SimFrame.
+            // Výpadek nepovinných systémových SimVars NESMÍ zastavit telemetrii PFD.
+            return client.SimVars.Subscribe<SimConnectSystemsData>(
+                SimConnectPeriod.Second,
+                value =>
+                {
+                    if (!value.IsValid())
+                    {
+                        if (Interlocked.Increment(ref invalidFrames) == 1)
+                            logger.LogWarning("Systémové SimVars obsahují neplatné hodnoty.");
+                        return;
+                    }
+                    systemsStore.Update(AircraftSystemsStore.FromSimConnect(
+                        value, Mode, DateTimeOffset.UtcNow));
+                },
+                cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Systémové SimVars nejsou dostupné, PFD bude nadále fungovat.");
+            return null;
+        }
+    }
 }

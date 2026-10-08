@@ -120,6 +120,16 @@ výslovně označí. Historie obsahuje polohy a je dostupná
 v rámci důvěryhodné domácí sítě. Viz
 [český návod k Flight Recorderu](docs/FLIGHT_RECORDER_B5.md).
 
+## Rozšířené systémové údaje B6
+
+Vedle rychlého PFD odběru existuje **samostatná 1Hz read-only
+SimConnect subscription** pro Ground Speed, TAS, výšku AGL,
+vítr, autopilota, klapky, podvozek, motor a palivo.
+`GET /api/aircraft/systems` vrací stav a aktuální údaje
+nebo `null`, pokud nejsou dostupné. Autopilota ani jiné
+systémy není možné tímto API ovládat. Viz
+[česká dokumentace rozšířené telemetrie](docs/SYSTEMS_B6.md).
+
 ## Další vývoj
 
 Etapa B2 přidává skutečné údaje z MSFS 2020 a čeká na ověření
