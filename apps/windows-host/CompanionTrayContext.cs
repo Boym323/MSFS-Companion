@@ -9,6 +9,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
 {
     private readonly NotifyIcon _icon;
     private readonly BridgeProcess _bridge;
+    private readonly CompanionMdnsPublisher _mdns = new();
     private readonly System.Windows.Forms.Timer _healthTimer;
     private readonly System.Windows.Forms.Timer _updateTimer;
     private readonly System.Windows.Forms.Timer _webRequestTimer;
@@ -23,7 +24,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
     public CompanionTrayContext()
     {
-        _bridge = new BridgeProcess(() => _settings.TelemetryMode);
+        _bridge = new BridgeProcess(() => _settings.TelemetryMode, () => _settings.MdnsEnabled, () => _settings.MdnsName);
         _updateStatus = new ToolStripMenuItem("Aktualizace: GitHub Releases") { Enabled = false };
         _automaticUpdates = new ToolStripMenuItem("Automatické aktualizace")
         {
@@ -71,12 +72,35 @@ internal sealed class CompanionTrayContext : ApplicationContext
         sourceMenu.DropDownItems.Add(mockSource);
         menu.Items.Add(sourceMenu);
         menu.Items.Add(new ToolStripSeparator());
+        var mdnsToggle = new ToolStripMenuItem($"mDNS: {_settings.MdnsHostName}")
+        {
+            Checked = _settings.MdnsEnabled,
+            CheckOnClick = true
+        };
+        mdnsToggle.CheckedChanged += (_, _) =>
+        {
+            if (_exiting || _applyingUpdate) return;
+            _settings.MdnsEnabled = mdnsToggle.Checked;
+            _settings.Save();
+            _mdns.Stop();
+            _bridge.Stop();
+            _bridge.EnsureStarted();
+            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+        };
+        menu.Items.Add(mdnsToggle);
+        menu.Items.Add(new ToolStripMenuItem("Změnit mDNS název…", null, (_, _) =>
+        {
+            if (!ConfigureMdnsName()) return;
+            mdnsToggle.Text = $"mDNS: {_settings.MdnsHostName}";
+        }));
+        var mdnsStatus = new ToolStripMenuItem("mDNS: načítám…") { Enabled = false };
+        menu.Items.Add(mdnsStatus);
         menu.Items.Add(_updateStatus);
         menu.Items.Add(new ToolStripMenuItem("Zkontrolovat aktualizace", null, async (_, _) => await CheckUpdatesAsync(force: true)));
         menu.Items.Add(_automaticUpdates);
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Zkopírovat adresu dashboardu v LAN", null, (_, _) =>
+        menu.Items.Add(new ToolStripMenuItem("Zkopírovat adresu MSFS Companion v LAN", null, (_, _) =>
         {
             var lan = LanAccess.Find();
             if (lan is null)
@@ -87,8 +111,9 @@ internal sealed class CompanionTrayContext : ApplicationContext
                 return;
             }
 
-            Clipboard.SetText(lan.DashboardUrl);
-            MessageBox.Show($"Adresa pro Mac a ostatní zařízení v domácí síti byla zkopírována:\n{lan.DashboardUrl}",
+            var url = _mdns.Active ? _mdns.DashboardUrl : lan.DashboardUrl;
+            Clipboard.SetText(url);
+            MessageBox.Show($"Adresa pro Mac, iPad a ostatní zařízení v domácí síti byla zkopírována:\n{url}\nZáložní IP adresa: {lan.DashboardUrl}",
                 "MSFS Companion", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }));
         menu.Items.Add(new ToolStripMenuItem("Otevřít diagnostický log", null, (_, _) =>
@@ -106,6 +131,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
         AdminControl.WriteStatus("idle", "Připraveno ke kontrole aktualizací.");
         _bridge.EnsureStarted();
+        _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
 
         _webRequestTimer = new System.Windows.Forms.Timer { Interval = 1800 };
         _webRequestTimer.Tick += async (_, _) =>
@@ -119,7 +145,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _webRequestTimer.Start();
 
         _healthTimer = new System.Windows.Forms.Timer { Interval = 10000 };
-        _healthTimer.Tick += (_, _) => _bridge.EnsureStarted();
+        _healthTimer.Tick += (_, _) =>
+        {
+            _bridge.EnsureStarted();
+            _mdns.Refresh(_settings.MdnsEnabled, LanAccess.Find(), _bridge.IsRunning);
+        };
         _healthTimer.Start();
 
         _updateTimer = new System.Windows.Forms.Timer { Interval = 20000 };
@@ -146,11 +176,63 @@ internal sealed class CompanionTrayContext : ApplicationContext
         });
     }
 
+    private bool ConfigureMdnsName()
+    {
+        if (_exiting || _applyingUpdate)
+            return false;
+
+        using var form = new Form
+        {
+            Text = "Lokální mDNS název – MSFS Companion",
+            Width = 505,
+            Height = 208,
+            StartPosition = FormStartPosition.CenterScreen,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ShowInTaskbar = true
+        };
+        var help = new Label
+        {
+            Text = "Zvolte název bez .local (např. kokpit nebo letadlo-2).",
+            AutoSize = true, Left = 16, Top = 16
+        };
+        var input = new TextBox { Left = 16, Top = 47, Width = 350, Text = _settings.MdnsName, MaxLength = 63 };
+        var suffix = new Label { Text = ".local", Left = 377, Top = 51, AutoSize = true };
+        var save = new Button { Text = "Uložit", Left = 255, Top = 105, Width = 100, DialogResult = DialogResult.OK };
+        var cancel = new Button { Text = "Zrušit", Left = 365, Top = 105, Width = 100, DialogResult = DialogResult.Cancel };
+        form.Controls.AddRange([help, input, suffix, save, cancel]);
+        form.AcceptButton = save;
+        form.CancelButton = cancel;
+        if (form.ShowDialog() != DialogResult.OK)
+            return false;
+
+        if (!HostSettings.TryNormalizeMdnsName(input.Text, out var normalized, out var error))
+        {
+            MessageBox.Show(error, "Neplatný mDNS název", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+        if (_settings.MdnsName == normalized)
+            return false;
+
+        _settings.MdnsName = normalized;
+        _settings.Save();
+        if (_settings.MdnsEnabled)
+        {
+            _mdns.Stop();
+            _bridge.Stop();
+            _bridge.EnsureStarted();
+            _mdns.Refresh(true, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+        }
+        EventLogFile.Write($"mDNS hostname changed to {_settings.MdnsHostName}");
+        return true;
+    }
+
     private void ConfigureUpdateFeed()
     {
         using var form = new Form
         {
-            Text = "Zdroj aktualizací – MSFS Companion",
+            Text = "Zdroj aktualizací – Kokpit",
             Width = 550,
             Height = 185,
             StartPosition = FormStartPosition.CenterScreen,
@@ -302,7 +384,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             if (_settings.AutomaticUpdates || force)
             {
                 if (force && !fromWeb)
-                    ShowUpdateBalloon("Aktualizace je stažena, MSFS Companion se nyní restartuje.");
+                    ShowUpdateBalloon("Aktualizace je stažena, Kokpit se nyní restartuje.");
                 ApplyDownloadedUpdate();
             }
         }
@@ -335,9 +417,10 @@ internal sealed class CompanionTrayContext : ApplicationContext
             // neither inspected nor stopped. The web UI disconnects briefly and
             // reconnects automatically after the updated host starts.
             _healthTimer.Stop();
+            _mdns.Stop();
             _bridge.Stop();
             _icon.Visible = false;
-            AdminControl.WriteStatus("applying", "Instaluji aktualizaci a restartuji MSFS Companion.");
+            AdminControl.WriteStatus("applying", "Instaluji aktualizaci a restartuji Kokpit.");
             EventLogFile.Write("Applying Companion update; MSFS is left running.");
             _updateManager.ApplyUpdatesAndRestart(_pendingUpdate!);
             // Velopack schedules replacing our files and exits/restarts our host.
@@ -347,6 +430,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             EventLogFile.Write($"Update apply failure: {ex}");
             _icon.Visible = true;
             _bridge.EnsureStarted();
+            _mdns.Refresh(_settings.MdnsEnabled, LanAccess.Find(), _bridge.IsRunning);
             _healthTimer.Start();
             _updateStatus.Text = "Instalace aktualizace se nezdařila";
             _applyingUpdate = false;
@@ -360,6 +444,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _webRequestTimer.Stop();
         _healthTimer.Stop();
         _icon.Visible = false;
+        _mdns.Dispose();
         _bridge.Dispose();
         _icon.Dispose();
         _updateTimer.Dispose();

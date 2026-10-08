@@ -13,6 +13,21 @@ internal static class LanRequestPolicy
 {
     private static readonly string? LanIp = Environment.GetEnvironmentVariable("MSFS_COMPANION_LAN_ADDRESS");
     private static readonly string? LanMask = Environment.GetEnvironmentVariable("MSFS_COMPANION_LAN_NETMASK");
+    private static readonly string? MdnsHost = ValidateMdnsHost(
+        Environment.GetEnvironmentVariable("MSFS_COMPANION_MDNS_NAME"));
+
+    private static string? ValidateMdnsHost(string? configured)
+    {
+        if (configured is null) return null;
+        var hostname = configured.ToLowerInvariant();
+        if (!hostname.EndsWith(".local", StringComparison.Ordinal)) return null;
+        var label = hostname[..^6];
+        if (label.Length is < 1 or > 63 ||
+            label[0] == '-' || label[^1] == '-' ||
+            label.Any(c => !(c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-')))
+            return null;
+        return hostname;
+    }
 
     public static bool Allows(HttpContext context)
     {
@@ -27,7 +42,8 @@ internal static class LanRequestPolicy
         if (IPAddress.IsLoopback(remote))
             return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
                 || host.Equals("127.0.0.1", StringComparison.Ordinal)
-                || host.Equals("::1", StringComparison.Ordinal);
+                || host.Equals("::1", StringComparison.Ordinal)
+                 || MdnsHost is not null && host.Equals(MdnsHost, StringComparison.OrdinalIgnoreCase);
 
         if (remote.AddressFamily != AddressFamily.InterNetwork
             || !IPAddress.TryParse(LanIp, out var address)
@@ -35,7 +51,10 @@ internal static class LanRequestPolicy
             || mask.AddressFamily != AddressFamily.InterNetwork)
             return false;
 
-        if (!host.Equals(address.ToString(), StringComparison.Ordinal))
+        var allowedIpHost = host.Equals(address.ToString(), StringComparison.Ordinal);
+        var allowedMdnsHost = MdnsHost is not null
+            && host.Equals(MdnsHost, StringComparison.OrdinalIgnoreCase);
+        if (!allowedIpHost && !allowedMdnsHost)
             return false;
 
         var ipBytes = remote.GetAddressBytes();

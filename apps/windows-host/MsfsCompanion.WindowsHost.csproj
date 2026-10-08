@@ -17,5 +17,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
   </ItemGroup>
 </Project>

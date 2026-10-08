@@ -95,6 +95,8 @@ jobs:
           $env:MSFS_COMPANION_CONTROL_DIR = Join-Path $env:RUNNER_TEMP 'companion-test-control'
           $env:MSFS_COMPANION_RECORDINGS_DIR = Join-Path $env:RUNNER_TEMP 'companion-test-flights'
           New-Item -ItemType Directory -Force $env:MSFS_COMPANION_CONTROL_DIR | Out-Null
+          # Nastavení mDNS hostitele v bridge bez nutnosti multicastu na CI.
+          $env:MSFS_COMPANION_MDNS_NAME = "letadlo-2.local"
           $bridgeProcess = Start-Process -FilePath $exe -WorkingDirectory $workDir -PassThru -WindowStyle Hidden
           try {
             $ready = $false
@@ -115,6 +117,17 @@ jobs:
             if ($flights.Count -lt 1) { throw 'Recorder nevytvořil záznam mock letu' }
             $flight = Invoke-RestMethod "http://127.0.0.1:8765/api/flights/$($flights[0].id)" -TimeoutSec 5
             if ($flight.samples.Count -lt 1) { throw 'Historie letu neobsahuje vzorky' }
+            $alias = @{ Host = 'letadlo-2.local:8765' }
+            $resAlias = Invoke-RestMethod 'http://127.0.0.1:8765/api/status' -Headers $alias -TimeoutSec 5
+            if ($resAlias.status -ne 'ok') { throw 'Custom mDNS Host was rejected' }
+            foreach ($forbiddenHost in @('kokpit.local:8765', 'attacker.example:8765', 'bad.name.local:8765')) {
+              try {
+                Invoke-WebRequest 'http://127.0.0.1:8765/api/status' -Headers @{ Host = $forbiddenHost } -TimeoutSec 5 | Out-Null
+                throw 'Unconfigured hostname was permitted'
+              } catch {
+                if ($_.Exception.Response.StatusCode.value__ -ne 403) { throw }
+              }
+            }
             # Změna hlavičky Host je pokus o DNS rebinding.
             $wrongHost = @{ Host = 'nepratelsky-web.example' }
             try {
@@ -147,6 +160,7 @@ jobs:
           } finally {
             if (!$bridgeProcess.HasExited) { Stop-Process -Id $bridgeProcess.Id -Force }
             $bridgeProcess.Dispose()
+            Remove-Item Env:MSFS_COMPANION_MDNS_NAME -ErrorAction SilentlyContinue
           }
 
       - name: Ověřit live SimConnect režim bez simulátoru

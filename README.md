@@ -44,6 +44,14 @@ frekvence a stáří vzorku jsou na stránce `/admin`.
 Podrobnosti a postup prvního ověření:
 [Živá telemetrie B2](docs/LIVE_SIMCONNECT_B2.md).
 
+## mDNS adresa v domácí síti
+
+Windows aplikace může na místní síti inzerovat volitelnou adresu `kokpit.local`.
+Ve Windows tray lze mDNS vypnout nebo změnit krátký název hostitele, například
+na `simdeck` → `simdeck.local`. Název aplikace a aktualizační mechanismus
+zůstávají **MSFS Companion**. Alternativou je původní adresa podle IP.
+Podrobnosti: [mDNS nastavení](docs/MDNS_C12.md).
+
 ## Windows a domácí síť
 
 Nainstalujte poslední `Setup.exe` z
