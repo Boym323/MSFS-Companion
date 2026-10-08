@@ -68,6 +68,33 @@ jobs:
           if (!(Test-Path staging/app/bridge/MsfsCompanion.Bridge.exe)) { throw 'Bridge executable missing' }
           if (!(Test-Path staging/app/bridge/wwwroot/index.html)) { throw 'Frontend missing' }
 
+      - name: Smoke test packaged HTTP API and React dashboard
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path staging/app/bridge/MsfsCompanion.Bridge.exe).Path
+          $workDir = (Resolve-Path staging/app/bridge).Path
+          $bridgeProcess = Start-Process -FilePath $exe -WorkingDirectory $workDir -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Milliseconds 250
+              try {
+                $status = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/status" -TimeoutSec 2
+                if ($status.status -eq 'ok') { $ready = $true; break }
+              } catch { }
+            }
+            if (!$ready) { throw 'Bundled Windows bridge failed to start' }
+            $html = Invoke-WebRequest -Uri "http://127.0.0.1:8765/admin" -TimeoutSec 5
+            if ($html.StatusCode -ne 200 -or !$html.Content.Contains("MSFS Companion")) {
+              throw 'Bundled React dashboard is unavailable'
+            }
+            Write-Host 'Windows bundled API and React smoke test passed'
+          } finally {
+            if (!$bridgeProcess.HasExited) { Stop-Process -Id $bridgeProcess.Id -Force }
+            $bridgeProcess.Dispose()
+          }
+
       - name: Verify safety policy without running the simulator
         shell: pwsh
         run: |
