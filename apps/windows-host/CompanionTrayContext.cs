@@ -8,7 +8,7 @@ namespace MsfsCompanion.WindowsHost;
 internal sealed class CompanionTrayContext : ApplicationContext
 {
     private readonly NotifyIcon _icon;
-    private readonly BridgeProcess _bridge = new();
+    private readonly BridgeProcess _bridge;
     private readonly System.Windows.Forms.Timer _healthTimer;
     private readonly System.Windows.Forms.Timer _updateTimer;
     private readonly System.Windows.Forms.Timer _webRequestTimer;
@@ -23,6 +23,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
     public CompanionTrayContext()
     {
+        _bridge = new BridgeProcess(() => _settings.TelemetryMode);
         _updateStatus = new ToolStripMenuItem("Aktualizace: GitHub Releases") { Enabled = false };
         _automaticUpdates = new ToolStripMenuItem("Automatické aktualizace")
         {
@@ -40,6 +41,35 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(new ToolStripMenuItem("Otevřít dashboard", null, (_, _) => OpenDashboard()));
+
+        var sourceMenu = new ToolStripMenuItem("Zdroj letových dat");
+        var liveSource = new ToolStripMenuItem("SimConnect – skutečný MSFS")
+        {
+            Checked = _settings.TelemetryMode == "simconnect"
+        };
+        var mockSource = new ToolStripMenuItem("Mock – testovací hodnoty")
+        {
+            Checked = _settings.TelemetryMode == "mock"
+        };
+        void SelectSource(string mode)
+        {
+            if (_settings.TelemetryMode == mode || _exiting || _applyingUpdate)
+                return;
+
+            _settings.TelemetryMode = mode;
+            _settings.Save();
+            liveSource.Checked = mode == "simconnect";
+            mockSource.Checked = mode == "mock";
+            // Jen náš bridge se krátce restartuje, nikoli MSFS.
+            _bridge.Stop();
+            _bridge.EnsureStarted();
+            EventLogFile.Write($"Zdroj telemetrie změněn na {mode}.");
+        }
+        liveSource.Click += (_, _) => SelectSource("simconnect");
+        mockSource.Click += (_, _) => SelectSource("mock");
+        sourceMenu.DropDownItems.Add(liveSource);
+        sourceMenu.DropDownItems.Add(mockSource);
+        menu.Items.Add(sourceMenu);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_updateStatus);
         menu.Items.Add(new ToolStripMenuItem("Zkontrolovat aktualizace", null, async (_, _) => await CheckUpdatesAsync(force: true)));

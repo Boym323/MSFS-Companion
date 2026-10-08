@@ -7,6 +7,7 @@ internal sealed class HostSettings
     public const string DefaultFeedUrl = "https://github.com/Boym323/MSFS-Companion";
     public string? UpdateFeedUrl { get; set; } = DefaultFeedUrl;
     public bool AutomaticUpdates { get; set; } = true;
+    public string TelemetryMode { get; set; } = "simconnect";
 
     private static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -22,6 +23,8 @@ internal sealed class HostSettings
                 var settings = JsonSerializer.Deserialize<HostSettings>(File.ReadAllText(FilePath)) ?? new();
                 if (string.IsNullOrWhiteSpace(settings.UpdateFeedUrl))
                     settings.UpdateFeedUrl = DefaultFeedUrl;
+                if (settings.TelemetryMode is not ("simconnect" or "mock"))
+                    settings.TelemetryMode = "simconnect";
                 return settings;
             }
         }

@@ -5,6 +5,12 @@ namespace MsfsCompanion.WindowsHost;
 internal sealed class BridgeProcess : IDisposable
 {
     private Process? _child;
+    private readonly Func<string> _telemetryMode;
+
+    public BridgeProcess(Func<string> telemetryMode)
+    {
+        _telemetryMode = telemetryMode;
+    }
     public bool IsRunning
     {
         get
@@ -54,7 +60,7 @@ internal sealed class BridgeProcess : IDisposable
             // Windows aplikace v produkci čte skutečný SimConnect.
             // Pro diagnostiku lze proces spustit s proměnnou = mock.
             info.Environment["MSFS_COMPANION_TELEMETRY_MODE"] =
-                Environment.GetEnvironmentVariable("MSFS_COMPANION_TELEMETRY_MODE") ?? "simconnect";
+                Environment.GetEnvironmentVariable("MSFS_COMPANION_TELEMETRY_MODE") ?? _telemetryMode();
             info.Environment["MSFS_COMPANION_CONTROL_DIR"] = AdminControl.ControlDirectory;
 
             // Samostatný bridge zůstává na localhostu. Instalovaný hostitel
