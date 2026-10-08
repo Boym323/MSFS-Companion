@@ -21,6 +21,11 @@ on:
         description: "SemVer of the package to build (e.g. 0.2.0)"
         required: true
         default: "0.2.0"
+      publish_public:
+        description: "Publish reviewed Windows binaries to configured public update repository (main only)"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -86,3 +91,17 @@ jobs:
           path: staging/releases/*
           retention-days: 14
           if-no-files-found: error
+
+      - name: Publish approved update to public release repository
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_public == true && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          UPDATE_REPO_URL: ${{ vars.UPDATE_REPO_URL }}
+          VPK_TOKEN: ${{ secrets.UPDATE_PUBLISH_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:UPDATE_REPO_URL)) { throw 'Missing repository variable UPDATE_REPO_URL' }
+          if ([string]::IsNullOrWhiteSpace($env:VPK_TOKEN)) { throw 'Missing Actions secret UPDATE_PUBLISH_TOKEN' }
+          if (!$env:UPDATE_REPO_URL.StartsWith('https://github.com/Boym323/')) { throw 'Unexpected release repository URL' }
+          vpk upload github --repoUrl $env:UPDATE_REPO_URL --outputDir staging/releases --channel win --token $env:VPK_TOKEN --publish --tag "v$env:APP_VERSION" --releaseName "MSFS Companion $env:APP_VERSION"
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
