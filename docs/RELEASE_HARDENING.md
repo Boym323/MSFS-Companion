@@ -97,3 +97,17 @@ release. V tomto módu se nespouští tray, bridge ani kontrola aktualizací.
 Nejde však o integrační test aktualizačního přechodu či rollbacku. Tyto
 scénáře musí projít na skutečné instalaci Windows včetně simulace pádu
 nového hostitele; automatický rollback proto zůstává záměrně vypnutý.
+
+## C33 – oprava testu instalace
+
+První nový instalační test v build v0.2.109 správně zastavil publikování:
+read-only přepínač Windows hostitele ověřoval `UpdateManager.CurrentVersion`
+před provedením nezbytné inicializace `VelopackApp.Build().Run()`.
+Nyní inicializujeme Velopack (se zakázaným auto-apply při startu) ještě
+před testovací kontrolou verze a do lokálního logu zaznamenáme shodu.
+
+Pro další změny kritických souborů Windows aktualizačního mechanismu
+spouští instalační workflow také **pull request build**, ale publikování
+zůstává dostupné pouze pro úspěšný push do `main`. Při neúspěšné
+instalované kontrole CI vypíše diagnostiku z dočasného Windows profilu.
+Vývojová vydání zůstávají nepodepsaná, dokud není nakonfigurován podpis.
