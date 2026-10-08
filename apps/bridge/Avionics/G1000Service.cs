@@ -33,7 +33,29 @@ public sealed class G1000Service : IAsyncDisposable
         finally { _gate.Release(); }
     }
 
-    public async Task<bool> SendAsync(string id, double value, CancellationToken ct)
+    public async Task<G1000Availability> StatusAdvancedAsync(CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            if (_client is null || !_client.IsConnected ||
+                DateTimeOffset.UtcNow - _checkedAt > TimeSpan.FromSeconds(30))
+                await ScanLockedAsync(ct);
+            return new G1000Availability(_status, _aircraft,
+                _checkedAt == default ? null : _checkedAt,
+                AdvancedAvionicsCatalog.All.Where(a => _events.ContainsKey(a.EventName))
+                    .Select(a => a.Id).ToArray(), _error);
+        }
+        finally { _gate.Release(); }
+    }
+
+    public Task<bool> SendAdvancedAsync(string id, double value, CancellationToken ct) =>
+        SendKnownAsync(id, value, true, ct);
+
+    public Task<bool> SendAsync(string id, double value, CancellationToken ct) =>
+        SendKnownAsync(id, value, false, ct);
+
+    private async Task<bool> SendKnownAsync(string id, double value, bool advanced, CancellationToken ct)
     {
         await _gate.WaitAsync(ct);
         try
@@ -54,11 +76,21 @@ public sealed class G1000Service : IAsyncDisposable
                 return false; // před prvním povelem po změně letadla znovu načíst UI
             }
 
-            var action = G1000Catalog.All.FirstOrDefault(x => x.Id == id);
-            if (action is null) return false;
-            if (!_events.TryGetValue(action.InputEvent, out var descriptor)
-                && (action.AlternateInputEvent is null
-                    || !_events.TryGetValue(action.AlternateInputEvent, out descriptor)))
+            string? eventName;
+            string? alternateName = null;
+            if (advanced)
+            {
+                if (!AdvancedAvionicsCatalog.TryResolve(id, value, out var action)) return false;
+                eventName = action!.EventName;
+            }
+            else
+            {
+                if (!G1000Catalog.TryResolve(id, value, out var action)) return false;
+                eventName = action!.InputEvent;
+                alternateName = action.AlternateInputEvent;
+            }
+            if (!_events.TryGetValue(eventName, out var descriptor)
+                && (alternateName is null || !_events.TryGetValue(alternateName, out descriptor)))
                 return false;
             await _client.InputEvents.SetInputEventAsync(descriptor.Hash, value, timeout.Token);
             return true; // jen odesláno, ne potvrzeno
@@ -100,7 +132,8 @@ public sealed class G1000Service : IAsyncDisposable
                 cancellationToken: timeout.Token);
             var discovered = await _client.InputEvents.EnumerateInputEventsAsync(timeout.Token);
             // Nikdy bez enumerace nepovolovat žádný aktuátor.
-            _events = discovered.Where(x => G1000Catalog.All.Any(a => a.InputEvent == x.Name || a.AlternateInputEvent == x.Name))
+            _events = discovered.Where(x => G1000Catalog.All.Any(a => a.InputEvent == x.Name || a.AlternateInputEvent == x.Name)
+                || AdvancedAvionicsCatalog.All.Any(a => a.EventName == x.Name))
                 .GroupBy(x => x.Name, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
             _status = _events.Count > 0 ? "ready" : "unsupported";

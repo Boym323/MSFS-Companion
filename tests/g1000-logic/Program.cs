@@ -14,4 +14,11 @@ Assert(G1000Catalog.TryResolve("pfd.softkey.12", 1, out var softkey)
 Assert(!G1000Catalog.TryResolve("pfd.softkey.13", 1, out _));
 Assert(!G1000Catalog.TryResolve("mfd.softkey.2", -1, out _));
 Assert(G1000Catalog.All.Select(a => a.Id).Distinct().Count() == G1000Catalog.All.Length);
-Console.WriteLine("PASS: G1000 allowlist, hodnoty, rozlišení ovladačů.");
+Assert(AdvancedAvionicsCatalog.TryResolve("g3x.left.outer", -1, out _));
+Assert(AdvancedAvionicsCatalog.TryResolve("g3000.pfd.softkey.12", 1, out _));
+Assert(AdvancedAvionicsCatalog.TryResolve("gns430.fpl", 1, out _));
+Assert(AdvancedAvionicsCatalog.TryResolve("gns530.inner", 1, out _));
+Assert(!AdvancedAvionicsCatalog.TryResolve("gns530.inner", 100, out _));
+Assert(!AdvancedAvionicsCatalog.TryResolve("g3x.menu", -1, out _));
+Assert(!AdvancedAvionicsCatalog.TryResolve("g3000.pfd.softkey.13", 1, out _));
+Console.WriteLine("PASS: G1000 a C6 pokročilý allowlist.");
