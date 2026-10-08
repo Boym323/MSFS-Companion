@@ -6,6 +6,7 @@ import {
 import MapTileLayer from './MapTileLayer';
 import { useFlightNavigation, FlightNavigationPanel } from './FlightNavigation';
 import { parsePln, type ImportedWaypoint } from './pln';
+import { useAviationFeatures } from './useAviationFeatures';
 import { useMapBackground } from './useMapBackground';
 import './MovingMap.css';
 
@@ -21,6 +22,8 @@ const MAX_POINTS = 3600; // ~1h při 1 bodu/s; žádná neomezená paměť
 export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot | null }) {
   const [zoom, setZoom] = useState(11);
   const [showLeg, setShowLeg] = useState(true);
+  const [showAviation, setShowAviation] = useState(false);
+  const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null, telemetry?.longitude ?? null);
   const navigation = useFlightNavigation(!!telemetry);
   const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>([]);
   const [planMessage, setPlanMessage] = useState('');
@@ -132,6 +135,15 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
 
       <label className="moving-map-background"><input type="checkbox" checked={showLeg}
         onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showAviation} onChange={e => setShowAviation(e.target.checked)} />
+        Letiště / VOR / NDB z Little Navmap (volitelné; lokální server na Windows)
+      </label>
+      {showAviation && <p className="moving-map-layer-status" role="status">
+        {aviation.available === false ? 'Little Navmap není dostupný na Windows PC (port 8965).'
+          : aviation.available === true ? `Nalezeno ${aviation.features.length} navigačních bodů.`
+          : 'Čekám na letecké vrstvy…'}
+      </p>}
       <div className="moving-map-pln">
         <label>Volitelně načíst kompletní plán ze souboru .PLN
           <input type="file" accept=".pln,.xml,text/xml,application/xml" onChange={event => {
@@ -156,6 +168,17 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         <MapTileLayer center={world} zoom={zoom} width={width} height={height} enabled={tilesEnabled} />
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
+          {showAviation && aviation.features.map((feature, index) => {
+            const pt = mapPosition(feature);
+            if (!pt) return null;
+            return <g key={feature.type + '-' + feature.ident + '-' + index}>
+              <circle cx={pt.x} cy={pt.y} r={feature.type === 'airport' ? 5 : 3}
+                fill={feature.type === 'airport' ? '#93e3ca' : '#e7adfb'} stroke="#14263a" strokeWidth="2" />
+              {feature.type === 'airport' && <text x={pt.x + 8} y={pt.y - 7}
+                fill="#c7f1e2" stroke="#13283d" strokeWidth="2" paintOrder="stroke"
+                fontSize="11">{feature.ident}</text>}
+            </g>;
+          })}
           {importedPath && <path d={importedPath} stroke="#bca5ff" strokeWidth="2.5"
             strokeDasharray="4 6" fill="none" />}
           {importedPlan.map((point, index) => {
