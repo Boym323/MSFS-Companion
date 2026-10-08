@@ -70,6 +70,11 @@ a port nepřesměrovávejte na internet.
 smí vyvolat aktualizaci. Cross-site požadavky a přístup
 z jiných podsítí server odmítá; nejde o autentizaci uživatele.
 
+B2.3 odděluje příjem SimConnect (při 30 FPS přibližně 30 Hz)
+od publikování unikátních dat (cílově 20 Hz). Dashboard ukazuje
+obě frekvence, zpoždění a přeskočené snímky.
+Podrobnosti jsou v [českém průvodci telemetrií B2](docs/LIVE_SIMCONNECT_B2.md).
+
 Podrobný [český návod k Windows a domácí síti](docs/WINDOWS_INSTALLER.md).
 Dále [architektura](docs/ARCHITECTURE.md),
 [diagnostika SimConnect](docs/SIMCONNECT_PROBE.md)
