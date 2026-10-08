@@ -1,59 +1,30 @@
-using System.Diagnostics;
-
 namespace MsfsCompanion.WindowsHost;
 
 internal static class UpdatePolicy
 {
-    // A new app version must never interrupt MSFS, including an aircraft
-    // selection screen or a session with the simulator process running.
-    public static bool MayApply(bool updateDownloaded, bool simulatorRunning, bool exiting) =>
-        updateDownloaded && !simulatorRunning && !exiting;
-
-    public static bool SimulatorRunning()
-    {
-        try
-        {
-            foreach (var name in new[] { "FlightSimulator", "FlightSimulator2024" })
-            {
-                var processes = Process.GetProcessesByName(name);
-                try
-                {
-                    if (processes.Length > 0)
-                    {
-                        return true;
-                    }
-                }
-                finally
-                {
-                    foreach (var process in processes)
-                    {
-                        process.Dispose();
-                    }
-                }
-            }
-
-            return false;
-        }
-        catch (Exception ex)
-        {
-            EventLogFile.Write($"Cannot safely determine simulator state: {ex.Message}");
-            // Fail closed: when we cannot check, never restart for an update.
-            return true;
-        }
-    }
+    // Development channel: only the Companion host and its bridge restart.
+    // MSFS is never stopped or modified. An active dashboard may temporarily
+    // disconnect; it reconnects after the updated bridge returns.
+    public static bool MayApply(bool updateDownloaded, bool exiting, bool alreadyApplying) =>
+        updateDownloaded && !exiting && !alreadyApplying;
 
     public static bool SelfTest()
     {
-        var cases = new (bool Downloaded, bool InGame, bool Exiting, bool Expected)[]
+        // An active MSFS session is deliberately not a blocking condition.
+        var cases = new (bool Downloaded, bool Exiting, bool AlreadyApplying, bool Expected)[]
         {
             (false, false, false, false),
             (true, true, false, false),
             (true, false, true, false),
-            (true, false, false, true),
+            (true, false, false, true)
         };
 
-        var result = cases.All(c => MayApply(c.Downloaded, c.InGame, c.Exiting) == c.Expected);
-        Console.WriteLine(result ? "Update safety self-test PASS" : "Update safety self-test FAIL");
+        var result = cases.All(c =>
+            MayApply(c.Downloaded, c.Exiting, c.AlreadyApplying) == c.Expected);
+        result &= HostSettings.DefaultFeedUrl == "https://github.com/Boym323/MSFS-Companion";
+        result &= HostSettings.TryValidateFeed(HostSettings.DefaultFeedUrl, out _);
+
+        Console.WriteLine(result ? "Update policy self-test PASS" : "Update policy self-test FAIL");
         return result;
     }
 }

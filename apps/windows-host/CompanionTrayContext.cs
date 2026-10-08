@@ -11,18 +11,18 @@ internal sealed class CompanionTrayContext : ApplicationContext
     private readonly BridgeProcess _bridge = new();
     private readonly System.Windows.Forms.Timer _healthTimer;
     private readonly System.Windows.Forms.Timer _updateTimer;
-    private readonly System.Windows.Forms.Timer _deferredApplyTimer;
     private readonly ToolStripMenuItem _updateStatus;
     private readonly ToolStripMenuItem _automaticUpdates;
     private HostSettings _settings = HostSettings.Load();
     private UpdateManager? _updateManager;
     private UpdateInfo? _pendingUpdate;
     private bool _checking;
+    private bool _applyingUpdate;
     private bool _exiting;
 
     public CompanionTrayContext()
     {
-        _updateStatus = new ToolStripMenuItem("Aktualizace: čekám na nastavení") { Enabled = false };
+        _updateStatus = new ToolStripMenuItem("Aktualizace: GitHub Releases") { Enabled = false };
         _automaticUpdates = new ToolStripMenuItem("Automatické aktualizace")
         {
             Checked = _settings.AutomaticUpdates,
@@ -64,10 +64,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _healthTimer.Tick += (_, _) => _bridge.EnsureStarted();
         _healthTimer.Start();
 
-        _deferredApplyTimer = new System.Windows.Forms.Timer { Interval = 60000 };
-        _deferredApplyTimer.Tick += async (_, _) => await ApplyWhenSafeAsync();
-        _deferredApplyTimer.Start();
-
         _updateTimer = new System.Windows.Forms.Timer { Interval = 20000 };
         _updateTimer.Tick += async (_, _) =>
         {
@@ -81,7 +77,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         };
         _updateTimer.Start();
 
-        EventLogFile.Write("Windows tray host started; automatic updates are deferred while simulator is running.");
+        EventLogFile.Write("Windows tray host started; development updates may restart only the Companion bridge, even while MSFS runs.");
     }
 
     private static void OpenDashboard()
@@ -113,6 +109,13 @@ internal sealed class CompanionTrayContext : ApplicationContext
         form.AcceptButton = save;
         form.CancelButton = cancel;
 
+        if (_checking || _applyingUpdate)
+        {
+            MessageBox.Show("Počkejte prosím na dokončení aktuální kontroly aktualizací.",
+                "Aktualizace", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
         if (form.ShowDialog() != DialogResult.OK)
             return;
 
@@ -123,7 +126,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             return;
         }
 
-        _settings.UpdateFeedUrl = url.Length == 0 ? null : url.TrimEnd('/');
+        _settings.UpdateFeedUrl = url.Length == 0 ? HostSettings.DefaultFeedUrl : url.TrimEnd('/');
         _settings.Save();
         _updateManager = null;
         _pendingUpdate = null;
@@ -145,14 +148,8 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
     private async Task CheckUpdatesAsync(bool force = false)
     {
-        if (_checking || _exiting || ( !_settings.AutomaticUpdates && !force))
+        if (_checking || _applyingUpdate || _exiting || (!_settings.AutomaticUpdates && !force))
             return;
-
-        if (UpdatePolicy.SimulatorRunning())
-        {
-            _updateStatus.Text = "Aktualizace odloženy: MSFS běží";
-            return;
-        }
 
         if (string.IsNullOrWhiteSpace(_settings.UpdateFeedUrl))
         {
@@ -170,8 +167,12 @@ internal sealed class CompanionTrayContext : ApplicationContext
                 return;
             }
 
+            var feedAtCheckStart = _settings.UpdateFeedUrl;
+            var manager = _updateManager;
             _updateStatus.Text = "Zjišťuji aktualizace…";
-            var latest = await _updateManager.CheckForUpdatesAsync();
+            var latest = await manager.CheckForUpdatesAsync();
+            if (_exiting || !string.Equals(feedAtCheckStart, _settings.UpdateFeedUrl, StringComparison.Ordinal))
+                return;
             if (latest is null)
             {
                 _pendingUpdate = null;
@@ -180,11 +181,15 @@ internal sealed class CompanionTrayContext : ApplicationContext
             }
 
             _updateStatus.Text = "Stahuji aktualizaci…";
-            await _updateManager.DownloadUpdatesAsync(latest);
+            await manager.DownloadUpdatesAsync(latest);
+            if (_exiting || !string.Equals(feedAtCheckStart, _settings.UpdateFeedUrl, StringComparison.Ordinal))
+                return;
+
             _pendingUpdate = latest;
-            _updateStatus.Text = "Aktualizace stažena; čeká na bezpečný okamžik";
+            _updateStatus.Text = "Aktualizace stažena";
             EventLogFile.Write($"Downloaded version {latest.TargetFullRelease.Version}");
-            await ApplyWhenSafeAsync();
+            if (_settings.AutomaticUpdates || force)
+                ApplyDownloadedUpdate();
         }
         catch (Exception ex)
         {
@@ -197,27 +202,24 @@ internal sealed class CompanionTrayContext : ApplicationContext
         }
     }
 
-    private async Task ApplyWhenSafeAsync()
+    private void ApplyDownloadedUpdate()
     {
-        if (!UpdatePolicy.MayApply(_pendingUpdate is not null, UpdatePolicy.SimulatorRunning(), _exiting)
+        if (!UpdatePolicy.MayApply(_pendingUpdate is not null, _exiting, _applyingUpdate)
             || _updateManager is null)
-        {
-            return;
-        }
-
-        // Avoid racing with a simulator that was just being launched.
-        await Task.Delay(2500);
-        if (!UpdatePolicy.MayApply(_pendingUpdate is not null, UpdatePolicy.SimulatorRunning(), _exiting))
             return;
 
+        _applyingUpdate = true;
         try
         {
+            // This shuts down *only* our own child process. FlightSimulator.exe is
+            // neither inspected nor stopped. The web UI disconnects briefly and
+            // reconnects automatically after the updated host starts.
             _healthTimer.Stop();
-            _bridge.Stop();  // Close the bundled ASP.NET process before Velopack replaces its files.
+            _bridge.Stop();
             _icon.Visible = false;
-            EventLogFile.Write("Applying a downloaded update with MSFS not running.");
+            EventLogFile.Write("Applying Companion update; MSFS is left running.");
             _updateManager.ApplyUpdatesAndRestart(_pendingUpdate!);
-            // Velopack exits/restarts the application itself after scheduling the update.
+            // Velopack schedules replacing our files and exits/restarts our host.
         }
         catch (Exception ex)
         {
@@ -226,6 +228,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _bridge.EnsureStarted();
             _healthTimer.Start();
             _updateStatus.Text = "Instalace aktualizace se nezdařila";
+            _applyingUpdate = false;
         }
     }
 
@@ -233,13 +236,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
     {
         _exiting = true;
         _updateTimer.Stop();
-        _deferredApplyTimer.Stop();
         _healthTimer.Stop();
         _icon.Visible = false;
         _bridge.Dispose();
         _icon.Dispose();
         _updateTimer.Dispose();
-        _deferredApplyTimer.Dispose();
         _healthTimer.Dispose();
         base.ExitThreadCore();
     }

@@ -4,7 +4,8 @@ namespace MsfsCompanion.WindowsHost;
 
 internal sealed class HostSettings
 {
-    public string? UpdateFeedUrl { get; set; }
+    public const string DefaultFeedUrl = "https://github.com/Boym323/MSFS-Companion";
+    public string? UpdateFeedUrl { get; set; } = DefaultFeedUrl;
     public bool AutomaticUpdates { get; set; } = true;
 
     private static string FilePath => Path.Combine(
@@ -18,7 +19,10 @@ internal sealed class HostSettings
         {
             if (File.Exists(FilePath))
             {
-                return JsonSerializer.Deserialize<HostSettings>(File.ReadAllText(FilePath)) ?? new();
+                var settings = JsonSerializer.Deserialize<HostSettings>(File.ReadAllText(FilePath)) ?? new();
+                if (string.IsNullOrWhiteSpace(settings.UpdateFeedUrl))
+                    settings.UpdateFeedUrl = DefaultFeedUrl;
+                return settings;
             }
         }
         catch (Exception ex)
