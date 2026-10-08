@@ -21,9 +21,10 @@ jobs:
       - name: Runtime smoke tests (HTTP, WebSocket, mock telemetry)
         run: |
           set -euo pipefail
-          dotnet run --project apps/bridge --configuration Release --no-build > bridge.log 2>&1 &
+          recordings_dir="$(mktemp -d)"
+          MSFS_COMPANION_RECORDINGS_DIR="$recordings_dir" dotnet run --project apps/bridge --configuration Release --no-build > bridge.log 2>&1 &
           bridge_pid=$!
-          trap 'kill "$bridge_pid" 2>/dev/null || true; cat bridge.log' EXIT
+          trap 'kill "$bridge_pid" 2>/dev/null || true; cat bridge.log; rm -rf "$recordings_dir"' EXIT
           python3 -m unittest discover -s tests -p 'test_*.py' -v
 
   web:

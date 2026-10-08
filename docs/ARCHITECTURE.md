@@ -69,3 +69,18 @@ V době aktualizace se restartuje jen Companion/bridge, ne MSFS.
 - Podepisování vydání a bezpečný rollback.
 - Před případným použitím mimo důvěryhodnou LAN je nutná
   plnohodnotná autentizace a HTTPS.
+
+
+## Záznam letů B5
+
+`FlightRecorder` je hostovaná služba v bridge, ne součást webového
+prohlížeče. Čte již dostupné snímky z `TelemetryStore` nejvýše
+jednou za sekundu. Každá relace má vlastní JSONL soubor dat a
+atomicky zapisovaná metadata. Nezasahuje do simulátoru.
+
+Historie je pouze pro čtení přes `GET /api/flights` a
+`GET /api/flights/{id}`. Názvy souborů jsou kontrolovány
+přísnou validací identifikátorů. Data se ukládají do profilu
+aktuálního Windows uživatele, nejvýše 30 relací / 100 MB,
+6 hodin v jedné relaci. Při čtení pro web se počet vrácených
+bodů omezuje na 4000. Viz [B5 – Flight Recorder](FLIGHT_RECORDER_B5.md).

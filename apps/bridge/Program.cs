@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using MsfsCompanion.Bridge.Telemetry;
 using MsfsCompanion.Bridge.Admin;
+using MsfsCompanion.Bridge.Recorder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,9 @@ else
     builder.Services.AddHostedService(
         provider => provider.GetRequiredService<MockTelemetrySource>());
 }
+
+builder.Services.AddSingleton<FlightRecorder>();
+builder.Services.AddHostedService(p => p.GetRequiredService<FlightRecorder>());
 
 var app = builder.Build();
 
@@ -76,6 +80,15 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryHealth health) =>
 
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
+
+// Pouze čtení. Záznam probíhá na Windows i bez otevřeného prohlížeče.
+app.MapGet("/api/flights", (FlightRecorder recorder) =>
+    Results.Ok(recorder.List()));
+app.MapGet("/api/flights/{id}", (string id, FlightRecorder recorder) =>
+{
+    var flight = recorder.Read(id);
+    return flight is null ? Results.NotFound() : Results.Ok(flight);
+});
 
 // Správa aktualizací je dostupná pouze ve Windows hostiteli a v LAN.
 // POST vyžaduje kontrolu původu požadavku, nikoli uživatelský klíč.

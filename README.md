@@ -109,6 +109,17 @@ OpenStreetMap se načte až po výslovném zapnutí: může odhalit
 přibližnou oblast letu provozovateli dlaždic.
 [Český návod k mapě](docs/MOVING_MAP_B4.md).
 
+## Záznam a přehrávání letů B5
+
+Samostatná stránka `/flights` nabízí výpis uložených letů,
+graf výšky a rychlosti, schematickou GPS stopu a přehrávání.
+Windows bridge zaznamenává přibližně jeden vzorek za sekundu
+**nezávisle na otevřeném dashboardu**, nejvýše 30 letů / 100 MB
+v profilu uživatele. Při přepnutí na mock se testovací záznam
+výslovně označí. Historie obsahuje polohy a je dostupná
+v rámci důvěryhodné domácí sítě. Viz
+[český návod k Flight Recorderu](docs/FLIGHT_RECORDER_B5.md).
+
 ## Další vývoj
 
 Etapa B2 přidává skutečné údaje z MSFS 2020 a čeká na ověření
