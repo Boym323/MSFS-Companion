@@ -1,11 +1,11 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace MsfsCompanion.WindowsHost;
 
 /// <summary>
-/// Lokální komunikace s webovým bridge. Síťové požadavky autorizuje bridge;
-/// tato třída pracuje pouze se soubory v profilu aktuálního uživatele.
+/// Lokální komunikace s webovým bridge. Externí požadavky bridge kontroluje
+/// podle privátní podsítě a původu stránky; tato třída zpracovává jen
+/// předem definované požadavky na kontrolu aktualizací.
 /// </summary>
 internal static class AdminControl
 {
@@ -14,31 +14,6 @@ internal static class AdminControl
     public static string ControlDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MSFS Companion", "control");
-
-    private static string TokenPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MSFS Companion", "admin-access.token");
-
-    public static string GetOrCreateToken()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(TokenPath)!);
-        try
-        {
-            using var stream = new FileStream(TokenPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            var generated = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-            using var writer = new StreamWriter(stream);
-            writer.Write(generated);
-            writer.Flush();
-            return generated;
-        }
-        catch (IOException) when (File.Exists(TokenPath))
-        {
-            var existing = File.ReadAllText(TokenPath).Trim();
-            if (existing.Length == 64 && existing.All(Uri.IsHexDigit))
-                return existing;
-            throw new InvalidDataException("Neplatný správcovský klíč. Klíč musí být obnoven ručně.");
-        }
-    }
 
     public static bool HasPendingRequests()
     {
