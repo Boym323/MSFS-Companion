@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
+import { compatibilityChecks, compatibilityReport, profileLabel } from './compatibility';
 import './AircraftDashboard.css';
 
 type Systems = {
@@ -34,13 +35,6 @@ function Metric({ name, value, unit }: { name: string; value: string | number; u
       <dd>{value}{unit && value !== '—' ? <small> {unit}</small> : null}</dd>
     </div>
   );
-}
-
-function aircraftProfile(aircraft: string) {
-  if (/xcub/i.test(aircraft)) return 'XCub · univerzální profil (včetně plováků)';
-  if (/cessna|c172/i.test(aircraft)) return 'Cessna · univerzální profil';
-  if (/a320|airbus/i.test(aircraft)) return 'Airbus · univerzální profil';
-  return 'Univerzální profil MSFS';
 }
 
 export default function AircraftDashboard({
@@ -88,7 +82,7 @@ export default function AircraftDashboard({
         <div>
           <span className="eyebrow">B7 · AIRCRAFT DASHBOARD</span>
           <h2>{aircraft}</h2>
-          <p>{aircraftProfile(aircraft)}</p>
+          <p>{profileLabel(aircraft) · hodnoty zatím nebyly potvrzeny pro konkrétní kokpit}</p>
         </div>
         <span className="aircraft-dashboard-signal">
           {systems
@@ -153,6 +147,34 @@ export default function AircraftDashboard({
           </dl>
         </article>
       </div>
+      <section className="compatibility-panel" aria-label="Diagnostika kompatibility letadla">
+        <div className="compatibility-heading">
+          <div>
+            <span className="eyebrow">B8 · DIAGNOSTIKA KOMPATIBILITY</span>
+            <h3>Pozorované systémové veličiny</h3>
+          </div>
+          <button type="button" disabled={!systems} onClick={() => {
+            if (!systems) return;
+            const json = JSON.stringify(compatibilityReport(aircraft, systems, state?.sampleAgeMs ?? null), null, 2);
+            const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'msfs-aircraft-compatibility-b8.json';
+            link.click();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }}>Exportovat diagnostiku JSON</button>
+        </div>
+        <p>„Přijato“ znamená pouze platnou číselnou hodnotu. Nula může být správná
+          i nepodporovaná SimVar. Skutečnou funkčnost potvrďte změnou v kokpitu MSFS.</p>
+        <div className="compatibility-grid">
+          {compatibilityChecks(systems).map((check) => (
+            <div key={check.label} className={`compatibility-check compatibility-check--${check.state}`}>
+              <strong>{check.label}</strong><span>{check.detail}</span>
+            </div>
+          ))}
+        </div>
+        <p>Podrobný postup pro XCub Floats, C172 a A320 najdete v dokumentaci B8.</p>
+      </section>
       <p className="aircraft-dashboard-note">
         Pouze čtení. U plovákových a specializovaných letadel mohou některé univerzální SimVars
         vracet nulu nebo být nedostupné. Ovládání autopilota, klapek ani podvozku zde není povoleno.

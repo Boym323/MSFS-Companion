@@ -39,7 +39,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Ověření úhlových převodů a interpolace PFD
         working-directory: apps/web
-        run: node --experimental-strip-types --test src/pfd/math.test.mjs src/pfd/layout.test.mjs src/map/geo.test.mjs
+        run: node --experimental-strip-types --test src/pfd/math.test.mjs src/pfd/layout.test.mjs src/map/geo.test.mjs src/aircraft/compatibility.test.mjs
       - name: Build frontend
         working-directory: apps/web
         run: npm run build
