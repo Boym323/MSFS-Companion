@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build bridge
+        run: dotnet build apps/bridge/MsfsCompanion.Bridge.csproj --configuration Release --nologo
+      - name: Runtime smoke tests (HTTP, WebSocket, mock telemetry)
+        run: |
+          set -euo pipefail
+          dotnet run --project apps/bridge --configuration Release --no-build > bridge.log 2>&1 &
+          bridge_pid=$!
+          trap 'kill "$bridge_pid" 2>/dev/null || true; cat bridge.log' EXIT
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm install --no-audit --no-fund
+      - name: Build frontend
+        working-directory: apps/web
+        run: npm run build
