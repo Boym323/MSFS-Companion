@@ -56,3 +56,9 @@
 .moving-map-airport-table { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px; }
 .moving-map-airport-table span { background:#162e44; border-radius:7px; padding:9px; font-size:12px; overflow-wrap:anywhere; }
 .moving-map-airport-detail .moving-map-aviation-disclaimer { font-size:11px; color:#91a8c1; border-top:1px solid #314962; padding-top:9px; }
+
+.airport-search { display:grid; gap:10px; margin:10px 0; }
+.airport-search label { display:grid; gap:6px; color:#c0d5e9; font-size:13px; max-width:480px; }
+.airport-search input { min-height:44px; background:#12283f; color:#ecf7ff; border:1px solid #45617d; border-radius:8px; padding:9px 12px; }
+.airport-search-results { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; }
+.airport-search-results button { min-height:40px; background:#19394f; color:#e6f5ff; border:1px solid #46657c; border-radius:8px; padding:8px 12px; cursor:pointer; }

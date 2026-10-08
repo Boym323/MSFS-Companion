@@ -9,6 +9,7 @@ import { parsePln, type ImportedWaypoint } from './pln';
 import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
 import AviationAirportDetails from './AviationAirportDetails';
+import AirportSearch from './AirportSearch';
 import { useMapBackground } from './useMapBackground';
 import './MovingMap.css';
 
@@ -267,6 +268,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         )}
 
       </div>
+      {showAviation && <AirportSearch onSelect={setSelectedAirport} />}
       {showAviation && aviation.available && <>
         <div className="moving-map-airports">
           <strong>Nejbližší letiště</strong>
@@ -278,9 +280,9 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
               </button>)}
           </div>
         </div>
-        {selectedAirport && <AviationAirportDetails ident={selectedAirport}
-          onClose={() => setSelectedAirport(null)} />}
       </>}
+      {showAviation && selectedAirport && <AviationAirportDetails ident={selectedAirport}
+        onClose={() => setSelectedAirport(null)} />}
       <FlightNavigationPanel navigation={navigation} />
       {importedPlan.length > 0 && <div className="moving-map-imported">
         <strong>Importovaný plán .PLN / SimBrief ({importedPlan.length} waypointů):</strong>
