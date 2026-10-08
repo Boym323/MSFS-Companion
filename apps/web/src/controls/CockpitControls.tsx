@@ -16,6 +16,10 @@ type Systems = {
   autopilotSelectedAltitudeFeet: number;
   autopilotSelectedVerticalSpeedFpm: number;
 };
+type CockpitSystemStatus = { connected: boolean; systems: {
+  landing:boolean; taxi:boolean; nav:boolean; beacon:boolean; strobe:boolean;
+  pitot:boolean; parkingBrake:boolean;
+} | null };
 type SystemStatus = { connected: boolean; systems: Systems | null };
 type ApModesStatus = { connected: boolean; modes: {
   heading: boolean; nav: boolean; altitude: boolean; verticalSpeed: boolean;
@@ -31,6 +35,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const [local, setLocal] = useState<Local | null>(null);
   const [radio, setRadio] = useState<RadioStatus | null>(null);
   const [systems, setSystems] = useState<SystemStatus | null>(null);
+  const [cockpit, setCockpit] = useState<CockpitSystemStatus | null>(null);
   const [modes, setModes] = useState<ApModesStatus | null>(null);
   const [code, setCode] = useState('');
   const [frequency, setFrequency] = useState<Record<string, string>>({
@@ -46,18 +51,20 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const refresh = useCallback(async () => {
     const headers: Record<string, string> = {};
     if (getToken()) headers['X-MSFS-Control-Token'] = getToken();
-    const [a, r, s, m] = await Promise.all([
+    const [a, r, s, m, c] = await Promise.all([
       fetch('/api/controls/status', { headers, cache: 'no-store' }),
       fetch('/api/radios', { cache: 'no-store' }),
       fetch('/api/aircraft/systems', { cache: 'no-store' }),
       fetch('/api/autopilot/modes', { cache: 'no-store' }),
+      fetch('/api/cockpit/systems', { cache: 'no-store' }),
     ]);
-    if (!a.ok || !r.ok || !s.ok || !m.ok) throw new Error('Bridge není dostupný');
+    if (!a.ok || !r.ok || !s.ok || !m.ok || !c.ok) throw new Error('Bridge není dostupný');
     const auth = await a.json() as Access;
     setAccess(auth);
     setRadio(await r.json() as RadioStatus);
     setSystems(await s.json() as SystemStatus);
     setModes(await m.json() as ApModesStatus);
+    setCockpit(await c.json() as CockpitSystemStatus);
     if (auth.local) {
       const response = await fetch('/api/controls/local', { cache: 'no-store' });
       if (response.ok) setLocal(await response.json() as Local);
@@ -70,7 +77,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
     let stopped = false;
     const update = async () => {
       try { if (!stopped) await refresh(); }
-      catch { if (!stopped) { setAccess(null); setRadio(null); setSystems(null); setModes(null); } }
+      catch { if (!stopped) { setAccess(null); setRadio(null); setSystems(null); setModes(null); setCockpit(null); } }
     };
     void update();
     const timer = window.setInterval(() => void update(), 1800);
@@ -141,6 +148,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const selected = systems?.connected ? systems.systems : null;
   const rv = radio?.connected ? radio.radios : null;
   const ap = modes?.connected ? modes.modes : null;
+  const cs = cockpit?.connected ? cockpit.systems : null;
 
   const radios = (['com1', 'com2', 'nav1', 'nav2'] as const).map((name) => {
     const label = name.toUpperCase();
@@ -242,6 +250,57 @@ export default function CockpitControls({ live }: { live: boolean }) {
           <button type="button" disabled={!canSend || !field.value}
             onClick={() => void send(field.key, Number(field.value))}>Nastavit</button>
         </div>)}
+      </div>
+    </section>
+    <h2>C7 · Ovládání systémů letadla</h2>
+    <section className="control-tile">
+      <p>Stavy níže pocházejí z oddělené telemetrie MSFS. U nekompatibilní
+        avioniky může být zpětná odezva nedostupná.</p>
+      <div className="control-grid">
+        {([
+          { id:'landing', title:'Přistávací světla' },
+          { id:'taxi', title:'Taxi světla' },
+          { id:'nav', title:'Navigační světla' },
+          { id:'beacon', title:'Beacon' },
+          { id:'strobe', title:'Strobe' },
+        ] as const).map(light => <div key={light.id} className="control-system-line">
+          <strong>{light.title} · {cs ? (cs[light.id] ? 'ZAP' : 'VYP') : '—'}</strong>
+          <div className="control-actions">
+            <button type="button" disabled={!canSend}
+              onClick={() => void send('lights.' + light.id + '.on')}>Zapnout</button>
+            <button type="button" disabled={!canSend}
+              onClick={() => void send('lights.' + light.id + '.off')}>Vypnout</button>
+          </div>
+        </div>)}
+        <div className="control-system-line">
+          <strong>Pitot heat · {cs ? (cs.pitot ? 'ZAP' : 'VYP') : '—'}</strong>
+          <div className="control-actions">
+            <button type="button" disabled={!canSend} onClick={() => void send('pitot.on')}>Zapnout</button>
+            <button type="button" disabled={!canSend} onClick={() => void send('pitot.off')}>Vypnout</button>
+          </div>
+        </div>
+        <div className="control-system-line">
+          <strong>Parkovací brzda · {cs ? (cs.parkingBrake ? 'ZATAŽENA' : 'UVOLNĚNA') : '—'}</strong>
+          <div className="control-actions">
+            <button type="button" disabled={!canSend} onClick={() => void send('brakes.parking.set',1)}>Zatáhnout</button>
+            <button type="button" disabled={!canSend} onClick={() => void send('brakes.parking.set',0)}>Uvolnit</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section className="control-tile">
+      <h3>Mechanizace a trim</h3>
+      <p>Klapky: {systems?.connected && systems.systems
+        ? systems.systems.flapsPercent?.toFixed(0) + ' %' : '—'}.
+        Podvozek ovládejte pouze u příslušného letadla.</p>
+      <div className="control-actions">
+        {([
+          ['flaps.up','Klapky nahoru'],['flaps.increment','Klapky +'],
+          ['flaps.decrement','Klapky −'],['flaps.down','Klapky dolů'],
+          ['trim.up','Trim +'],['trim.down','Trim −'],
+          ['gear.up','Podvozek nahoru'],['gear.down','Podvozek dolů'],
+        ] as const).map(([id,label]) =>
+          <button key={id} type="button" disabled={!canSend} onClick={() => void send(id)}>{label}</button>)}
       </div>
     </section>
     <p className="control-disclaimer">Pouze simulátor. Standardní události nemusí fungovat ve všech letadlech;
