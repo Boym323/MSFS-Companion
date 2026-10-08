@@ -173,6 +173,20 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/flightplans/simbrief/invalid")
         self.assertEqual(failure.exception.code, 400)
 
+    def test_aviation_map_is_self_contained(self):
+        # Dotaz se vrátí okamžitě, i když se na pozadí poprvé stahují CSV.
+        info = get_json("/api/map/aviation?lat=50.1&lon=14.26&radiusKm=60")
+        self.assertEqual(info["source"], "OurAirports")
+        self.assertIn("loading", info)
+        self.assertIn("features", info)
+        self.assertIsInstance(info["features"], list)
+        self.assertLessEqual(len(info["features"]), 240)
+
+    def test_aviation_map_rejects_invalid_radius(self):
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            get_json("/api/map/aviation?lat=50&lon=14&radiusKm=20000")
+        self.assertEqual(failure.exception.code, 400)
+
     def test_aviation_map_rejects_invalid_coordinates(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/map/aviation?lat=999&lon=0")
