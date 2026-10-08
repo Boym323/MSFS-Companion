@@ -117,6 +117,16 @@ OpenStreetMap se zapíná automaticky a lze jej vypnout:
 poskytovatel dlaždic může odhadnout zobrazenou oblast.
 [Český návod k mapě](docs/MOVING_MAP_B4.md).
 
+## Integrovaná letecká mapa C8 V2
+
+Vrstvy letišť, drah, VOR/NDB/DME a detail letiště s frekvencemi jsou
+přímo součástí Companion. Windows bridge stáhne otevřená data z
+[OurAirports](https://ourairports.com/data/) po HTTPS, obnovuje je nejvýše
+jednou za 24 hodin a ukládá komprimovanou cache pro offline použití.
+Na iPad se přenáší pouze omezené okolí aktuální polohy.
+**Little Navmap ani jiný externí software už nejsou potřeba.**
+Viz [dokumentace C8](docs/AVIATION_MAP_C8.md).
+
 ## Záznam a přehrávání letů B5
 
 Samostatná stránka `/flights` nabízí výpis uložených letů,

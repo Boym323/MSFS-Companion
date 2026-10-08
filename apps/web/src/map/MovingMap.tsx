@@ -8,6 +8,7 @@ import { useFlightNavigation, FlightNavigationPanel } from './FlightNavigation';
 import { parsePln, type ImportedWaypoint } from './pln';
 import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
+import AviationAirportDetails from './AviationAirportDetails';
 import { useMapBackground } from './useMapBackground';
 import './MovingMap.css';
 
@@ -23,8 +24,12 @@ const MAX_POINTS = 3600; // ~1h při 1 bodu/s; žádná neomezená paměť
 export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot | null }) {
   const [zoom, setZoom] = useState(11);
   const [showLeg, setShowLeg] = useState(true);
-  const [showAviation, setShowAviation] = useState(false);
-  const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null, telemetry?.longitude ?? null);
+  const [showAviation, setShowAviation] = useState(true);
+  const [showRunways, setShowRunways] = useState(true);
+  const [showNavaids, setShowNavaids] = useState(true);
+  const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
+  const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
+    telemetry?.longitude ?? null, zoom);
   const navigation = useFlightNavigation(!!telemetry);
   const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>(() => {
     try {
@@ -152,13 +157,24 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
       <label className="moving-map-background">
         <input type="checkbox" checked={showAviation} onChange={e => setShowAviation(e.target.checked)} />
-        Letiště / VOR / NDB z Little Navmap (volitelné; lokální server na Windows)
+        Letiště / VOR / NDB z OurAirports (internet, bez další instalace)
       </label>
-      {showAviation && <p className="moving-map-layer-status" role="status">
-        {aviation.available === false ? 'Little Navmap není dostupný na Windows PC (port 8965).'
-          : aviation.available === true ? `Nalezeno ${aviation.features.length} navigačních bodů.`
-          : 'Čekám na letecké vrstvy…'}
-      </p>}
+      {showAviation && <>
+        <div className="moving-map-aviation-options">
+          <label><input type="checkbox" checked={showRunways}
+            onChange={event => setShowRunways(event.target.checked)} /> Dráhy</label>
+          <label><input type="checkbox" checked={showNavaids}
+            onChange={event => setShowNavaids(event.target.checked)} /> VOR / NDB / DME</label>
+        </div>
+        <p className="moving-map-layer-status" role="status">
+          {aviation.loading && !aviation.available ? 'Načítám leteckou databázi OurAirports. První stažení může chvíli trvat…'
+            : aviation.available ? `Zobrazuji ${aviation.features.length} leteckých objektů z OurAirports`
+            : 'Letecká databáze zatím není dostupná. Mapa a GPS fungují dál.'}
+          {aviation.stale ? ' · Offline cache (starší data)' : ''}
+          {aviation.available && aviation.updatedAt
+            ? ` · Data: ${new Date(aviation.updatedAt).toLocaleDateString('cs-CZ')}` : ''}
+        </p>
+      </>}
       <div className="moving-map-pln">
         <label>Volitelně načíst kompletní plán ze souboru .PLN
           <input type="file" accept=".pln,.xml,text/xml,application/xml" onChange={event => {
@@ -185,12 +201,25 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
           {showAviation && aviation.features.map((feature, index) => {
+            if (feature.type === 'runway') {
+              if (!showRunways || feature.endLatitude == null || feature.endLongitude == null)
+                return null;
+              const start = mapPosition(feature);
+              const end = mapPosition({ latitude: feature.endLatitude,
+                longitude: feature.endLongitude });
+              return start && end ? <line key={'rwy-' + index}
+                x1={start.x} y1={start.y} x2={end.x} y2={end.y}
+                stroke="#ffd39a" strokeWidth={zoom >= 12 ? 4 : 2}
+                strokeLinecap="round" opacity=".85" /> : null;
+            }
+            if (!showNavaids && feature.type !== 'airport') return null;
             const pt = mapPosition(feature);
             if (!pt) return null;
             return <g key={feature.type + '-' + feature.ident + '-' + index}>
               <circle cx={pt.x} cy={pt.y} r={feature.type === 'airport' ? 5 : 3}
-                fill={feature.type === 'airport' ? '#93e3ca' : '#e7adfb'} stroke="#14263a" strokeWidth="2" />
-              {feature.type === 'airport' && <text x={pt.x + 8} y={pt.y - 7}
+                fill={feature.type === 'airport' ? '#93e3ca' : feature.type === 'vor' ? '#e7adfb' : '#f6b6e8'}
+                stroke="#14263a" strokeWidth="2" />
+              {feature.type === 'airport' && zoom >= 9 && <text x={pt.x + 8} y={pt.y - 7}
                 fill="#c7f1e2" stroke="#13283d" strokeWidth="2" paintOrder="stroke"
                 fontSize="11">{feature.ident}</text>}
             </g>;
@@ -238,6 +267,20 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         )}
 
       </div>
+      {showAviation && aviation.available && <>
+        <div className="moving-map-airports">
+          <strong>Nejbližší letiště</strong>
+          <div className="moving-map-airport-buttons">
+            {aviation.features.filter(f => f.type === 'airport').slice(0, 8).map(a =>
+              <button key={a.ident} type="button"
+                onClick={() => setSelectedAirport(a.ident)}>
+                {a.ident} · {a.name}
+              </button>)}
+          </div>
+        </div>
+        {selectedAirport && <AviationAirportDetails ident={selectedAirport}
+          onClose={() => setSelectedAirport(null)} />}
+      </>}
       <FlightNavigationPanel navigation={navigation} />
       {importedPlan.length > 0 && <div className="moving-map-imported">
         <strong>Importovaný plán .PLN / SimBrief ({importedPlan.length} waypointů):</strong>

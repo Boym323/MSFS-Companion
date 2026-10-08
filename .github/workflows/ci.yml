@@ -124,6 +124,9 @@ jobs:
       - name: C3 G1000 allowlist
         if: needs.changes.outputs.g1000 == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/g1000-logic/MsfsCompanion.G1000Check.csproj --configuration Release
+      - name: C8 OurAirports CSV a lokální prostorový výběr
+        if: needs.changes.outputs.navigation == 'true' || needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/aviation-logic/MsfsCompanion.AviationCheck.csproj --configuration Release
       - name: C4 GPS navigace
         if: needs.changes.outputs.navigation == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/navigation-logic/MsfsCompanion.NavigationCheck.csproj --configuration Release

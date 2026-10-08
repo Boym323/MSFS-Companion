@@ -20,6 +20,7 @@ builder.Services.AddSingleton<ControlAccess>();
 builder.Services.AddSingleton<NativeCockpitEventSender>();
 builder.Services.AddSingleton<G1000Service>();
 builder.Services.AddSingleton<NavigationStore>();
+builder.Services.AddSingleton<AviationCatalog>();
 builder.Services.AddSingleton<LandingStore>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
