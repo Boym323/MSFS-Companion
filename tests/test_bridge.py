@@ -182,6 +182,11 @@ class BridgeSmokeTests(unittest.TestCase):
         self.assertIsInstance(info["features"], list)
         self.assertLessEqual(len(info["features"]), 240)
 
+    def test_airport_search_limits(self):
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            get_json("/api/map/aviation/search?q=X")
+        self.assertEqual(failure.exception.code, 400)
+
     def test_aviation_map_rejects_invalid_radius(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/map/aviation?lat=50&lon=14&radiusKm=20000")
