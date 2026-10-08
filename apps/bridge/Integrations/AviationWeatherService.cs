@@ -58,6 +58,12 @@ public sealed class AviationWeatherService
             Error: failed ? "Část meteorologických údajů nelze obnovit; případné starší hodnoty zůstaly zachované." : null);
     }
 
+    public object CacheHealth() => new {
+        cachedAirports = _reports.Count,
+        staleReports = _reports.Values.Count(x => x.Stale),
+        note = "Bez síťového testu; dotazy NOAA probíhají až po výběru letiště."
+    };
+
     public async Task<WeatherReport?> GetAsync(string airport, CancellationToken ct)
     {
         if (!ValidAirport(airport)) return null;
