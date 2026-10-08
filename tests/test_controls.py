@@ -52,6 +52,15 @@ class ControlsSmoke(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertFalse(ap_modes["connected"])
             self.assertIsNone(ap_modes["modes"])
+            status, g1000 = request("GET", "/api/avionics/g1000")
+            self.assertEqual(status, 200)
+            self.assertEqual(g1000["status"], "offline")
+            status, _ = request("POST", "/api/avionics/g1000/command",
+                                {"id": "pfd.fms.inner", "value": 1}, auth)
+            self.assertEqual(status, 409, "Mock nesmí odeslat G1000 InputEvent")
+            status, _ = request("POST", "/api/avionics/g1000/command",
+                                {"id": "unknown", "value": 1}, auth)
+            self.assertEqual(status, 400)
             status, radios = request("GET", "/api/radios")
             self.assertEqual(status, 200)
             self.assertFalse(radios["connected"])

@@ -5,6 +5,7 @@ import FlightHistory from './flights/FlightHistory';
 import AircraftDashboard from './aircraft/AircraftDashboard';
 import PanelAktualizaci from './PanelAktualizaci';
 import CockpitControls from './controls/CockpitControls';
+import G1000Remote from './g1000/G1000Remote';
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
@@ -13,6 +14,7 @@ const panels = [
   { href: '/flights', label: 'Historie letů' },
   { href: '/aircraft', label: 'Letadlo' },
   { href: '/controls', label: 'Ovládání' },
+  { href: '/g1000', label: 'G1000' },
 ];
 
 const pageMeta = {
@@ -21,7 +23,8 @@ const pageMeta = {
   '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
   '/flights': { eyebrow: 'LETOVÝ DENÍK', heading: 'Historie letů', description: 'Záznamy letů, jejich statistiky a přehrávání.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
-  '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot s bezpečným párováním.' },
+  '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
+  '/g1000': { eyebrow: 'AVIONIKA C3', heading: 'G1000 Remote', description: 'Ovladače PFD/MFD dostupné přes Input Events aktuálního letadla.' },
 } as const;
 
 const values = [
@@ -42,6 +45,7 @@ export default function App() {
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
   const isControls = pathname === '/controls';
+  const isG1000 = pathname === '/g1000';
 
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
@@ -119,7 +123,7 @@ export default function App() {
           </details>
         )}
 
-        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && <PanelAktualizaci />}
+        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && !isG1000 && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -138,6 +142,8 @@ export default function App() {
           <AircraftDashboard telemetry={validTelemetry} />
         ) : isControls ? (
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
+        ) : isG1000 ? (
+          <G1000Remote live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
           <>
           <h2>Aktuální telemetrie</h2>
