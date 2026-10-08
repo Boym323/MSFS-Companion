@@ -36,3 +36,5 @@
 .flight-history-export button { min-height:44px; padding:9px 14px; border-radius:8px; border:1px solid #476a87; background:#163f5a; color:#edf8ff; cursor:pointer; }
 .flight-history-export button:disabled { opacity:.4; cursor:not-allowed; }
 .flight-history-export span { color:#9ab4cd; font-size:12px; }
+
+.flight-player-speed{display:flex;align-items:center;gap:7px;font-size:12px;color:#bbd4e9}.flight-player-speed select{background:#132f48;color:#eff9ff;border:1px solid #496a86;border-radius:7px;min-height:38px;padding:6px}

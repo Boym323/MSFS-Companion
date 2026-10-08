@@ -16,6 +16,8 @@ import SystemHealth from './health/SystemHealth';
 import AirportBriefing from './briefing/AirportBriefing';
 import FlightProgress from './progress/FlightProgress';
 import FuelMonitor from './fuel/FuelMonitor';
+import SmartRadio from './radio/SmartRadio';
+import AircraftChecklists from './checklists/AircraftChecklists';
 import './vatsim/VatsimCenter.css';
 import './weather/AviationWeather.css';
 import './aircraft/AircraftCapabilities.css';
@@ -29,6 +31,8 @@ const panels = [
   { href: '/briefing', label: 'Briefing' },
   { href: '/progress', label: 'Průběh letu' },
   { href: '/fuel', label: 'Palivo' },
+  { href: '/radio-assistant', label: 'Radio' },
+  { href: '/checklists', label: 'Checklisty' },
   { href: '/workspace', label: 'Moje panely' },
   { href: '/flights', label: 'Historie letů' },
   { href: '/aircraft', label: 'Letadlo' },
@@ -47,6 +51,8 @@ const pageMeta = {
   '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
   '/briefing': { eyebrow: 'LETECKÉ ÚDAJE C23', heading: 'Letištní briefing', description: 'Dráhy, frekvence, METAR a TAF na jednom místě.' },
   '/progress': { eyebrow: 'NAVIGACE C24', heading: 'Průběh GPS úseku', description: 'Živá vzdálenost, čas a odchylka od plánované trasy.' },
+  '/radio-assistant': { eyebrow: 'RADIO C27', heading: 'Smart Radio Assistant', description: 'Letištní frekvence a bezpečné COM1 standby.' },
+  '/checklists': { eyebrow: 'CHECKLIST C29', heading: 'Checklisty letadla', description: 'Upravitelné ruční kontrolní seznamy pro simulátor.' },
   '/fuel': { eyebrow: 'PALIVO C25', heading: 'Vytrvalost a rezerva', description: 'Odhad z doloženého poklesu paliva v MSFS.' },
   '/flight-plan': { eyebrow: 'PLÁNOVÁNÍ C9', heading: 'Letový plán SimBrief', description: 'Import posledního OFP na vyžádání.' },
   '/workspace': { eyebrow: 'KOKPIT C11', heading: 'Vlastní sestava displejů', description: 'Uspořádání přístrojů pro tablet a notebook.' },
@@ -80,6 +86,8 @@ export default function App() {
   const isBriefing = pathname === '/briefing';
   const isProgress = pathname === '/progress';
   const isFuel = pathname === '/fuel';
+  const isRadioAssistant = pathname === '/radio-assistant';
+  const isChecklists = pathname === '/checklists';
   const isWorkspace = pathname === '/workspace';
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
@@ -166,7 +174,7 @@ export default function App() {
           </details>
         )}
 
-        {!isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
+        {!isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -187,6 +195,10 @@ export default function App() {
           <FlightProgress telemetry={validTelemetry} />
         ) : isFuel ? (
           <FuelMonitor telemetry={validTelemetry} />
+        ) : isRadioAssistant ? (
+          <SmartRadio live={sourceIsLive && sourceMode === 'simconnect'} />
+        ) : isChecklists ? (
+          <AircraftChecklists telemetry={validTelemetry} />
         ) : isFlightPlan ? (
           <FlightPlanner />
         ) : isWorkspace ? (

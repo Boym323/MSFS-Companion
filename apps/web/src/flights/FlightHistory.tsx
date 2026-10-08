@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import FlightInsights from './FlightInsights';
 import FlightRouteMap from './FlightRouteMap';
+import FlightReplayCharts from './FlightReplayCharts';
 import { exportFlightCsv } from './performance';
 import './FlightHistory.css';
 
@@ -28,24 +29,13 @@ function elapsed(summary: FlightSummary) {
   return `${Math.floor(seconds / 3600)} h ${Math.floor(seconds % 3600 / 60)} min`;
 }
 
-function chart(samples: TelemetrySnapshot[], key: 'altitudeFeet' | 'airspeedKnots', height = 92) {
-  if (samples.length < 2) return '';
-  const values = samples.map((s) => s[key]);
-  const min = Math.min(...values), max = Math.max(...values);
-  const range = Math.max(max - min, 1);
-  return values.map((v, index) => {
-    const x = 12 + index * 596 / (values.length - 1);
-    const y = 8 + (1 - (v - min) / range) * height;
-    return `${index ? 'L' : 'M'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-}
-
 export default function FlightHistory() {
   const [flights, setFlights] = useState<FlightSummary[]>([]);
   const [selected, setSelected] = useState('');
   const [detail, setDetail] = useState<FlightDetail | null>(null);
   const [cursor, setCursor] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -92,9 +82,9 @@ export default function FlightHistory() {
 
   useEffect(() => {
     if (!playing || samples.length < 2) return;
-    const timer = window.setInterval(() => setCursor((index) => Math.min(index + 1, samples.length - 1)), 1000);
+    const timer = window.setInterval(() => setCursor((index) => Math.min(index + speed, samples.length - 1)), 1000);
     return () => window.clearInterval(timer);
-  }, [playing, samples.length]);
+  }, [playing, samples.length, speed]);
   useEffect(() => {
     if (playing && cursor >= samples.length - 1) setPlaying(false);
   }, [cursor, playing, samples.length]);
@@ -151,16 +141,7 @@ export default function FlightHistory() {
               </div>
               <FlightInsights samples={samples} mode={detail.summary.mode} />
               <h3>Průběh výšky a rychlosti</h3>
-              <svg className="flight-history-chart" viewBox="0 0 620 224" role="img"
-                aria-label="Graf vývoje výšky a indikované rychlosti během letu">
-                <line x1="12" y1="106" x2="608" y2="106" stroke="#5b7490" />
-                <path d={chart(samples, 'altitudeFeet')} stroke="#83cff6" strokeWidth="2.7" fill="none" />
-                <g transform="translate(0 110)">
-                  <path d={chart(samples, 'airspeedKnots')} stroke="#efd184" strokeWidth="2.7" fill="none" />
-                </g>
-                <text x="16" y="14" fill="#83cff6" fontSize="13">VÝŠKA · FT</text>
-                <text x="16" y="124" fill="#efd184" fontSize="13">RYCHLOST · KT</text>
-              </svg>
+              <FlightReplayCharts samples={samples} index={index} />
 
               <h3>Schéma proletěné trasy</h3>
               <FlightRouteMap samples={samples} selectedIndex={index} />
@@ -173,6 +154,13 @@ export default function FlightHistory() {
                 <input type="range" min="0" max={Math.max(samples.length - 1, 0)}
                   value={index} onChange={(event) => { setCursor(Number(event.target.value)); setPlaying(false); }}
                   aria-label="Poloha v záznamu letu" />
+                <label className="flight-player-speed">Přehrávání
+                  <select value={speed} onChange={event=>setSpeed(Number(event.target.value))}>
+                    <option value={1}>1 vzorek/s</option>
+                    <option value={2}>2 vzorky/s</option>
+                    <option value={4}>4 vzorky/s</option>
+                  </select>
+                </label>
                 <span>{point ? timestamp(point.timestampUtc) : 'Žádná data'}</span>
               </div>
 
