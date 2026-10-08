@@ -33,6 +33,21 @@ internal static class UpdateRecoveryJournal
             return false;
         }
     }
+    // Pokud pending soubor existuje, ale nelze jej validovat, nesmí být
+    // předchozí aktualizace omylem považována za potvrzenou.
+    internal static bool HasPendingAttempt()
+    {
+        try { return File.Exists(PathOnDisk); }
+        catch (Exception ex)
+        {
+            EventLogFile.Write("C33: nelze zjistit stav journalu: "+ex.GetType().Name);
+            return true; // fail closed
+        }
+    }
+
+    internal static bool NeedsQuarantine(bool pendingExists, Pending? validPending) =>
+        pendingExists && validPending is null;
+
     internal static Pending? Load()
     {
         try
@@ -73,5 +88,8 @@ internal static class UpdateRecoveryJournal
     internal static bool SelfTest() =>
         ValidVersion("0.2.98")&&!ValidVersion("../feed")&&!ValidVersion(new string('x',33))
         &&!IsValid(new Pending(1,"0.2.100",DateTimeOffset.UtcNow.AddDays(-10)))
-        &&IsValid(new Pending(1,"0.2.100",DateTimeOffset.UtcNow));
+        &&IsValid(new Pending(1,"0.2.100",DateTimeOffset.UtcNow))
+        &&NeedsQuarantine(true,null)
+        &&!NeedsQuarantine(false,null)
+        &&!NeedsQuarantine(true,new Pending(1,"0.2.100",DateTimeOffset.UtcNow));
 }
