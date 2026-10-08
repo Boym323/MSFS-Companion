@@ -202,6 +202,17 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/weather/123")
         self.assertEqual(failure.exception.code, 400)
 
+    def test_health_summary_is_read_only_and_explicit(self):
+        status = get_json("/api/health/overview")
+        self.assertIn("generatedAt", status)
+        self.assertIn("indicators", status)
+        self.assertGreaterEqual(len(status["indicators"]), 3)
+        self.assertIn("aviation", status)
+        self.assertIn("weather", status)
+        self.assertIn("vatsim", status)
+        self.assertIn("navigation", status)
+        self.assertIn("sample", status)
+
     def test_aviation_map_rejects_invalid_coordinates(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/map/aviation?lat=999&lon=0")
