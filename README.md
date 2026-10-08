@@ -164,6 +164,15 @@ pokud jsou SimVars čerstvé. Vzlet a kontakt se zemí se hlásí
 **jen při dvojitém potvrzení změny onGround**, u starých záznamů
 nikoli. Viz [omezení a ověření B10](docs/FLIGHT_INTELLIGENCE_B10.md).
 
+## Vydání a bezpečnost
+
+Windows build lze volitelně podepisovat po doplnění infrastruktury
+certifikátů, ale dokud není `WINDOWS_SIGN_PARAMS` nakonfigurován,
+zůstávají instalátory nepodepsaná vývojová vydání. Obnova předchozí
+verze je v tuto chvíli manuální; automatický rollback není hotový.
+Viz [příprava podepisování a obnova](docs/RELEASE_HARDENING.md).
+
+
 ## Další vývoj
 
 Etapy B2–B7 tvoří základ reálné telemetrie, PFD, mapy,

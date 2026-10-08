@@ -194,11 +194,44 @@ jobs:
 
       - name: Package Velopack installer and update feed
         shell: pwsh
+        env:
+          # Opt-in only: a trusted certificate/signing provider must be
+          # configured in the Windows build environment by the maintainer.
+          WINDOWS_SIGN_PARAMS: ${{ secrets.WINDOWS_SIGN_PARAMS }}
         run: |
+          $ErrorActionPreference = 'Stop'
           dotnet tool install --global vpk --version 1.2.161
           if ($LASTEXITCODE -ne 0) { throw 'Installing vpk failed' }
-          vpk pack --packId Boym323.MsfsCompanion --packVersion $env:APP_VERSION --packDir staging/app --mainExe MsfsCompanion.WindowsHost.exe --packTitle "MSFS Companion" --icon apps/windows-host/Assets/app.ico --packAuthors "Boym323" --shortcuts "Startup,StartMenuRoot" --channel win --outputDir staging/releases
+          $packArgs = @(
+            'pack', '--packId', 'Boym323.MsfsCompanion',
+            '--packVersion', $env:APP_VERSION,
+            '--packDir', 'staging/app',
+            '--mainExe', 'MsfsCompanion.WindowsHost.exe',
+            '--packTitle', 'MSFS Companion',
+            '--icon', 'apps/windows-host/Assets/app.ico',
+            '--packAuthors', 'Boym323',
+            '--shortcuts', 'Startup,StartMenuRoot',
+            '--channel', 'win', '--outputDir', 'staging/releases'
+          )
+          if (![string]::IsNullOrWhiteSpace($env:WINDOWS_SIGN_PARAMS)) {
+            $packArgs += @('--signParams', $env:WINDOWS_SIGN_PARAMS)
+            Write-Host 'Signed release requested.'
+          } else {
+            Write-Warning 'UNSIGNED DEVELOPMENT RELEASE: WINDOWS_SIGN_PARAMS is not configured.'
+          }
+          & vpk @packArgs
           if ($LASTEXITCODE -ne 0) { throw 'Velopack pack failed' }
+          if (![string]::IsNullOrWhiteSpace($env:WINDOWS_SIGN_PARAMS)) {
+            $setups = @(Get-ChildItem staging/releases -Filter '*Setup.exe')
+            if ($setups.Count -eq 0) { throw 'No installer to verify signature.' }
+            foreach ($setup in $setups) {
+              $signature = Get-AuthenticodeSignature -FilePath $setup.FullName
+              if ($signature.Status -ne 'Valid') {
+                throw "Installer signature validation failed: $($signature.Status)"
+              }
+              Write-Host "Verified signed installer: $($setup.Name)"
+            }
+          }
 
       - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
