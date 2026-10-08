@@ -11,7 +11,7 @@
   při odpojení nebo restartu se navigační data vymažou.
 - **Žádné vymyšlené flight-plan legy**: standardní GPS SimVars popisují
   zejména aktuální a předchozí waypoint, index/count a celkovou délku plánu.
-  Kompletní seznam waypointů je samostatná budoucí integrace PLN/avioniky.
+  Kompletní seznam waypointů nelze z těchto SimVars získat; pro úplnou trasu lze nyní v prohlížeči **ručně importovat soubor .PLN**.
 
 ## Ověření v MSFS 2020
 1. S C172/G1000 aktivovat flight plan s alespoň třemi body.
@@ -23,3 +23,7 @@
 ## Omezení
 Kompatibilita GPS SimVars a skutečné chování avioniky budou ověřeny na Windows
 s MSFS 2020. CI testuje převody, invalidaci a mock, ne reálné GPS.
+
+## Import úplného flight planu
+
+Mapa umožňuje vybrat lokální soubor `.PLN` (MSFS XML, DMS souřadnice). Parsování probíhá v prohlížeči, soubor se neodesílá na server. Fialová čára je **ručně importovaná plánovaná trasa**, nikoli automaticky synchronizovaná skutečná avionika. Velikost souboru je omezena na 2 MB a maximálně 200 waypointů; plán lze odebrat.
