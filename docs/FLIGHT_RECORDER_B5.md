@@ -44,11 +44,21 @@ nikdy se netváří jako skutečné lety.
 
 Na Macu otevřete `http://IP_WINDOWS_PC:8765/flights`.
 Uvidíte přehled posledních letů, základní statistiky,
-graf rychlosti a výšky, orientační GPS trasu a časový posuvník.
+graf rychlosti a výšky, GPS trasu na automaticky načítané
+podkladové mapě OpenStreetMap a časový posuvník. Měřítko mapy
+se přizpůsobí celé trase, při přehrávání se po ní pohybuje
+značka aktuální polohy. Přelet datové hranice ±180° nevyvolá
+chybné protažení trasy přes celou mapu.
 
 Tlačítko **Přehrát let** přejde zaznamenané body přibližně
 po jedné sekundě. U delších záznamů může být časová osa
 pro účely zobrazení převzorkovaná.
+
+Podklad lze na stránce vypnout; volba platí i pro živou mapu
+/map. Dlaždice prohlížeč stahuje přímo z OpenStreetMap: poskytovatel
+může odhadnout zobrazovanou oblast, neobdrží však celou trasu.
+Při nedostupném internetu zůstává viditelná stopa na mřížce.
+Odkaz na licenci OpenStreetMap je přímo na podkladové mapě.
 
 ## Ověření
 
@@ -58,7 +68,9 @@ pro účely zobrazení převzorkovaná.
    včetně průběžného růstu počtu bodů.
 4. Zavřete prohlížeč, pokračujte v letu a později jej
    znovu otevřete. Ukládání má pokračovat.
-5. Ověřte přehrávání, trasu a grafy.
+5. Ověřte přehrávání, trasu nad OSM, atribuci, automatické
+   přizpůsobení měřítka a marker, který sleduje časový posuvník.
+   Vyzkoušejte vypnutí podkladu i režim bez internetu.
 6. Při ukončení simulátoru zkontrolujte uzavření záznamu.
 
 Záznam je určen výhradně pro **simulátor**, nikoli
