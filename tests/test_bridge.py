@@ -154,6 +154,22 @@ class BridgeSmokeTests(unittest.TestCase):
                 urllib.request.urlopen(request, timeout=3)
             self.assertEqual(error.exception.code, 404)
 
+    def test_recorder_is_read_only_and_persists_mock_sample(self):
+        # Mock se používá jen v CI, nikoliv jako falešná produkční telemetrie.
+        time.sleep(1.3)
+        flights = get_json("/api/flights")
+        self.assertIsInstance(flights, list)
+        self.assertGreaterEqual(len(flights), 1)
+        self.assertEqual(flights[0]["mode"], "mock")
+        self.assertGreater(flights[0]["samples"], 0)
+        flight = get_json("/api/flights/" + flights[0]["id"])
+        self.assertEqual(flight["summary"]["id"], flights[0]["id"])
+        self.assertGreater(len(flight["samples"]), 0)
+        self.assertEqual(flight["samples"][0]["aircraft"], "Cessna 172 (mock)")
+        with self.assertRaises(urllib.error.HTTPError) as bad:
+            urllib.request.urlopen(BASE + "/api/flights/neexistujici", timeout=3)
+        self.assertEqual(bad.exception.code, 404)
+
     def test_no_unauthenticated_command_api(self):
         payload = b'{"command":"autopilot.heading.set","value":90}'
         request = urllib.request.Request(
