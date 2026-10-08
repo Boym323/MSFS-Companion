@@ -13,6 +13,12 @@ Assert(G1000Catalog.TryResolve("pfd.softkey.12", 1, out var softkey)
     && softkey?.AlternateInputEvent == "AS1000_SOFTKEYS_12_PFD");
 Assert(!G1000Catalog.TryResolve("pfd.softkey.13", 1, out _));
 Assert(!G1000Catalog.TryResolve("mfd.softkey.2", -1, out _));
+Assert(G1000Catalog.TryResolve("pfd.fpl", 1, out var flightPlan)
+    && flightPlan?.InputEvent == "AS1000_FPL_PFD");
+Assert(G1000Catalog.TryResolve("mfd.proc", 1, out _));
+Assert(!G1000Catalog.TryResolve("mfd.proc", -1, out _));
+Assert(G1000Catalog.TryResolve("mfd.range", -1, out _));
+Assert(!G1000Catalog.TryResolve("mfd.range", 5, out _));
 Assert(G1000Catalog.All.Select(a => a.Id).Distinct().Count() == G1000Catalog.All.Length);
 Assert(AdvancedAvionicsCatalog.TryResolve("g3x.left.outer", -1, out _));
 Assert(AdvancedAvionicsCatalog.TryResolve("g3000.pfd.softkey.12", 1, out _));
