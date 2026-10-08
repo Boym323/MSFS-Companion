@@ -21,9 +21,9 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryStore store) =>
     Results.Ok(new
     {
         status = "ok",
-        simulator = "mock",
+        simulator = source.Mode,
         mode = source.Mode,
-        connected = true,
+        connected = store.Current.Aircraft != "Waiting for telemetry",
         lastTelemetryUtc = store.Current.TimestampUtc
     }));
 

@@ -41,7 +41,12 @@ reconnects automatically if the bridge is restarted.
 ```bash
 curl http://127.0.0.1:8765/api/status
 curl http://127.0.0.1:8765/api/telemetry
+python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+The smoke test requires the running bridge and verifies live HTTP/WebSocket
+telemetry, data updates, and that command APIs are not exposed. GitHub Actions
+runs it automatically following the .NET build.
 
 ## Repository
 
@@ -49,6 +54,7 @@ curl http://127.0.0.1:8765/api/telemetry
 apps/
   bridge/   ASP.NET Core, telemetry source and read-only WebSocket
   web/      React, TypeScript and Vite dashboard
+tests/      Runtime smoke tests using Python standard library
 docs/       Architecture and development notes
 .github/    CI workflows
 ```
