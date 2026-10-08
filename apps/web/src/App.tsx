@@ -1,36 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useTelemetry } from './telemetry/useTelemetry';
+import Pfd from './pfd/Pfd';
 import PanelAktualizaci from './PanelAktualizaci';
-
-type TelemetrySnapshot = {
-  timestampUtc: string;
-  aircraft: string;
-  latitude: number;
-  longitude: number;
-  airspeedKnots: number;
-  altitudeFeet: number;
-  verticalSpeedFeetPerMinute: number;
-  headingDegrees: number;
-  pitchDegrees: number;
-  bankDegrees: number;
-};
-
-type ConnectionState = 'connecting' | 'connected' | 'disconnected';
-
-type TelemetryStatus = {
-  mode: 'mock' | 'simconnect';
-  connected: boolean;
-  connectionState: string;
-  lastTelemetryUtc: string | null;
-  sampleAgeMs: number | null;
-  sampleRateHz: number;
-  samplesReceived: number;
-  connectionAttempts: number;
-  lastError: string | null;
-  incomingRateHz: number;
-  samplesPublished: number;
-  framesSkipped: number;
-  publicationLagMs: number | null;
-};
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
@@ -48,70 +18,11 @@ const values = [
 ] as const;
 
 export default function App() {
-  const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
-  const [connection, setConnection] = useState<ConnectionState>('connecting');
-  const [sourceStatus, setSourceStatus] = useState<TelemetryStatus | null>(null);
-
-  useEffect(() => {
-    let disposed = false;
-    const checkStatus = async () => {
-      try {
-        const response = await fetch('/api/status', { cache: 'no-store' });
-        if (!response.ok) return;
-        const status = (await response.json()) as TelemetryStatus;
-        if (!disposed) setSourceStatus(status);
-      } catch {
-        if (!disposed) setSourceStatus(null);
-      }
-    };
-    void checkStatus();
-    const timer = window.setInterval(() => { void checkStatus(); }, 1500);
-    return () => { disposed = true; window.clearInterval(timer); };
-  }, []);
-
-  useEffect(() => {
-    let disposed = false;
-    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-    let socket: WebSocket | undefined;
-
-    const connect = () => {
-      setConnection('connecting');
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
-
-      socket.onopen = () => setConnection('connected');
-      socket.onmessage = (event: MessageEvent<string>) => {
-        try {
-          setTelemetry(JSON.parse(event.data) as TelemetrySnapshot);
-        } catch {
-          // Ignore malformed telemetry frames; the next update can recover.
-        }
-      };
-      socket.onerror = () => socket?.close();
-      socket.onclose = () => {
-        if (disposed) return;
-        setConnection('disconnected');
-        reconnectTimer = setTimeout(connect, 1500);
-      };
-    };
-
-    connect();
-    return () => {
-      disposed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      socket?.close();
-    };
-  }, []);
-
+  const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
-  const isPlaceholder = pathname === '/pfd' || pathname === '/map';
-  const lastUpdateAgeMs = telemetry
-    ? Math.max(0, Date.now() - new Date(telemetry.timestampUtc).getTime())
-    : null;
+  const isPfd = pathname === '/pfd';
+  const isPlaceholder = pathname === '/map';
 
-  const sourceIsLive = connection === 'connected'
-    && sourceStatus?.connected === true
-    && lastUpdateAgeMs !== null && lastUpdateAgeMs < 5000;
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
   const sourceLabel = sourceIsLive
@@ -130,7 +41,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand"><span className="brand-icon">✈</span><div>
           <strong>MSFS Companion</strong>
-          <small>Flight deck · B2 telemetrie</small>
+          <small>Flight deck · B3 avionika</small>
         </div></div>
         <div className={`connection connection--${connection}`}>
           <span className="connection-dot" />
@@ -149,14 +60,16 @@ export default function App() {
 
       <main>
         <div className="intro">
-          <div className="eyebrow">B2 · TELEMETRIE</div>
+          <div className="eyebrow">{isPfd ? 'B3 · PRIMARY FLIGHT DISPLAY' : 'B2 · TELEMETRIE'}</div>
           <h1>{pathname === '/pfd' ? 'Primární letový displej' : pathname === '/map' ? 'Mapa letu' : 'Přehled systému'}</h1>
           <p>{isPlaceholder
-            ? 'Přístrojový modul připravujeme. Zdroj telemetrie již podporuje MSFS 2020.'
-            : 'Přehled dat z MSFS 2020 přes SimConnect nebo z vývojového mock režimu.'}</p>
+            ? 'Živá mapa je další samostatná etapa vývoje.'
+            : isPfd
+              ? 'Umělý horizont, indikovaná rychlost, výška a magnetický kurz se živými daty SimConnect.'
+              : 'Přehled dat z MSFS 2020 přes SimConnect nebo z vývojového mock režimu.'}</p>
         </div>
 
-        <section className="summary">
+        <section className={isPfd ? 'summary summary--compact' : 'summary'}>
           <article>
             <span className="label">Zdroj dat</span>
             <strong>{sourceLabel}</strong>
@@ -186,7 +99,7 @@ export default function App() {
           </div>
         )}
 
-        {!isPlaceholder && <PanelAktualizaci />}
+        {!isPlaceholder && !isPfd && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -195,23 +108,31 @@ export default function App() {
               : 'Čekám na telemetrii z bridge.'}
           </p>
         )}
-        <h2>Aktuální telemetrie</h2>
-        <section className="metrics">
-          {values.map((metric) => (
-            <article className="metric" key={metric.key}>
-              <span className="label">{metric.title}</span>
-              <div className="reading">
-                <strong>{telemetry && sourceIsLive ? telemetry[metric.key].toFixed(metric.digits) : '—'}</strong>
-                <span>{metric.unit}</span>
-              </div>
-            </article>
-          ))}
-        </section>
-
-        <div className="footnote">
-          <span>GPS: {telemetry && sourceIsLive ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
-          <span>Žádné příkazy nejsou v této etapě povolené.</span>
-        </div>
+        {isPfd ? (
+          <Pfd telemetry={validTelemetry} />
+        ) : isPlaceholder ? (
+          <p className="telemetry-offline">Mapa bude dostupná v etapě B4.</p>
+        ) : (
+          <>
+          <h2>Aktuální telemetrie</h2>
+          <section className="metrics">
+            {values.map((metric) => (
+              <article className="metric" key={metric.key}>
+                <span className="label">{metric.title}</span>
+                <div className="reading">
+                  <strong>{telemetry && sourceIsLive ? telemetry[metric.key].toFixed(metric.digits) : '—'}</strong>
+                  <span>{metric.unit}</span>
+                </div>
+              </article>
+            ))}
+          </section>
+  
+          <div className="footnote">
+            <span>GPS: {telemetry && sourceIsLive ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
+            <span>Žádné příkazy nejsou v této etapě povolené.</span>
+          </div>
+          </>
+        )}
       </main>
     </div>
   );

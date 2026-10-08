@@ -101,3 +101,29 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
 @media (max-width: 760px) {
   .telemetry-diagnostics { margin: -15px 0 24px; }
 }
+
+
+/* B3 – čitelný přístrojový displej bez závislosti na cizí grafické knihovně. */
+.summary--compact { margin-bottom: 24px; }
+.summary--compact article { padding: 16px 20px; }
+.summary--compact strong { margin-top: 8px; }
+.pfd-panel { margin: 0 0 28px; }
+.pfd-panel-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 17px; }
+.pfd-panel-head h2 { margin: 7px 0 0; font-size: 20px; }
+.pfd-indicator { color: #f2b591; font-size: 11px; font-weight: 700; letter-spacing: .09em; }
+.pfd-indicator--live { color: #80e2b6; }
+.pfd-stage { position: relative; border: 1px solid #2b435b; border-radius: 15px; overflow: hidden; background: #0a1320; box-shadow: 0 20px 50px #0005; }
+.pfd-stage svg { display: block; width: 100%; height: auto; }
+.pfd-cover { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; padding: 24px; background: #0a1320e8; text-align: center; color: #bcd0e8; }
+.pfd-cover strong { color: #f1bd8e; letter-spacing: .07em; }
+.pfd-cover span { font-size: 13px; }
+.pfd-note { margin: 12px 0 0; color: #8295b2; font-size: 12px; line-height: 1.6; }
+@media (max-width: 760px) {
+  .pfd-stage { margin: 0 -12px; }
+  .summary--compact { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .summary--compact article { padding: 13px; }
+  .summary--compact strong { font-size: 14px; overflow-wrap: anywhere; }
+}
+@media (max-width: 420px) {
+  .summary--compact { grid-template-columns: 1fr; }
+}
