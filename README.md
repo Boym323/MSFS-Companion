@@ -174,6 +174,28 @@ verze je v tuto chvíli manuální; automatický rollback není hotový.
 Viz [příprava podepisování a obnova](docs/RELEASE_HARDENING.md).
 
 
+## Ovládání kokpitu C1/C2 a G1000 C3
+
+Na `/controls` fungují COM/NAV, transpondér a autopilot. V rámci důvěryhodné
+domácí LAN je **párování standardně vypnuté**. Na Windows lze na
+`http://127.0.0.1:8765/controls` zapnout párování (3min kód, 8h relace).
+Příkazy mají allowlist, kontrolu hodnot a vyžadují živý MSFS. Nikdy
+neotevírejte lokální HTTP server do internetu.
+
+Na `/g1000` jsou připraveny FMS/HDG/NAV a kandidátní Direct-To/Menu/CLR
+ovladače. Dostupnost Input Events se zjišťuje u aktuálního letadla:
+nepodporované ovladače se deaktivují. MSFS 2020 avionika vyžaduje manuální
+ověření. Viz [dokumentace C1/C2](docs/COCKPIT_CONTROLS_C1_C2.md) a
+[G1000 C3](docs/G1000_C3.md).
+
+## GPS navigace a flight plan C4
+
+Mapa `/map` zobrazuje dostupný aktuální waypoint, aktivní GPS úsek,
+vzdálenost, trať a základní stav flight planu. Volitelně lze vybrat
+soubor `.PLN` a prohlížet úplnou **ručně importovanou** trasu; nejde o
+automaticky synchronizovaný flight plan z avioniky.
+Viz [GPS navigace C4](docs/NAVIGATION_C4.md).
+
 ## Další vývoj
 
 Etapy B2–B7 tvoří základ reálné telemetrie, PFD, mapy,

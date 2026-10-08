@@ -4,6 +4,7 @@ using MsfsCompanion.Bridge.Telemetry;
 using MsfsCompanion.Bridge.Admin;
 using MsfsCompanion.Bridge.Controls;
 using MsfsCompanion.Bridge.Avionics;
+using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Recorder;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,7 @@ builder.Services.AddSingleton<AutopilotModesStore>();
 builder.Services.AddSingleton<ControlAccess>();
 builder.Services.AddSingleton<NativeCockpitEventSender>();
 builder.Services.AddSingleton<G1000Service>();
+builder.Services.AddSingleton<NavigationStore>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -100,6 +102,7 @@ app.MapGet("/api/autopilot/modes", (AutopilotModesStore modes) => Results.Ok(mod
 // Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
 app.MapCockpitControls();
 app.MapG1000();
+app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 
 // Pouze čtení. Záznam probíhá na Windows i bez otevřeného prohlížeče.
 app.MapGet("/api/flights", (FlightRecorder recorder) =>

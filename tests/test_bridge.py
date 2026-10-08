@@ -168,6 +168,11 @@ class BridgeSmokeTests(unittest.TestCase):
             urllib.request.urlopen(req, timeout=3)
         self.assertIn(error.exception.code, (404, 405))
 
+    def test_gps_navigation_not_faked_in_mock(self):
+        navigation = get_json("/api/navigation/current")
+        self.assertFalse(navigation["connected"])
+        self.assertIsNone(navigation["navigation"])
+
     def test_recorder_is_read_only_and_persists_mock_sample(self):
         # Mock se používá jen v CI, nikoliv jako falešná produkční telemetrie.
         time.sleep(1.3)

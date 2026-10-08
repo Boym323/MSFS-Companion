@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using SimConnect.NET;
 using SimConnect.NET.SimVar;
+using MsfsCompanion.Bridge.Navigation;
 
 namespace MsfsCompanion.Bridge.Telemetry;
 
@@ -15,6 +16,7 @@ public sealed class SimConnectTelemetrySource(
     AircraftSystemsStore systemsStore,
     RadioStore radioStore,
     AutopilotModesStore autopilotModes,
+    NavigationStore navigationStore,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -35,6 +37,7 @@ public sealed class SimConnectTelemetrySource(
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
+            navigationStore.Reset();
             store.Reset("Čekám na MSFS 2020");
             try
             {
@@ -53,6 +56,7 @@ public sealed class SimConnectTelemetrySource(
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
+            navigationStore.Reset();
             store.Reset("MSFS není připojen");
             if (stoppingToken.IsCancellationRequested)
                 break;
@@ -130,6 +134,8 @@ public sealed class SimConnectTelemetrySource(
         using var radioSubscription = SubscribeRadios(client, stoppingToken);
         using var xpdrSubscription = SubscribeTransponder(client, stoppingToken);
         using var apModesSubscription = SubscribeAutopilotModes(client, stoppingToken);
+        using var navSubscription = SubscribeNavigation(client, stoppingToken);
+        using var waypointIdSubscription = SubscribeWaypointId(client, stoppingToken);
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -161,6 +167,41 @@ public sealed class SimConnectTelemetrySource(
 
             store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
             health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
+        }
+    }
+
+    private ISimVarSubscription? SubscribeNavigation(SimConnectClient client, CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<SimConnectNavigationData>(
+                SimConnectPeriod.Second,
+                data =>
+                {
+                    if (data.IsValid())
+                        navigationStore.Update(data, DateTimeOffset.UtcNow);
+                }, cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "GPS telemetry unavailable; PFD remains running.");
+            return null;
+        }
+    }
+
+    private ISimVarSubscription? SubscribeWaypointId(SimConnectClient client, CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<string>("GPS WP NEXT ID", "string",
+                SimConnectPeriod.Second,
+                name => navigationStore.UpdateName(name, DateTimeOffset.UtcNow),
+                cancellationToken: token);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Waypoint ID unavailable, coordinates remain supported.");
+            return null;
         }
     }
 
