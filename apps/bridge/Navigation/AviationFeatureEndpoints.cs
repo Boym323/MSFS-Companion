@@ -16,6 +16,13 @@ public static class AviationFeatureEndpoints
             return Results.Ok(catalog.Nearby(lat, lon, radiusKm ?? 85));
         });
 
+        app.MapGet("/api/map/aviation/search", (string? q, AviationCatalog catalog) =>
+        {
+            if (q is null || q.Length is < 2 or > 70)
+                return Results.BadRequest(new { error = "Hledaný výraz musí mít 2–70 znaků." });
+            return Results.Ok(catalog.Search(q));
+        });
+
         app.MapGet("/api/map/aviation/airport/{ident}", (string ident, AviationCatalog catalog) =>
         {
             if (ident.Length is < 1 or > 24 ||
