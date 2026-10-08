@@ -30,6 +30,23 @@
 The diagnostic B1 `MsfsCompanion.Probe.exe` remains separate from this
 persistent tray/bridge app. B2 will replace mock telemetry with SimConnect.
 
+### Verify the updater manually
+
+Right-click the tray icon and choose **Zkontrolovat aktualizace**.
+A manually requested check now produces an explicit result dialog when there
+is no newer release, the app was launched from Portable.zip, or a feed error
+occurred. When a new release exists, the tray shows download/restart progress.
+
+Automatic hourly checks remain silent and do not display modal dialogs during
+flight. If a manual check fails, open the **Otevřít diagnostický log** menu;
+the log is also available under
+`%LOCALAPPDATA%\MSFS Companion\windows-host.log`.
+
+Note: the old v0.2.13 tray did not display a result dialog. If this fix has
+not yet updated your installation, inspect the tray's status entry by
+reopening the menu or check the log for `Update check/download error`.
+The latest published GitHub Release is the authoritative update source.
+
 ## Automatic updates from public GitHub Releases
 
 The source repository **Boym323/MSFS-Companion is public**. The Windows app
