@@ -21,6 +21,34 @@ Uživatelsky ověřené hodnoty MSFS 2020:
 - Magnetický kurz se normalizuje do `0–359°`; vyhlazování
   volí nejkratší úhlovou vzdálenost přes sever (`359° → 1°`).
 
+## B3.1 – opravy rozložení a stupnic
+
+Rozložení používá uzavřený SVG prostor o velikosti 1000 × 590
+logických jednotek. Přístroj obsahuje **čtyři samostatné oblasti**:
+rychloměr vlevo, umělý horizont uprostřed, výškoměr a
+**vertikální rychloměr VSI** vpravo, pod nimi kompasovou pásku.
+
+- Kompasové číslice i značky jsou vždy ořezány přímo uvnitř
+  `clipPath`; nemohou zasahovat do postranních ukazatelů.
+- Zrušili jsme duplicitní nadpisy pod kompasem. Doplňující
+  údaje mají vlastní responzivní řádek **mimo SVG**.
+- Rychlostní i výškové číslice mají dvě ořezové oblasti;
+  prostředek pod pevným kurzorem zůstává čistý.
+- U IAS = 0 se již nevykreslují několikrát stejné nuly;
+  záporná rychlost se na stupnici nezobrazuje.
+- VSI má čitelnou samostatnou stupnici od −3000 do
+  +3000 FT/MIN s fyzickým ukazatelem směru a hodnotou.
+- Malé obrazovky používají vodorovně posuvný SVG displej
+  o minimální šířce 760 px, takže se důležité značky
+  nezmenší na nečitelné hodnoty.
+- Zachována potvrzená znaménka **kladné klopení MSFS =
+  příď dolů** a **kladný náklon MSFS = levé křídlo dolů**.
+  PFD nemění původní SimConnect data ani frekvenci 30/20 Hz.
+
+Při ověření doporučujeme pozorovat zejména IAS 0,
+výšku kolem 1168 FT, kurz 326°, průchod 359/0°,
+klesání/stoupání a pravý/levý náklon.
+
 ## Frekvence a neplatná data
 
 SimConnect odebírá přibližně 30 Hz při MSFS zamčeném na 30 FPS;
