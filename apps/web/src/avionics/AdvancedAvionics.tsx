@@ -17,6 +17,10 @@ const catalog: Record<string, Action[]> = {
     { id: 'g3000.tsc.freq.khz', label: 'TSC kHz', rotary: true },
     { id: 'g3000.tsc.swap', label: 'TSC Swap', rotary: false },
   ],
+  gns430: [
+    ...['directto','menu','ent','fpl'].map(name => ({ id:'gns430.'+name, label:name, rotary:false })),
+    ...['outer','inner'].map(name => ({ id:'gns430.'+name, label:name, rotary:true })),
+  ],
   gns530: [
     ...['directto','menu','ent','fpl'].map(name => ({ id: 'gns530.'+name, label: name, rotary:false })),
     ...['outer','inner'].map(name => ({ id: 'gns530.'+name, label:name, rotary:true })),
@@ -64,11 +68,12 @@ export default function AdvancedAvionics({ live }: { live: boolean }) {
   return <section className="advanced-avionics">
     <h2>Další avionika</h2>
     <p>Ovladače jsou kandidátní. Aktivují se pouze pokud je aktuální letadlo
-      zveřejní přes SimConnect Input Events. GNS430 vyžaduje vlastní ověření.</p>
+      zveřejní přes SimConnect Input Events. Všechny varianty vyžadují ověření v MSFS 2020.</p>
     <label>Typ avioniky
       <select value={family} onChange={e => setFamily(e.target.value)}>
         <option value="g3x">Garmin G3X</option>
         <option value="g3000">Garmin G3000</option>
+        <option value="gns430">Garmin GNS430</option>
         <option value="gns530">Garmin GNS530</option>
       </select>
     </label>
