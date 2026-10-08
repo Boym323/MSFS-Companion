@@ -1,22 +1,23 @@
-# Windows automatic updates — development configuration
+# Automatické aktualizace Windows – vývojový režim
 
-The Windows app is hosted by `apps/windows-host` and installed/upgraded by
-Velopack. See the practical setup: [Windows installer and updates](WINDOWS_INSTALLER.md).
+Hostitel Windows je v `apps/windows-host` a používá Velopack.
+Praktický návod: [Windows instalace a vzdálená správa](WINDOWS_INSTALLER.md).
 
-- **Repository:** public `Boym323/MSFS-Companion`.
-- **Update feed:** public GitHub Releases of that same repository by default.
-- **Publish:** after a successful Windows installer job on a push to `main`,
-  automatically create `v0.2.<run_number>` release with the setup executable
-  and Velopack update assets. No separate repo or user-supplied PAT.
-- **Windows background app:** launches at sign-in, supervises the local bridge,
-  checks for a new version at startup and hourly.
-- **During MSFS:** checks, downloads and applies updates normally. The Windows
-  simulator itself is never stopped; Companion/bridge restarts momentarily.
-- **Manual CI dispatch / PR:** only produces downloadable artifacts; does not
-  publish a public release.
-- **Still required:** first real Windows installation test, a two-version update
-  test and recovery/rollback validation. B2 SimConnect bridge integration remains
-  a separate milestone. Development binaries are currently unsigned.
+- **Zdroj:** veřejné GitHub Releases v `Boym323/MSFS-Companion`.
+- **Publikování:** po úspěšném sestavení změn v `main` automaticky
+  vzniká vydání s verzí `v0.2.<číslo běhu>`.
+- **Windows hostitel:** automaticky se spouští po přihlášení, hlídá bridge
+  a kontroluje novou verzi po spuštění a každou hodinu.
+- **Během MSFS:** aktualizace smí restartovat jen Companion a bridge,
+  nikoli simulátor.
+- **Správa z webu:** autentizovaný požadavek předaný do lokálního
+  souborového kanálu. Stav lze sledovat bez přístupu na Windows plochu.
+- **Zabezpečení:** správcovský klíč je náhodný a uložený v profilu
+  Windows uživatele, nikdy není součástí veřejného vydání.
+- **Přístup z Macu:** po jednorázovém nastavení Tailscale Serve.
+- **Omezení:** nepodepsané vývojové balíčky, bez automatického rollbacku;
+  skutečný upgrade a vzdálený přístup je nutné ověřit na počítači s MSFS.
 
-GitHub Actions may require write access to Releases; the privileged upload job
-runs only on the default branch, after the package is built and tested.
+Samostatné spuštění `apps/bridge` nemá aktivní správcovská API.
+Repozitář je veřejný, není potřeba druhý repozitář ani přístupový
+token GitHubu na klientském PC.
