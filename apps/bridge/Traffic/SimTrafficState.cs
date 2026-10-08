@@ -15,6 +15,8 @@ public sealed record SimTrafficPacket(uint RequestId, uint EntryNumber, uint Out
 public static class TrafficPacketDecoder
 {
     public const int ExpectedBytes = 40 + 6 * 8;
+    private static double ReadDouble(ReadOnlySpan<byte> data,int i) =>
+        BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(data.Slice(40+i*8)));
     public static bool TryDecode(ReadOnlySpan<byte> bytes, uint expectedRequestId,
         out SimTrafficPacket? packet)
     {
@@ -29,10 +31,9 @@ public static class TrafficPacketDecoder
         uint count=BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(36));
         if(size<ExpectedBytes||size>bytes.Length||recvType!=9||request!=expectedRequestId||
            objectId==0||outOf is 0 or > 5000||entry>=outOf||count<6)return false;
-        double ReadDouble(int i)=>BitConverter.Int64BitsToDouble(
-            BinaryPrimitives.ReadInt64LittleEndian(bytes.Slice(40+i*8)));
-        var lat=ReadDouble(0);var lon=ReadDouble(1);var alt=ReadDouble(2);
-        var heading=ReadDouble(3);var speed=ReadDouble(4);var ground=ReadDouble(5);
+        var lat=ReadDouble(bytes,0);var lon=ReadDouble(bytes,1);var alt=ReadDouble(bytes,2);
+        var heading=ReadDouble(bytes,3);var speed=ReadDouble(bytes,4);
+        var ground=ReadDouble(bytes,5);
         if(!double.IsFinite(lat)||!double.IsFinite(lon)||Math.Abs(lat)>85.05||
            Math.Abs(lon)>180||!double.IsFinite(alt)||alt is < -3000 or > 70000||
            !double.IsFinite(heading)||!double.IsFinite(speed)||speed is < 0 or > 2000||
