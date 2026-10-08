@@ -4,6 +4,7 @@ import {
   metersBetween, project, shortestWorldDistance,
 } from './geo';
 import MapTileLayer from './MapTileLayer';
+import { useFlightNavigation, FlightNavigationPanel } from './FlightNavigation';
 import { useMapBackground } from './useMapBackground';
 import './MovingMap.css';
 
@@ -18,6 +19,8 @@ const MAX_POINTS = 3600; // ~1h při 1 bodu/s; žádná neomezená paměť
 
 export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot | null }) {
   const [zoom, setZoom] = useState(11);
+  const [showLeg, setShowLeg] = useState(true);
+  const navigation = useFlightNavigation(!!telemetry);
   const [tilesEnabled, setTilesEnabled] = useMapBackground();
   const [track, setTrack] = useState<TrackPoint[]>([]);
   const [size, setSize] = useState({ width: 920, height: 500 });
@@ -77,6 +80,17 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
       }).join(' ')
     : '';
+  const mapPosition = (point: { latitude: number; longitude: number }) => {
+    if (!world || Math.abs(point.latitude) > 85.05 || Math.abs(point.longitude) > 180) return null;
+    const projected = project(point, zoom);
+    return { x: shortestWorldDistance(projected.x, world.x, zoom) + width / 2,
+      y: projected.y - world.y + height / 2 };
+  };
+  const nextXY = navigation?.waypointActive && navigation.nextWaypoint
+    ? mapPosition(navigation.nextWaypoint) : null;
+  const fromXY = navigation?.waypointActive && navigation.previousWaypoint
+    ? mapPosition(navigation.previousWaypoint)
+    : telemetry ? mapPosition(telemetry) : null;
   const distance = track.reduce((total, point, index) => {
     if (index === 0) return total;
     return total + metersBetween(track[index - 1], point);
@@ -109,10 +123,22 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         Podklad OpenStreetMap (automaticky zapnutý, lze vypnout)
       </label>
 
+      <label className="moving-map-background"><input type="checkbox" checked={showLeg}
+        onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
       <div ref={viewport} className="moving-map-canvas" aria-label="Mapa centrovaná na aktuální GPS polohu">
         <MapTileLayer center={world} zoom={zoom} width={width} height={height} enabled={tilesEnabled} />
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
+          {showLeg && nextXY && fromXY && <path
+            d={`M ${fromXY.x.toFixed(1)} ${fromXY.y.toFixed(1)} L ${nextXY.x.toFixed(1)} ${nextXY.y.toFixed(1)}`}
+            stroke="#f9d978" strokeDasharray="9 7" fill="none" strokeWidth="3" />}
+          {showLeg && nextXY && <>
+            <circle cx={nextXY.x} cy={nextXY.y} r="7" fill="#f9d978" stroke="#111c2b" strokeWidth="2" />
+            <text x={nextXY.x + 11} y={nextXY.y - 10} fill="#ffeaa8" stroke="#152235"
+              strokeWidth="2.5" paintOrder="stroke" fontSize="14" fontWeight="700">
+              {navigation?.nextWaypointId ?? 'GPS WP'}
+            </text>
+          </>}
           <path d={trackPath} stroke="#79e6f8" fill="none"
             strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
           {world && track.length > 0 && (() => {
@@ -139,6 +165,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         )}
 
       </div>
+      <FlightNavigationPanel navigation={navigation} />
       <div className="moving-map-stats">
         <span><strong>GPS:</strong> {telemetry
           ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°`
