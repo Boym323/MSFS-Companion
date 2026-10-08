@@ -2,11 +2,11 @@
 
 ## Stav a hranice důvěry
 
-- Vlastní API je **vždy při startu vypnuto**. Nikde v LAN nelze ovládání zapnout.
-- Pouze uživatel přímo na **Windows PC** otevře `http://127.0.0.1:8765/controls`, zvolí **Povolit**, a zobrazí jednorázový šestimístný kód (3 minuty).
+- **Ve výchozím stavu je vypnuté bezpečnostní párování**, nikoliv ovládání. Důvěryhodná LAN může ovládat bez tokenu; ochranu lze zapnout lokálně na Windows.
+- Pro zapnutí ochrany pouze uživatel přímo na **Windows PC** otevře `http://127.0.0.1:8765/controls`, zvolí **Povolit**, a zobrazí jednorázový šestimístný kód (3 minuty).
 - iPad nebo notebook otevře `http://LAN_IP_PC:8765/controls` a vloží kód. Při úspěchu získá 256bitový token v `sessionStorage`, platný nejvýše osm hodin nebo do restartu.
-- API vyžaduje správný Origin, token v hlavičce, povolenou událost, hodnotu v mezích, živá data ze SimConnect, maximálně čtyři příkazy za sekundu.
-- Vypnutí na Windows okamžitě zruší všechna párování.
+- API vždy vyžaduje správný Origin, povolenou událost, hodnotu v mezích, živá data ze SimConnect a rate limit. Token vyžaduje pouze při zapnuté ochraně.
+- Vypnutí ochrany na Windows okamžitě zruší všechna párování a přepne do LAN režimu bez párování.
 - **Bez TLS:** použití pouze v důvěryhodné domácí síti, nikoliv přes veřejný internet. Tokeny přes HTTP lze na nedůvěryhodné síti odposlechnout.
 - C1/C2 pro ovládání používá **samostatný nízkofrekvenční SimConnect handle**. 20Hz PFD stream není změněn.
 - HTTP 202 / `sent` znamená odeslání události, **nikoliv provedení**. Stav se potvrzuje až z read-only telemetrie MSFS.

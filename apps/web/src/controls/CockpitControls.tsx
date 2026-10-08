@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import './CockpitControls.css';
 
-type Access = { enabled: boolean; paired: boolean; local: boolean };
+type Access = { enabled: boolean; paired: boolean; canControl: boolean; local: boolean };
 type Local = { enabled: boolean; pairCode: string | null };
 type RadioValues = {
   com1ActiveMHz: number; com1StandbyMHz: number;
@@ -87,7 +87,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
       });
       if (!response.ok) throw new Error('Změna ovládání byla odmítnuta.');
       window.sessionStorage.removeItem(key);
-      setMessage(enabled ? 'Ovládání povoleno. Zadejte kód na iPadu.' : 'Ovládání vypnuto a tokeny zrušeny.');
+      setMessage(enabled ? 'Ochrana zapnuta. Pro ovládání na iPadu je nyní nutné párování.' : 'Ochrana vypnuta. Ovládání je dostupné z důvěryhodné LAN.');
       await refresh();
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Chyba'); }
     finally { setBusy(false); }
@@ -112,7 +112,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
   }
 
   async function send(command: string, value?: number) {
-    if (!access?.paired || !live || busy) return;
+    if (!access?.canControl || !live || busy) return;
     setBusy(true);
     setMessage('');
     try {
@@ -137,7 +137,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
     finally { setBusy(false); }
   }
 
-  const canSend = !!access?.paired && access.enabled && live && !busy;
+  const canSend = !!access?.canControl && live && !busy;
   const selected = systems?.connected ? systems.systems : null;
   const rv = radio?.connected ? radio.radios : null;
   const ap = modes?.connected ? modes.modes : null;
@@ -169,19 +169,21 @@ export default function CockpitControls({ live }: { live: boolean }) {
 
   return <div className="cockpit-controls">
     <section className="control-security">
-      <h2>Zabezpečení dálkového ovládání</h2>
-      <p>Ovládání je po každém startu vypnuté. Povolit jej lze pouze v prohlížeči
-        přímo na Windows PC na adrese <code>http://127.0.0.1:8765/controls</code>.</p>
-      <p><strong>Stav:</strong> {!access ? 'Bridge nedostupný'
-        : !access.enabled ? 'Vypnuto'
-        : access.paired ? 'Aktivní · zařízení spárováno'
-        : 'Povoleno · zařízení nespárováno'}</p>
+      <h2>Zabezpečení v důvěryhodné LAN</h2>
+      <p>Ve výchozím nastavení je <strong>párování vypnuté</strong> a zařízení ve stejné
+        důvěryhodné domácí podsíti mohou ovládat kokpit přímo. Volitelnou ochranu lze zapnout
+        přímo na Windows PC na adrese <code>http://127.0.0.1:8765/controls</code>.
+        Omezení na lokální síť, povolené příkazy a kontrola hodnot zůstávají aktivní.</p>
+      <p><strong>Ochrana:</strong> {!access ? 'Bridge nedostupný'
+        : !access.enabled ? 'Vypnuta · bez párování'
+        : access.paired ? 'Zapnuta · zařízení spárováno'
+        : 'Zapnuta · zařízení nespárováno'}</p>
       {access?.local && <div className="control-actions">
         <button type="button" disabled={busy || access.enabled} onClick={() => void toggle(true)}>
-          Povolit na Windows
+          Zapnout ochranu (párování)
         </button>
         <button type="button" disabled={busy || !access.enabled} onClick={() => void toggle(false)}>
-          Vypnout a zrušit párování
+          Vypnout ochranu
         </button>
         {local?.pairCode && <p className="control-pair-code">Kód pro iPad (3 min): <b>{local.pairCode}</b></p>}
       </div>}

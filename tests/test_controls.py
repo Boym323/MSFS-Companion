@@ -24,15 +24,17 @@ class ControlsSmoke(unittest.TestCase):
         status, state = request("GET", "/api/controls/status")
         self.assertEqual(status, 200)
         self.assertFalse(state["enabled"])
-        self.assertFalse(state["paired"])
+        self.assertTrue(state["canControl"])  # výchozí důvěryhodná LAN bez párování
         status, _ = request("POST", "/api/controls/command", {"command": "autopilot.on"})
-        self.assertEqual(status, 401)
+        self.assertEqual(status, 409)  # mock nikdy nepoužívá SimConnect k zápisu
 
         status, data = request("POST", "/api/controls/local", {"enabled": True},
                                {"X-MSFS-Companion-Action": "control-local"})
         self.assertEqual(status, 200)
         self.assertEqual(len(data["pairCode"]), 6)
         try:
+            status, _ = request("POST", "/api/controls/command", {"command": "autopilot.on"})
+            self.assertEqual(status, 401)  # ochrana zapnuta bez tokenu
             status, _ = request("POST", "/api/controls/pair", {"code": "invalid"})
             self.assertEqual(status, 401)
             status, token_data = request("POST", "/api/controls/pair", {"code": data["pairCode"]})
@@ -61,4 +63,4 @@ class ControlsSmoke(unittest.TestCase):
         status, state = request("GET", "/api/controls/status", headers=auth)
         self.assertEqual(status, 200)
         self.assertFalse(state["enabled"])
-        self.assertFalse(state["paired"])
+        self.assertTrue(state["canControl"])
