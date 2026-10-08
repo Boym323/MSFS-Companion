@@ -61,6 +61,15 @@ class ControlsSmoke(unittest.TestCase):
             status, _ = request("POST", "/api/avionics/g1000/command",
                                 {"id": "unknown", "value": 1}, auth)
             self.assertEqual(status, 400)
+            status, advanced = request("GET", "/api/avionics/advanced")
+            self.assertEqual(status, 200)
+            self.assertEqual(advanced["status"], "offline")
+            status, _ = request("POST", "/api/avionics/advanced/command",
+                                {"id": "g3x.menu", "value": 1}, auth)
+            self.assertEqual(status, 409)
+            status, _ = request("POST", "/api/avionics/advanced/command",
+                                {"id": "arbitrary-event", "value": 1}, auth)
+            self.assertEqual(status, 400)
             status, radios = request("GET", "/api/radios")
             self.assertEqual(status, 200)
             self.assertFalse(radios["connected"])
