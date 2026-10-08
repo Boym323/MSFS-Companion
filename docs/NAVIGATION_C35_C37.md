@@ -29,3 +29,22 @@ Výsledek `uncertain` není důkazem nesprávného plánu.
 ## Omezení
 Reálné zdroje se mohou lišit od databáze MSFS 2020, rozhodující je
 zkouška na skutečném Windows MSFS a ověření autorských licencí.
+
+## C35 V2 – české prostory bez ručního importu
+
+Ve volbě `Načíst české vzdušné prostory` mapa na vyžádání zavolá
+místní `GET /api/airspace/czechia`. Windows bridge stahuje výhradně
+pevný HTTPS soubor [Aeroklubu ČR](https://airspace.aeroklub.cz/docs/public/)
+`CZ_all_26-04-01.txt` (zdroj deklaruje platnost od 1. dubna 2026).
+Soubor je veřejně povolen pro sdílení a použití pro všeobecné letectví;
+atribuce Aeroklub ČR / Jan Zahradka zůstává uvedena.
+
+Stažení probíhá jen na kliknutí, nejvýše jednou za 24 hodin po úspěchu.
+Pokus při chybě nejdříve po 15 minutách, limit 2 MB, 18 s timeout,
+odmítnutí přesměrování a pevná cílová URL bez možnosti klientského SSRF.
+V procesu zůstává poslední načtená kopie pro případ výpadku.
+
+**Důležité:** Nejde o automaticky verifikovaný aktuální cyklus AIRAC ani
+živé NOTAM. U složitých prostorů s obloukovými body parser bezpečně
+přeskočí celý nepodporovaný objekt, místo nepravdivého vykreslení.
+Nepoužívat pro skutečnou leteckou navigaci.

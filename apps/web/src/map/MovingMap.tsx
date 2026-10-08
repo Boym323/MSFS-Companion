@@ -40,6 +40,28 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [airspaces,setAirspaces] = useState<Airspace[]>([]);
   const [showAirspaces,setShowAirspaces] = useState(false);
   const [airspaceMessage,setAirspaceMessage] = useState('');
+  const [czechLoading,setCzechLoading] = useState(false);
+  async function loadCzechAirspace() {
+    if(czechLoading) return;
+    setCzechLoading(true);setAirspaceMessage('Načítám veřejná česká data Aeroklubu ČR…');
+    try {
+      const response=await fetch('/api/airspace/czechia',{cache:'no-store'});
+      if(!response.ok) throw Error('České prostory nejsou dostupné.');
+      const payload=await response.json() as {
+        available:boolean;stale:boolean;effectiveDate:string;
+        source:string;data:string|null;error?:string|null;
+      };
+      if(!payload.available||!payload.data) throw Error(payload.error||'Zdroj není dostupný.');
+      const parsed=parseOpenAir(payload.data);
+      setAirspaces(parsed.regions);setShowAirspaces(true);
+      setAirspaceMessage('Aeroklub ČR · platnost zdrojového souboru od '+
+        payload.effectiveDate+' · '+parsed.regions.length+' polygonů, '+
+        parsed.skipped+' přeskočených (oblouky či neznámá geometrie). '+
+        (payload.stale?'Mezipaměť je zastaralá. ':'')+
+        'Není ověřena aktuální aktivace prostorů ani NOTAM.');
+    } catch (error) {setAirspaceMessage(error instanceof Error?error.message:'Nepodařilo se načíst letecké prostory.');}
+    finally {setCzechLoading(false);}
+  }
   const [ground,setGround] = useState<GroundMap | null>(null);
   const [groundOrigin,setGroundOrigin] = useState<{latitude:number;longitude:number}|null>(null);
   const [groundMessage,setGroundMessage] = useState('');
@@ -254,6 +276,9 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         </p>
       </>}
       <div className="moving-map-airspace-import">
+        <button type="button" disabled={czechLoading} onClick={()=>void loadCzechAirspace()}>
+          {czechLoading?'Načítám…':'Načíst české vzdušné prostory (Aeroklub ČR)'}
+        </button>
         <label>Vzdušné prostory · ruční import OpenAir (C35)
           <input type="file" accept=".txt,.openair,text/plain" onChange={event=>{
             const file=event.currentTarget.files?.[0];if(!file)return;
