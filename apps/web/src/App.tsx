@@ -6,6 +6,7 @@ import AircraftDashboard from './aircraft/AircraftDashboard';
 import PanelAktualizaci from './PanelAktualizaci';
 import CockpitControls from './controls/CockpitControls';
 import G1000Remote from './g1000/G1000Remote';
+import AdvancedAvionics from './avionics/AdvancedAvionics';
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
@@ -15,6 +16,7 @@ const panels = [
   { href: '/aircraft', label: 'Letadlo' },
   { href: '/controls', label: 'Ovládání' },
   { href: '/g1000', label: 'G1000' },
+  { href: '/avionics', label: 'Avionika' },
 ];
 
 const pageMeta = {
@@ -25,6 +27,7 @@ const pageMeta = {
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
   '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
   '/g1000': { eyebrow: 'AVIONIKA C3', heading: 'G1000 Remote', description: 'Ovladače PFD/MFD dostupné přes Input Events aktuálního letadla.' },
+  '/avionics': { eyebrow: 'AVIONIKA C6', heading: 'Další typy avioniky', description: 'Ovládání G3X, G3000, GNS430 a GNS530 s ověřením dostupnosti.' },
 } as const;
 
 const values = [
@@ -46,6 +49,7 @@ export default function App() {
   const isAircraft = pathname === '/aircraft';
   const isControls = pathname === '/controls';
   const isG1000 = pathname === '/g1000';
+  const isAvionics = pathname === '/avionics';
 
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
@@ -123,7 +127,7 @@ export default function App() {
           </details>
         )}
 
-        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && !isG1000 && <PanelAktualizaci />}
+        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && !isG1000 && !isAvionics && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -144,6 +148,8 @@ export default function App() {
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : isG1000 ? (
           <G1000Remote live={sourceIsLive && sourceMode === 'simconnect'} />
+        ) : isAvionics ? (
+          <AdvancedAvionics live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
           <>
           <h2>Aktuální telemetrie</h2>
