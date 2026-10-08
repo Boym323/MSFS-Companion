@@ -142,6 +142,20 @@ XCub, Cessna a Airbus mají zatím pouze bezpečné univerzální
 až po reálném ověření SimVars.
 [Český návod k detailu letadla](docs/AIRCRAFT_B7.md).
 
+## Diagnostika kompatibility B8
+
+Stránka `/aircraft` nyní zobrazuje také kontrolu kvality přijatých
+SimVars a umožňuje stáhnout diagnostický JSON bez GPS polohy.
+Číselně platný údaj ještě nepotvrzuje kompatibilitu s konkrétním
+kokpitem. Viz [postup ověření pro XCub Floats / C172 / A320](docs/AIRCRAFT_B8.md).
+
+## Uživatelské rozhraní B9
+
+Společné navigační popisky, kompaktnější hlavička, zvýraznění aktivní
+stránky a sbalitelná technická diagnostika přenosu. Dashboard zůstává
+přístupný z tabletu i z Macu ve stejné důvěryhodné LAN.
+Viz [dokumentace B9](docs/UI_B9.md).
+
 ## Další vývoj
 
 Etapy B2–B7 tvoří základ reálné telemetrie, PFD, mapy,
