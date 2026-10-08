@@ -304,7 +304,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         Poloha i výška se mohou oproti skutečné scéně lišit.
         {' '}<a href="/vatsim">Otevřít přehled VATSIM</a>
       </p>}
-      {showAviation && <AirportSearch onSelect={setSelectedAirport} />
+      {showAviation && <AirportSearch onSelect={setSelectedAirport} />}
       {showAviation && aviation.available && <>
         <div className="moving-map-airports">
           <strong>Nejbližší letiště</strong>
