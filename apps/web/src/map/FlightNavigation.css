@@ -1,0 +1,7 @@
+.flight-navigation { background: #101a2d; border: 1px solid #304965; border-radius: 14px; padding: 19px; margin: 0 0 18px; }
+.flight-navigation h2 { margin: 0 0 15px; }
+.flight-navigation p { color: #9eb3cd; font-size: 12px; line-height: 1.6; }
+.flight-navigation-values { display: grid; grid-template-columns: repeat(auto-fit,minmax(145px,1fr)); gap: 12px; }
+.flight-navigation-values span { display: grid; gap: 6px; background: #0c1728; border-radius: 8px; padding: 11px; color: #e8f6ff; font-size: 16px; }
+.flight-navigation-values b { color: #92abc8; font-size: 11px; font-weight: 600; }
+.flight-navigation .flight-navigation-note { border-top: 1px solid #284260; padding-top: 13px; margin-bottom: 0; }
