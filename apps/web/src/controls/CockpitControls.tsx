@@ -40,7 +40,8 @@ export default function CockpitControls({ live }: { live: boolean }) {
   const [message, setMessage] = useState('');
 
   const refresh = useCallback(async () => {
-    const headers = getToken() ? { 'X-MSFS-Control-Token': getToken() } : {};
+    const headers: Record<string, string> = {};
+    if (getToken()) headers['X-MSFS-Control-Token'] = getToken();
     const [a, r, s] = await Promise.all([
       fetch('/api/controls/status', { headers, cache: 'no-store' }),
       fetch('/api/radios', { cache: 'no-store' }),
