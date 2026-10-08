@@ -69,13 +69,19 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Windows background installation and updates
 
-The Windows tray app is under development in `apps/windows-host`, with an
-installer workflow at `.github/workflows/windows-installer.yml`.
-It starts automatically at Windows login, supervises the bridge, and defers
-updates while MSFS is running. An approved public **binary-only** update
-feed must be configured before automatic downloads are possible; the
-private source repository cannot be queried anonymously. See
-[Windows installer and updates](docs/WINDOWS_INSTALLER.md).
+The Windows tray app lives in `apps/windows-host`; its installer workflow is
+`.github/workflows/windows-installer.yml`. Once installed, it starts at
+Windows login, keeps the local bridge running, and checks **public GitHub
+Releases in this same repository** for new development versions.
+
+Successful builds merged into `main` automatically create update releases.
+The updater may briefly restart **only Companion and its bridge**, even when
+MSFS 2020 is running. The simulator remains untouched, but connected browser
+clients temporarily disconnect and then reconnect.
+
+Releases are unsigned development builds. Install from trusted GitHub Actions
+artifacts and verify an upgrade on your own Windows PC first.
+See [Windows installer and updates](docs/WINDOWS_INSTALLER.md).
 
 ## Roadmap
 
