@@ -62,4 +62,12 @@ health.StartConnecting();
 if (health.Snapshot("simconnect").ConnectionAttempts != 2)
     throw new Exception("Počet reconnect pokusů je nesprávný.");
 
+// C32 – deterministický backoff: omezený a resetovatelný, bez časovačového čekání.
+var waits = new[] {3,6,12,15,15,15};
+for (var i = 0; i < waits.Length; i++)
+    if (SimConnectRetryPolicy.DelayAfter(i+1).TotalSeconds != waits[i])
+        throw new Exception("Nesprávná exponenciální prodleva SimConnect.");
+if (SimConnectRetryPolicy.DelayAfter(0) != TimeSpan.FromSeconds(3))
+    throw new Exception("Po úspěšném letu musí být další reconnect rychlý.");
+
 Console.WriteLine("PASS: 30 FPS -> 20 různých snímků/s; příjem, zpoždění, skip a reconnect jsou korektní.");
