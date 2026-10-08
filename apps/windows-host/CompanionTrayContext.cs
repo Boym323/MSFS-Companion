@@ -132,7 +132,21 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
         AdminControl.WriteStatus("idle", "Připraveno ke kontrole aktualizací.");
         _bridge.EnsureStarted();
-        _verifyingUpdate = UpdateRecoveryJournal.Load() is not null;
+        var pendingJournal = UpdateRecoveryJournal.Load();
+        if (UpdateRecoveryJournal.NeedsQuarantine(UpdateRecoveryJournal.HasPendingAttempt(), pendingJournal))
+        {
+            // Poškozený, neplatný nebo zastaralý journal není úspěšná aktualizace.
+            // Vyžadujeme vědomé opětovné povolení automatických aktualizací.
+            _settings.AutomaticUpdates = false;
+            _settings.Save();
+            _automaticUpdates.Checked = false;
+            _pendingUpdate = null;
+            UpdateRecoveryJournal.MarkFailed();
+            _updateStatus.Text = "Neověřená aktualizace – automatické aktualizace vypnuty";
+            AdminControl.WriteStatus("error", "Nelze ověřit záznam aktualizace. Další aktualizace jsou pozastaveny.");
+            EventLogFile.Write("C33: neplatný pending journal; aktualizace pozastaveny.");
+        }
+        _verifyingUpdate = pendingJournal is not null;
         if (_verifyingUpdate) _ = VerifyUpdatedHostAsync();
         _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
 
