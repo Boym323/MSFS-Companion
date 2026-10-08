@@ -8,6 +8,12 @@ on:
       - "apps/bridge/**"
       - "apps/web/**"
       - ".github/workflows/windows-installer.yml"
+  # Packaging test only for critical updater changes; no PR release is published.
+  pull_request:
+    paths:
+      - "apps/windows-host/Program.cs"
+      - "apps/windows-host/UpdateRecoveryJournal.cs"
+      - ".github/workflows/windows-installer.yml"
   workflow_dispatch:
     inputs:
       version:
@@ -269,6 +275,11 @@ jobs:
             '--verify-installed-version', $env:APP_VERSION
           ) -PassThru -Wait
           if ($correct.ExitCode -ne 0) {
+            $hostLog = Join-Path $env:LOCALAPPDATA 'MSFS Companion/windows-host.log'
+            if (Test-Path $hostLog) {
+              Write-Host 'C33 installed-version diagnostic:'
+              Get-Content $hostLog -Tail 15 | Write-Host
+            }
             throw "Installed version does not match $env:APP_VERSION"
           }
           $mismatch = Start-Process -FilePath $hostExe -ArgumentList @(
