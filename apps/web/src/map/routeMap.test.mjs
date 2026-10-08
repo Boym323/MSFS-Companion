@@ -42,9 +42,9 @@ import {parseOpenAir} from './openAir.ts';
 import {parseGroundMap,groundQuery} from './groundMap.ts';
 import {comparePlan} from './planCrosscheck.ts';
 test('C35 import OpenAir vykreslí jen úplné bezpečné DP polygony',()=>{
- const valid='AC D\\nAN PRAHA\\nAL GND\\nAH FL95\\nDP 50:06:00 N 014:20:00 E\\nDP 50:07:00 N 014:21:00 E\\nDP 50:08:00 N 014:20:00 E';
- const invalid='AC R\\nAN oblouk\\nDP 50:06:00 N 014:20:00 E\\nDA 2,0,90\\nDP 50:07:00 N 014:21:00 E\\nDP 50:08:00 N 014:20:00 E';
- const result=parseOpenAir(valid+'\\n'+invalid);assert.equal(result.regions.length,1);assert.equal(result.skipped,1);
+ const valid='AC D\nAN PRAHA\nAL GND\nAH FL95\nDP 50:06:00 N 014:20:00 E\nDP 50:07:00 N 014:21:00 E\nDP 50:08:00 N 014:20:00 E';
+ const invalid='AC R\nAN oblouk\nDP 50:06:00 N 014:20:00 E\nDA 2,0,90\nDP 50:07:00 N 014:21:00 E\nDP 50:08:00 N 014:20:00 E';
+ const result=parseOpenAir(valid+'\n'+invalid);assert.equal(result.regions.length,1);assert.equal(result.skipped,1);
  assert.equal(result.regions[0].points.length,3);
  assert.throws(()=>parseOpenAir('x'.repeat(2_000_001)));
 });
