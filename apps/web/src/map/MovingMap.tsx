@@ -10,6 +10,7 @@ import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
 import { useVatsimMapLayer } from './useVatsimMapLayer';
 import useSigmet from './useSigmet';
+import {useSimTraffic} from './useSimTraffic';
 import AviationAirportDetails from './AviationAirportDetails';
 import AirportSearch from './AirportSearch';
 import { useMapBackground } from './useMapBackground';
@@ -32,12 +33,14 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [showNavaids, setShowNavaids] = useState(true);
   const [showVatsim, setShowVatsim] = useState(false);
   const [showSigmet, setShowSigmet] = useState(false);
+  const [showSimTraffic, setShowSimTraffic] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
     telemetry?.longitude ?? null, zoom);
   const vatsim = useVatsimMapLayer(showVatsim,
     telemetry?.latitude ?? null, telemetry?.longitude ?? null, zoom);
   const sigmet = useSigmet(showSigmet,telemetry?.latitude??null,telemetry?.longitude??null);
+  const simTraffic = useSimTraffic(showSimTraffic&&!!telemetry);
   const navigation = useFlightNavigation(!!telemetry);
   const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>(() => {
     try {
@@ -172,6 +175,17 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         {sigmet.error?' · '+sigmet.error:''}
       </p>}
       <label className="moving-map-background">
+        <input type="checkbox" checked={showSimTraffic}
+          onChange={event=>setShowSimTraffic(event.target.checked)} />
+        Letadla z MSFS (nativní SimConnect · experimentální)
+      </label>
+      {showSimTraffic&&<p className="moving-map-traffic-status" role="status">
+        {simTraffic.available ? `MSFS: ${simTraffic.targets.length} potvrzených objektů v okolí` :
+          'MSFS provoz nepotvrzen – čekám na odpověď SimConnectu.'}
+        {simTraffic.stale?' · Starší data byla skryta':''}
+        {' · '}{simTraffic.status}
+      </p>}
+      <label className="moving-map-background">
         <input type="checkbox" checked={showVatsim}
           onChange={event => setShowVatsim(event.target.checked)} />
         VATSIM online letadla (volitelně, NEJSOU to letadla v MSFS)
@@ -265,6 +279,18 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
               <title>{hazard.description}</title>
             </path>;
           })}
+          {showSimTraffic && simTraffic.available && simTraffic.targets.map(plane=>{
+            const pos=mapPosition(plane);
+            if(!pos||pos.x < -30||pos.x > width+30||pos.y < -30||pos.y > height+30)return null;
+            return <g key={'msfs-'+plane.objectId}>
+              <circle cx={pos.x} cy={pos.y} r="6" fill="#a1f0b9"
+                stroke="#113d30" strokeWidth="2"/>
+              {zoom>=11&&<text x={pos.x+9} y={pos.y-6}
+                fill="#b7ffcc" stroke="#18332a" strokeWidth="2"
+                paintOrder="stroke" fontSize="10">{'AI #'+plane.objectId}</text>}
+              <title>SimObject #{plane.objectId}, {Math.round(plane.altitudeFeet)} ft</title>
+            </g>;
+          })}
           {showVatsim && vatsim.pilots.map(pilot => {
             const pt = mapPosition(pilot);
             if (!pt || pt.x < -30 || pt.x > width + 30 || pt.y < -30 || pt.y > height + 30)
@@ -322,6 +348,10 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         )}
 
       </div>
+      {showSimTraffic && <p className="moving-map-traffic-legend">
+        <span aria-hidden="true">●</span> Zelené značky = objekty skutečně
+        vrácené SimConnectem. Nemusí zahrnovat veškerý multiplayer ani AI provoz.
+      </p>}
       {showVatsim && vatsim.available && <p className="moving-map-vatsim-legend">
         <span aria-hidden="true">▲</span> Růžové značky = síť VATSIM (nikoli MSFS AI/provoz v simulátoru).
         Poloha i výška se mohou oproti skutečné scéně lišit.
