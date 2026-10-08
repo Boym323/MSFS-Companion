@@ -72,6 +72,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $exe = (Resolve-Path staging/app/bridge/MsfsCompanion.Bridge.exe).Path
           $workDir = (Resolve-Path staging/app/bridge).Path
+          # Testujeme autentizovanou správu bez spuštění reálného simulátoru.
+          # Token není součástí instalačního balíčku.
+          $env:MSFS_COMPANION_ADMIN_TOKEN = 'A' * 64
+          $env:MSFS_COMPANION_CONTROL_DIR = Join-Path $env:RUNNER_TEMP 'companion-test-control'
+          New-Item -ItemType Directory -Force $env:MSFS_COMPANION_CONTROL_DIR | Out-Null
           $bridgeProcess = Start-Process -FilePath $exe -WorkingDirectory $workDir -PassThru -WindowStyle Hidden
           try {
             $ready = $false
@@ -87,7 +92,21 @@ jobs:
             if ($html.StatusCode -ne 200 -or !$html.Content.Contains("MSFS Companion")) {
               throw 'Bundled React dashboard is unavailable'
             }
-            Write-Host 'Windows bundled API and React smoke test passed'
+            # Neukládáme heslo do URL ani do HTML. Autorizace vyžaduje
+            # explicitní hlavičku Authorization: Bearer.
+            try {
+              Invoke-WebRequest -Uri "http://127.0.0.1:8765/api/admin/updates/status" -TimeoutSec 5 | Out-Null
+              throw 'Unprotected admin endpoint!'
+            } catch {
+              if ($_.Exception.Response.StatusCode.value__ -ne 401) { throw }
+            }
+            $headers = @{ Authorization = "Bearer $('A' * 64)" }
+            $status = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/admin/updates/status" -Headers $headers -TimeoutSec 5
+            if ($status.state -ne 'initializing') { throw 'Unexpected initial admin state' }
+            $res = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/admin/updates/check" -Headers $headers -Method Post -TimeoutSec 5
+            if (!$res.accepted) { throw 'Update request rejected' }
+            if (@(Get-ChildItem $env:MSFS_COMPANION_CONTROL_DIR -Filter 'request-*.json').Count -ne 1) { throw 'IPC update request not created' }
+            Write-Host 'Windows bundled API, Czech admin control and React smoke tests passed'
           } finally {
             if (!$bridgeProcess.HasExited) { Stop-Process -Id $bridgeProcess.Id -Force }
             $bridgeProcess.Dispose()
