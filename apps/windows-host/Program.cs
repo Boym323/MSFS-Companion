@@ -11,7 +11,7 @@ internal static class Program
         // run without the updater's packaging hooks or process exit logic.
         if (args.Contains("--self-test"))
         {
-            return UpdatePolicy.SelfTest() ? 0 : 1;
+            return UpdatePolicy.SelfTest() && CompanionMdnsPublisher.SelfTest() ? 0 : 1;
         }
 
         // Keep this before normal application startup: Velopack may run

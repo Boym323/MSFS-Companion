@@ -75,9 +75,9 @@ export default function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <div className="brand"><span className="brand-icon" aria-hidden="true"><svg viewBox="0 0 40 40" width="30" height="30" fill="none"><path d="M5 31V19a15 15 0 0 1 30 0v12" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"/><path d="M20 12v10m-6-5 6 5 6-5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"/><path d="M10 31h20" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"/><circle cx="20" cy="22" r="2.7" fill="currentColor"/></svg></span><div>
-          <strong>Kokpit</strong>
-          <small>Virtuální kokpit · MSFS 2020</small>
+        <div className="brand"><span className="brand-icon">✈</span><div>
+          <strong>MSFS Companion</strong>
+          <small>Flight deck · MSFS 2020</small>
         </div></div>
         <div className={`connection connection--${connection}`}>
           <span className="connection-dot" />
