@@ -1,23 +1,27 @@
-# Automatické aktualizace Windows – vývojový režim
+# Automatické aktualizace – domácí síť
 
-Hostitel Windows je v `apps/windows-host` a používá Velopack.
-Praktický návod: [Windows instalace a vzdálená správa](WINDOWS_INSTALLER.md).
+Windows hostitel používá Velopack a veřejná GitHub Releases
+repozitáře `Boym323/MSFS-Companion`.
 
-- **Zdroj:** veřejné GitHub Releases v `Boym323/MSFS-Companion`.
-- **Publikování:** po úspěšném sestavení změn v `main` automaticky
-  vzniká vydání s verzí `v0.2.<číslo běhu>`.
-- **Windows hostitel:** automaticky se spouští po přihlášení, hlídá bridge
-  a kontroluje novou verzi po spuštění a každou hodinu.
-- **Během MSFS:** aktualizace smí restartovat jen Companion a bridge,
-  nikoli simulátor.
-- **Správa z webu:** autentizovaný požadavek předaný do lokálního
-  souborového kanálu. Stav lze sledovat bez přístupu na Windows plochu.
-- **Zabezpečení:** správcovský klíč je náhodný a uložený v profilu
-  Windows uživatele, nikdy není součástí veřejného vydání.
-- **Přístup z Macu:** po jednorázovém nastavení Tailscale Serve.
-- **Omezení:** nepodepsané vývojové balíčky, bez automatického rollbacku;
-  skutečný upgrade a vzdálený přístup je nutné ověřit na počítači s MSFS.
+- Nová verze se publikuje po úspěšném Windows buildu v `main`.
+- Na Windows se aktualizace kontrolují přibližně 20 sekund
+  po spuštění a dále každých 60 minut.
+- Na místním dashboardu lze kdykoli kliknout na
+  **Vynutit kontrolu a instalaci nové verze**.
+- Kontrola je přístupná pouze ze stejné privátní podsítě;
+  nevyžaduje klíč ani Tailscale.
+- Nová verze může restartovat MSFS Companion a bridge i
+  při běžícím simulátoru. MSFS se nerestartuje.
+- Pokud nová verze neexistuje, aktuální instalace zůstane beze změny.
 
-Samostatné spuštění `apps/bridge` nemá aktivní správcovská API.
-Repozitář je veřejný, není potřeba druhý repozitář ani přístupový
-token GitHubu na klientském PC.
+Tento režim je určen pouze pro důvěryhodnou domácí síť:
+**každé její zařízení může o aktualizaci požádat**.
+Bridge omezuje síťový rozsah, Host a původ POST požadavků.
+Nesmí být zveřejněn na internetu.
+
+Přesný návod k Windows Firewallu a použití na Macu:
+[Instalace a ovládání v domácí síti](WINDOWS_INSTALLER.md).
+
+Nepodepsaná vývojová vydání zatím nemají automatické
+obnovení předchozí verze. Ostré B2 SimConnect propojení
+není součástí updateru.

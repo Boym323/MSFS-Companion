@@ -125,6 +125,13 @@ class BridgeSmokeTests(unittest.TestCase):
             urllib.request.urlopen(BASE + "/ws", timeout=3)
         self.assertEqual(error.exception.code, 400)
 
+    def test_host_header_does_not_allow_dns_rebinding(self):
+        request = urllib.request.Request(
+            BASE + "/api/status", headers={"Host": "cizi-web.example"})
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            urllib.request.urlopen(request, timeout=3)
+        self.assertEqual(error.exception.code, 403)
+
     def test_admin_update_endpoints_are_unavailable_without_windows_host(self):
         # Samostatně spuštěný bridge nesmí zpřístupnit vzdálenou správu.
         for method, path in [
