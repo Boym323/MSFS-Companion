@@ -90,7 +90,7 @@ public sealed class AviationWeatherService
         return value.Length is > 0 and <= 8192 ? value : null;
     }
 
-    public static void MapAviationWeather(this WebApplication app)
+    public static void MapAviationWeather(WebApplication app)
     {
         app.MapGet("/api/weather/{icao}", async (string icao,
             AviationWeatherService service, CancellationToken ct) =>
