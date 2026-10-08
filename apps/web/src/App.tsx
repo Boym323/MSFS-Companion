@@ -18,12 +18,16 @@ import FlightProgress from './progress/FlightProgress';
 import FuelMonitor from './fuel/FuelMonitor';
 import SmartRadio from './radio/SmartRadio';
 import AircraftChecklists from './checklists/AircraftChecklists';
+import PilotAssistant from './assistant/PilotAssistant';
+import LiveValidation from './validation/LiveValidation';
 import './vatsim/VatsimCenter.css';
 import './weather/AviationWeather.css';
 import './aircraft/AircraftCapabilities.css';
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
+  { href: '/pilot', label: 'Letový asistent' },
+  { href: '/validation', label: 'Ověření MSFS' },
   { href: '/health', label: 'Diagnostika' },
   { href: '/pfd', label: 'PFD' },
   { href: '/map', label: 'Mapa' },
@@ -45,6 +49,8 @@ const panels = [
 ];
 
 const pageMeta = {
+  '/pilot': {eyebrow:'KOKPIT C34/C38',heading:'Letový asistent',description:'Jedno místo pro navigaci, mapu, rádio, palivo a checklisty.'},
+  '/validation': {eyebrow:'TESTOVÁNÍ C31',heading:'Ověření kompatibility',description:'Ručně potvrzené výsledky z reálného MSFS 2020.'},
   '/health': { eyebrow: 'SYSTÉM C30', heading: 'Diagnostika Companion', description: 'Stav SimConnect, externích dat a lokální sítě.' },
   '/admin': { eyebrow: 'PALUBNÍ PŘEHLED', heading: 'Přehled systému', description: 'Stav propojení s MSFS 2020 a aktuální letové údaje.' },
   '/pfd': { eyebrow: 'LETOVÉ PŘÍSTROJE', heading: 'Primární letový displej', description: 'Umělý horizont, rychlost, výška, vertikální rychlost a magnetický kurz.' },
@@ -79,6 +85,8 @@ export default function App() {
   const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
   const page = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta['/admin'];
+  const isPilot = pathname === '/pilot';
+  const isValidation = pathname === '/validation';
   const isHealth = pathname === '/health';
   const isPfd = pathname === '/pfd';
   const isMap = pathname === '/map';
@@ -174,7 +182,7 @@ export default function App() {
           </details>
         )}
 
-        {!isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
+        {!isPilot && !isValidation && !isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -183,7 +191,11 @@ export default function App() {
               : 'Čekám na telemetrii z bridge.'}
           </p>
         )}
-        {isHealth ? (
+        {isPilot ? (
+          <PilotAssistant telemetry={validTelemetry} live={sourceIsLive && sourceMode === 'simconnect'} />
+        ) : isValidation ? (
+          <LiveValidation telemetry={validTelemetry} live={sourceIsLive && sourceMode === 'simconnect'} />
+        ) : isHealth ? (
           <SystemHealth />
         ) : isPfd ? (
           <Pfd telemetry={validTelemetry} />

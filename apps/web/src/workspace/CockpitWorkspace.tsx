@@ -34,6 +34,15 @@ export default function CockpitWorkspace({ telemetry, live }: {
   telemetry: TelemetrySnapshot | null; live: boolean;
 }) {
   const [layout, setLayout] = useState<Layout>(saved);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {const sync = () => setFullscreen(document.fullscreenElement !== null);
+    document.addEventListener('fullscreenchange',sync);
+    return ()=>document.removeEventListener('fullscreenchange',sync);},[]);
+  const toggleFullscreen=async()=>{
+    try {if(document.fullscreenElement) await document.exitFullscreen();
+      else await document.querySelector('.cockpit-workspace')?.requestFullscreen();}
+    catch { /* prohlížeč nebo oprávnění fullscreen nemusí podporovat */ }
+  };
   useEffect(() => {
     try { window.localStorage.setItem(storageKey, JSON.stringify(layout)); }
     catch { /* storage unavailable, layout still works in this tab */ }
@@ -66,6 +75,9 @@ export default function CockpitWorkspace({ telemetry, live }: {
   return <section className="cockpit-workspace">
     <div className="cockpit-workspace-settings">
       <h2>Vlastní sestava panelů</h2>
+      <button type="button" onClick={()=>void toggleFullscreen()} aria-pressed={fullscreen}>
+        {fullscreen?'Ukončit celou obrazovku':'Zobrazit kokpit na celou obrazovku'}
+      </button>
       <p>Vyberte až tři panely, jejich pořadí a rozložení. Nastavení se ukládá
         pouze v tomto prohlížeči. Na iPadu se sloupce automaticky skládají pod sebe.</p>
       <div className="cockpit-workspace-choices">

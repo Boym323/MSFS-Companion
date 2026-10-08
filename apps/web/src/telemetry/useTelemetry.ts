@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ConnectionState, TelemetrySnapshot, TelemetryStatus } from './types';
+import { reconnectDelay } from './connectionBackoff';
 
 const isValid = (data: unknown): data is TelemetrySnapshot => {
   if (typeof data !== 'object' || data === null) return false;
@@ -50,13 +51,14 @@ export function useTelemetry() {
   useEffect(() => {
     let disposed = false;
     let retry: number | undefined;
+    let failures = 0;
     let socket: WebSocket | undefined;
     const connect = () => {
       if (disposed) return;
       setConnection('connecting');
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
-      socket.onopen = () => { if (!disposed) setConnection('connected'); };
+      socket.onopen = () => { failures = 0; if (!disposed) setConnection('connected'); };
       socket.onmessage = (event: MessageEvent<string>) => {
         try {
           const parsed: unknown = JSON.parse(event.data);
@@ -70,7 +72,7 @@ export function useTelemetry() {
         if (disposed) return;
         setConnection('disconnected');
         setTelemetry(null);
-        retry = window.setTimeout(connect, 1500);
+        retry = window.setTimeout(connect, reconnectDelay(failures++));
       };
     };
     connect();
