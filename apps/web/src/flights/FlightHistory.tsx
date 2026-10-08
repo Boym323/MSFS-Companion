@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
+import FlightInsights from './FlightInsights';
 import './FlightHistory.css';
 
 type FlightSummary = {
@@ -152,6 +153,7 @@ export default function FlightHistory() {
                 <div><span>Max. výška</span><strong>{Math.round(detail.summary.maxAltitudeFeet)} FT</strong></div>
               </div>
 
+              <FlightInsights samples={samples} mode={detail.summary.mode} />
               <h3>Průběh výšky a rychlosti</h3>
               <svg className="flight-history-chart" viewBox="0 0 620 224" role="img"
                 aria-label="Graf vývoje výšky a indikované rychlosti během letu">
