@@ -18,6 +18,8 @@ jobs:
       - name: Deterministický test 30 FPS příjmu a 20 Hz publikace
         run: dotnet run --project tests/telemetry-pipeline/MsfsCompanion.TelemetryPipelineCheck.csproj --configuration Release
 
+      - name: C1/C2 deterministické testy validace příkazů
+        run: dotnet run --project tests/controls-logic/MsfsCompanion.ControlsCheck.csproj --configuration Release
       - name: Runtime smoke tests (HTTP, WebSocket, mock telemetry)
         run: |
           set -euo pipefail

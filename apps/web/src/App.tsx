@@ -4,6 +4,7 @@ import MovingMap from './map/MovingMap';
 import FlightHistory from './flights/FlightHistory';
 import AircraftDashboard from './aircraft/AircraftDashboard';
 import PanelAktualizaci from './PanelAktualizaci';
+import CockpitControls from './controls/CockpitControls';
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
@@ -11,6 +12,7 @@ const panels = [
   { href: '/map', label: 'Mapa' },
   { href: '/flights', label: 'Historie letů' },
   { href: '/aircraft', label: 'Letadlo' },
+  { href: '/controls', label: 'Ovládání' },
 ];
 
 const pageMeta = {
@@ -19,6 +21,7 @@ const pageMeta = {
   '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
   '/flights': { eyebrow: 'LETOVÝ DENÍK', heading: 'Historie letů', description: 'Záznamy letů, jejich statistiky a přehrávání.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
+  '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot s bezpečným párováním.' },
 } as const;
 
 const values = [
@@ -38,6 +41,7 @@ export default function App() {
   const isMap = pathname === '/map';
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
+  const isControls = pathname === '/controls';
 
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
@@ -115,7 +119,7 @@ export default function App() {
           </details>
         )}
 
-        {!isMap && !isPfd && !isFlights && !isAircraft && <PanelAktualizaci />}
+        {!isMap && !isPfd && !isFlights && !isAircraft && !isControls && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -132,6 +136,8 @@ export default function App() {
           <FlightHistory />
         ) : isAircraft ? (
           <AircraftDashboard telemetry={validTelemetry} />
+        ) : isControls ? (
+          <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
           <>
           <h2>Aktuální telemetrie</h2>
@@ -149,7 +155,7 @@ export default function App() {
   
           <div className="footnote">
             <span>GPS: {telemetry && sourceIsLive ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
-            <span>Žádné příkazy nejsou v této etapě povolené.</span>
+            <span>Ovládání je dostupné pouze po lokálním zapnutí a spárování na záložce Ovládání.</span>
           </div>
           </>
         )}
