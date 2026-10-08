@@ -12,12 +12,14 @@ import CockpitWorkspace from './workspace/CockpitWorkspace';
 import AircraftCapabilities from './aircraft/AircraftCapabilities';
 import AviationWeather from './weather/AviationWeather';
 import VatsimCenter from './vatsim/VatsimCenter';
+import SystemHealth from './health/SystemHealth';
 import './vatsim/VatsimCenter.css';
 import './weather/AviationWeather.css';
 import './aircraft/AircraftCapabilities.css';
 
 const panels = [
   { href: '/admin', label: 'Přehled' },
+  { href: '/health', label: 'Diagnostika' },
   { href: '/pfd', label: 'PFD' },
   { href: '/map', label: 'Mapa' },
   { href: '/flight-plan', label: 'Plán letu' },
@@ -33,6 +35,7 @@ const panels = [
 ];
 
 const pageMeta = {
+  '/health': { eyebrow: 'SYSTÉM C30', heading: 'Diagnostika Companion', description: 'Stav SimConnect, externích dat a lokální sítě.' },
   '/admin': { eyebrow: 'PALUBNÍ PŘEHLED', heading: 'Přehled systému', description: 'Stav propojení s MSFS 2020 a aktuální letové údaje.' },
   '/pfd': { eyebrow: 'LETOVÉ PŘÍSTROJE', heading: 'Primární letový displej', description: 'Umělý horizont, rychlost, výška, vertikální rychlost a magnetický kurz.' },
   '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
@@ -61,6 +64,7 @@ export default function App() {
   const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
   const page = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta['/admin'];
+  const isHealth = pathname === '/health';
   const isPfd = pathname === '/pfd';
   const isMap = pathname === '/map';
   const isFlightPlan = pathname === '/flight-plan';
@@ -150,7 +154,7 @@ export default function App() {
           </details>
         )}
 
-        {!isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
+        {!isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -159,7 +163,9 @@ export default function App() {
               : 'Čekám na telemetrii z bridge.'}
           </p>
         )}
-        {isPfd ? (
+        {isHealth ? (
+          <SystemHealth />
+        ) : isPfd ? (
           <Pfd telemetry={validTelemetry} />
         ) : isMap ? (
           <MovingMap telemetry={validTelemetry} />
