@@ -13,6 +13,9 @@ import AircraftCapabilities from './aircraft/AircraftCapabilities';
 import AviationWeather from './weather/AviationWeather';
 import VatsimCenter from './vatsim/VatsimCenter';
 import SystemHealth from './health/SystemHealth';
+import AirportBriefing from './briefing/AirportBriefing';
+import FlightProgress from './progress/FlightProgress';
+import FuelMonitor from './fuel/FuelMonitor';
 import './vatsim/VatsimCenter.css';
 import './weather/AviationWeather.css';
 import './aircraft/AircraftCapabilities.css';
@@ -23,6 +26,9 @@ const panels = [
   { href: '/pfd', label: 'PFD' },
   { href: '/map', label: 'Mapa' },
   { href: '/flight-plan', label: 'Plán letu' },
+  { href: '/briefing', label: 'Briefing' },
+  { href: '/progress', label: 'Průběh letu' },
+  { href: '/fuel', label: 'Palivo' },
   { href: '/workspace', label: 'Moje panely' },
   { href: '/flights', label: 'Historie letů' },
   { href: '/aircraft', label: 'Letadlo' },
@@ -39,6 +45,9 @@ const pageMeta = {
   '/admin': { eyebrow: 'PALUBNÍ PŘEHLED', heading: 'Přehled systému', description: 'Stav propojení s MSFS 2020 a aktuální letové údaje.' },
   '/pfd': { eyebrow: 'LETOVÉ PŘÍSTROJE', heading: 'Primární letový displej', description: 'Umělý horizont, rychlost, výška, vertikální rychlost a magnetický kurz.' },
   '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
+  '/briefing': { eyebrow: 'LETECKÉ ÚDAJE C23', heading: 'Letištní briefing', description: 'Dráhy, frekvence, METAR a TAF na jednom místě.' },
+  '/progress': { eyebrow: 'NAVIGACE C24', heading: 'Průběh GPS úseku', description: 'Živá vzdálenost, čas a odchylka od plánované trasy.' },
+  '/fuel': { eyebrow: 'PALIVO C25', heading: 'Vytrvalost a rezerva', description: 'Odhad z doloženého poklesu paliva v MSFS.' },
   '/flight-plan': { eyebrow: 'PLÁNOVÁNÍ C9', heading: 'Letový plán SimBrief', description: 'Import posledního OFP na vyžádání.' },
   '/workspace': { eyebrow: 'KOKPIT C11', heading: 'Vlastní sestava displejů', description: 'Uspořádání přístrojů pro tablet a notebook.' },
   '/flights': { eyebrow: 'LETOVÝ DENÍK', heading: 'Historie letů', description: 'Záznamy letů, jejich statistiky a přehrávání.' },
@@ -68,6 +77,9 @@ export default function App() {
   const isPfd = pathname === '/pfd';
   const isMap = pathname === '/map';
   const isFlightPlan = pathname === '/flight-plan';
+  const isBriefing = pathname === '/briefing';
+  const isProgress = pathname === '/progress';
+  const isFuel = pathname === '/fuel';
   const isWorkspace = pathname === '/workspace';
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
@@ -154,7 +166,7 @@ export default function App() {
           </details>
         )}
 
-        {!isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
+        {!isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -169,6 +181,12 @@ export default function App() {
           <Pfd telemetry={validTelemetry} />
         ) : isMap ? (
           <MovingMap telemetry={validTelemetry} />
+        ) : isBriefing ? (
+          <AirportBriefing />
+        ) : isProgress ? (
+          <FlightProgress telemetry={validTelemetry} />
+        ) : isFuel ? (
+          <FuelMonitor telemetry={validTelemetry} />
         ) : isFlightPlan ? (
           <FlightPlanner />
         ) : isWorkspace ? (

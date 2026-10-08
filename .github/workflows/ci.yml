@@ -133,6 +133,9 @@ jobs:
       - name: C19 NOAA weather failure recovery
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/weather-logic/MsfsCompanion.WeatherCheck.csproj --configuration Release
+      - name: C21 NOAA SIGMET GeoJSON parsing
+        if: needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/hazards/MsfsCompanion.HazardsCheck.csproj -c Release
       - name: C22 Aircraft Compatibility Lab
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/compatibility-lab/MsfsCompanion.CompatibilityCheck.csproj -c Release
@@ -169,7 +172,7 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Webové regresní testy
         working-directory: apps/web
-        run: node --experimental-strip-types --test src/pfd/math.test.mjs src/pfd/layout.test.mjs src/map/geo.test.mjs src/map/routeMap.test.mjs src/map/pln.test.mjs src/map/vatsimMap.test.mjs src/aircraft/compatibility.test.mjs src/flights/analysis.test.mjs src/flights/performance.test.mjs src/workspace/layout.test.mjs
+        run: node --experimental-strip-types --test src/pfd/math.test.mjs src/pfd/layout.test.mjs src/map/geo.test.mjs src/map/routeMap.test.mjs src/map/pln.test.mjs src/map/vatsimMap.test.mjs src/aircraft/compatibility.test.mjs src/flights/analysis.test.mjs src/flights/performance.test.mjs src/fuel/fuelMath.test.mjs src/workspace/layout.test.mjs
       - name: Build frontend
         working-directory: apps/web
         run: npm run build

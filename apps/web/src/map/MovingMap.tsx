@@ -9,6 +9,7 @@ import { parsePln, type ImportedWaypoint } from './pln';
 import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
 import { useVatsimMapLayer } from './useVatsimMapLayer';
+import useSigmet from './useSigmet';
 import AviationAirportDetails from './AviationAirportDetails';
 import AirportSearch from './AirportSearch';
 import { useMapBackground } from './useMapBackground';
@@ -30,11 +31,13 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [showRunways, setShowRunways] = useState(true);
   const [showNavaids, setShowNavaids] = useState(true);
   const [showVatsim, setShowVatsim] = useState(false);
+  const [showSigmet, setShowSigmet] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
     telemetry?.longitude ?? null, zoom);
   const vatsim = useVatsimMapLayer(showVatsim,
     telemetry?.latitude ?? null, telemetry?.longitude ?? null, zoom);
+  const sigmet = useSigmet(showSigmet,telemetry?.latitude??null,telemetry?.longitude??null);
   const navigation = useFlightNavigation(!!telemetry);
   const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>(() => {
     try {
@@ -159,6 +162,16 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       </label>
 
       <label className="moving-map-background">
+        <input type="checkbox" checked={showSigmet}
+          onChange={event=>setShowSigmet(event.target.checked)} />
+        SIGMET počasí NOAA (informativní výstrahy)
+      </label>
+      {showSigmet && <p role="status" className="moving-map-sigmet-status">
+        {sigmet.available ? `SIGMET: ${sigmet.hazards.length} polygonů v okolí` : 'SIGMET se načítají nebo nejsou dostupné'}
+        {sigmet.stale?' · Starší údaje':''}
+        {sigmet.error?' · '+sigmet.error:''}
+      </p>}
+      <label className="moving-map-background">
         <input type="checkbox" checked={showVatsim}
           onChange={event => setShowVatsim(event.target.checked)} />
         VATSIM online letadla (volitelně, NEJSOU to letadla v MSFS)
@@ -241,6 +254,16 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
                 fill="#c7f1e2" stroke="#13283d" strokeWidth="2" paintOrder="stroke"
                 fontSize="11">{feature.ident}</text>}
             </g>;
+          })}
+          {showSigmet && sigmet.hazards.map((hazard,index)=>{
+            const positions=hazard.boundary.map(point=>mapPosition(point));
+            if(positions.some(p=>!p))return null;
+            const d=positions.map((p,i)=>(i?'L':'M')+' '+p!.x.toFixed(1)+' '+p!.y.toFixed(1)).join(' ')+' Z';
+            return <path key={'sigmet-'+index} d={d}
+              fill="#e7a45a" fillOpacity=".16" stroke="#eab37b"
+              strokeOpacity=".85" strokeWidth="2" strokeDasharray="6 5">
+              <title>{hazard.description}</title>
+            </path>;
           })}
           {showVatsim && vatsim.pilots.map(pilot => {
             const pt = mapPosition(pilot);
