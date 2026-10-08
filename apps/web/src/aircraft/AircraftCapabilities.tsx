@@ -6,6 +6,10 @@ type Entry = {
 };
 type Status = {
   connected: boolean; status: string;
+  aircraft?: string; scannedAt?: string | null;
+  assessment?: { state: string; aircraftMatches: boolean; scanFresh: boolean;
+    commandsConfirmed: boolean; enumeratedCount: number; candidateCount: number;
+    reason: string | null };
   profile: { id: string; label: string; avionics: string; note: string };
   entries: Entry[];
 };
@@ -37,13 +41,26 @@ export default function AircraftCapabilities({ live }: { live: boolean }) {
       : 'Zjišťuji kompatibilitu…'}</p>
     {status?.connected && <>
       <p>{status.profile.note}</p>
+      <div className="compatibility-lab">
+        <h3>C22 · Diagnostika kompatibility</h3>
+        <p>Aktuální TITLE: <strong>{status.aircraft || '—'}</strong></p>
+        <p>Poslední enumerace: {status.scannedAt
+          ? new Date(status.scannedAt).toLocaleString('cs-CZ') : 'zatím neprovedena'}</p>
+        <p role="status">Výsledek: <strong>{status.assessment?.state || status.status}</strong>
+          {' · '}{status.assessment?.reason}</p>
+        <p>Přesnost: {status.assessment?.aircraftMatches ? 'Shoda letadla' : 'Identita neověřena'}
+          {' · '}{status.assessment?.scanFresh ? 'Aktuální scan' : 'Scan neaktuální'}
+          {' · '}Ovládací účinek: {status.assessment?.commandsConfirmed
+            ? 'Potvrzený' : 'NEPOTVRZENÝ (žádný automatický test)'}
+        </p>
+      </div>
       {status.entries.length === 0
         ? <p>Pro tento typ letadla zatím nemáme ověřený profil. Stávající PFD a rádio fungují dál.</p>
         : <div className="capability-list">
           {status.entries.map(entry => <div key={entry.id} className="capability-row">
             <strong>{entry.name}</strong>
             <span>{entry.avionics.toUpperCase()} · {entry.inputEvent}</span>
-            <span>{entry.enumerated ? 'Dostupné v MSFS' : 'Nezjištěno / nepodporováno'}</span>
+            <span>{entry.enumerated ? 'Enumerováno v MSFS (bez readbacku)' : 'Nezjištěno / nepodporováno'}</span>
           </div>)}
         </div>}
     </>}
