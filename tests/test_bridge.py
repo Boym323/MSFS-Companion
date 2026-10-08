@@ -67,6 +67,11 @@ class BridgeSmokeTests(unittest.TestCase):
         self.assertEqual(status["mode"], "mock")
         self.assertEqual(status["simulator"], "mock")
         self.assertTrue(status["connected"])
+        self.assertEqual(status["connectionState"], "connected")
+        self.assertGreater(status["sampleRateHz"], 0)
+        self.assertGreater(status["samplesReceived"], 0)
+        self.assertIsNone(status["lastError"])
+        self.assertLess(status["sampleAgeMs"], 5000)
 
     def test_telemetry_is_plausible_and_updates(self):
         first = get_json("/api/telemetry")
