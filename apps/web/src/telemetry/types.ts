@@ -9,6 +9,9 @@ export type TelemetrySnapshot = {
   headingDegrees: number;
   pitchDegrees: number;
   bankDegrees: number;
+  // B10: pouze u nových záznamů letu; živý PFD je nevyužívá.
+  altitudeAglFeet?: number | null;
+  onGround?: boolean | null;
 };
 
 export type TelemetryStatus = {

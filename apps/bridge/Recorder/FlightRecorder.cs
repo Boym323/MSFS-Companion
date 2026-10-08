@@ -17,7 +17,23 @@ public sealed record FlightSummary(
     double MaxAltitudeFeet,
     bool Active);
 
-public sealed record FlightDetail(FlightSummary Summary, IReadOnlyList<TelemetrySnapshot> Samples);
+// B10: volitelný stav na zemi a AGL. Starší JSONL bez těchto položek
+// se načítají s null, nikoli s nepravdivým false/0.
+public sealed record FlightRecordedSample(
+    DateTimeOffset TimestampUtc, string Aircraft,
+    double Latitude, double Longitude, double AirspeedKnots,
+    double AltitudeFeet, double VerticalSpeedFeetPerMinute,
+    double HeadingDegrees, double PitchDegrees, double BankDegrees,
+    double? AltitudeAglFeet = null, bool? OnGround = null)
+{
+    public static FlightRecordedSample From(TelemetrySnapshot sample, AircraftSystemsSnapshot? systems) =>
+        new(sample.TimestampUtc, sample.Aircraft, sample.Latitude, sample.Longitude,
+            sample.AirspeedKnots, sample.AltitudeFeet, sample.VerticalSpeedFeetPerMinute,
+            sample.HeadingDegrees, sample.PitchDegrees, sample.BankDegrees,
+            systems?.AltitudeAglFeet, systems?.OnGround);
+}
+
+public sealed record FlightDetail(FlightSummary Summary, IReadOnlyList<FlightRecordedSample> Samples);
 
 /// <summary>
 /// Read-only flight recorder: max. 1 sample/s, six hours per segment,
@@ -26,6 +42,7 @@ public sealed record FlightDetail(FlightSummary Summary, IReadOnlyList<Telemetry
 public sealed class FlightRecorder(
     TelemetryStore store,
     TelemetryHealth health,
+    AircraftSystemsStore systemsStore,
     ITelemetrySource source,
     ILogger<FlightRecorder> logger) : BackgroundService
 {
@@ -133,8 +150,16 @@ public sealed class FlightRecorder(
                 MaxAltitudeFeet = Math.Max(summary.MaxAltitudeFeet, sample.AltitudeFeet),
             };
 
+            // Pomalejší SimVars přidáme, jen pokud skutečně patří k aktuálnímu
+            // zdroji a nejsou staré. Flight Recorder se na nich nesmí zablokovat.
+            var slow = systemsStore.Current;
+            var freshSystems = slow is not null
+                && slow.Mode == source.Mode
+                && (now - slow.TimestampUtc).TotalSeconds is >= -1 and < 3
+                ? slow : null;
             File.AppendAllText(DataPath(summary.Id),
-                JsonSerializer.Serialize(sample, JsonOptions) + Environment.NewLine);
+                JsonSerializer.Serialize(FlightRecordedSample.From(sample, freshSystems), JsonOptions)
+                    + Environment.NewLine);
             _active = updated;
             _previous = sample;
 
@@ -287,7 +312,7 @@ public sealed class FlightRecorder(
             {
                 // Podrobná vizualizace je omezená na 4000 vzorků.
                 var stride = Math.Max(1, (int)Math.Ceiling(summary.Samples / 4000d));
-                var points = new List<TelemetrySnapshot>();
+                var points = new List<FlightRecordedSample>();
                 var row = 0;
                 foreach (var line in File.ReadLines(DataPath(id)))
                 {
@@ -295,7 +320,7 @@ public sealed class FlightRecorder(
                     if (points.Count >= 4000) break;
                     try
                     {
-                        var point = JsonSerializer.Deserialize<TelemetrySnapshot>(line, JsonOptions);
+                        var point = JsonSerializer.Deserialize<FlightRecordedSample>(line, JsonOptions);
                         if (point is not null) points.Add(point);
                     }
                     catch (JsonException) { /* Nedokončený poslední řádek. */ }

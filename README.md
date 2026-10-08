@@ -156,6 +156,14 @@ stránky a sbalitelná technická diagnostika přenosu. Dashboard zůstává
 přístupný z tabletu i z Macu ve stejné důvěryhodné LAN.
 Viz [dokumentace B9](docs/UI_B9.md).
 
+## Letová analytika B10
+
+Historie letů zobrazí odhad stoupání, klesání, ustáleného letu
+a přiblížení. Nové záznamy volitelně zahrnují AGL a stav na zemi,
+pokud jsou SimVars čerstvé. Vzlet a kontakt se zemí se hlásí
+**jen při dvojitém potvrzení změny onGround**, u starých záznamů
+nikoli. Viz [omezení a ověření B10](docs/FLIGHT_INTELLIGENCE_B10.md).
+
 ## Další vývoj
 
 Etapy B2–B7 tvoří základ reálné telemetrie, PFD, mapy,
