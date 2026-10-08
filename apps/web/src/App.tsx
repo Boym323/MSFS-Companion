@@ -26,6 +26,10 @@ type TelemetryStatus = {
   samplesReceived: number;
   connectionAttempts: number;
   lastError: string | null;
+  incomingRateHz: number;
+  samplesPublished: number;
+  framesSkipped: number;
+  publicationLagMs: number | null;
 };
 
 const panels = [
@@ -171,6 +175,16 @@ export default function App() {
               : sourceMode === 'simconnect' ? `Pokus o spojení č. ${sourceStatus?.connectionAttempts ?? 0}` : 'Dosud bez dat'}</span>
           </article>
         </section>
+
+        {sourceIsLive && sourceStatus && (
+          <div className="telemetry-diagnostics" aria-label="Diagnostika přenosu telemetrie">
+            <span><strong>Příjem ze simulátoru:</strong> {sourceStatus.incomingRateHz.toFixed(1)} Hz</span>
+            <span><strong>Předávání do webu:</strong> {sourceStatus.sampleRateHz.toFixed(1)} Hz</span>
+            <span><strong>Zpoždění ve frontě:</strong> {sourceStatus.publicationLagMs?.toFixed(0) ?? '—'} ms</span>
+            <span><strong>Přijaté / předané:</strong> {sourceStatus.samplesReceived} / {sourceStatus.samplesPublished}</span>
+            <span><strong>Přeskočené při převzorkování:</strong> {sourceStatus.framesSkipped}</span>
+          </div>
+        )}
 
         {!isPlaceholder && <PanelAktualizaci />}
 

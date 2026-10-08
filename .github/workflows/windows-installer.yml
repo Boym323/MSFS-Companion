@@ -51,6 +51,12 @@ jobs:
           npm run build
           if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
 
+      - name: Deterministický test převzorkování telemetrie (30 → 20 Hz)
+        shell: pwsh
+        run: |
+          dotnet run --project tests/telemetry-pipeline/MsfsCompanion.TelemetryPipelineCheck.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Telemetry pipeline self-test failed' }
+
       - name: Publish self-contained Windows bridge and tray
         shell: pwsh
         run: |

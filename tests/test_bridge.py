@@ -72,6 +72,12 @@ class BridgeSmokeTests(unittest.TestCase):
         self.assertGreater(status["samplesReceived"], 0)
         self.assertIsNone(status["lastError"])
         self.assertLess(status["sampleAgeMs"], 5000)
+        self.assertGreater(status["incomingRateHz"], 0)
+        self.assertGreater(status["samplesPublished"], 0)
+        self.assertGreaterEqual(status["samplesReceived"], status["samplesPublished"])
+        self.assertEqual(status["framesSkipped"], 0)
+        self.assertIsNotNone(status["publicationLagMs"])
+        self.assertGreaterEqual(status["publicationLagMs"], 0)
 
     def test_telemetry_is_plausible_and_updates(self):
         first = get_json("/api/telemetry")
