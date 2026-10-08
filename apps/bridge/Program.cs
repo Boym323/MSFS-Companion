@@ -15,6 +15,7 @@ builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
 builder.Services.AddSingleton<RadioStore>();
 builder.Services.AddSingleton<AutopilotModesStore>();
+builder.Services.AddSingleton<CockpitSystemsStore>();
 builder.Services.AddSingleton<ControlAccess>();
 builder.Services.AddSingleton<NativeCockpitEventSender>();
 builder.Services.AddSingleton<G1000Service>();
@@ -106,6 +107,7 @@ app.MapGet("/api/aircraft/profile", (TelemetryStore store, TelemetryHealth healt
 
 app.MapGet("/api/radios", (RadioStore radios) => Results.Ok(radios.Status()));
 app.MapGet("/api/autopilot/modes", (AutopilotModesStore modes) => Results.Ok(modes.Status()));
+app.MapGet("/api/cockpit/systems", (CockpitSystemsStore systems) => Results.Ok(systems.Status()));
 
 // Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
 app.MapCockpitControls();
