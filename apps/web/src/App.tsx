@@ -1,5 +1,6 @@
 import { useTelemetry } from './telemetry/useTelemetry';
 import Pfd from './pfd/Pfd';
+import MovingMap from './map/MovingMap';
 import PanelAktualizaci from './PanelAktualizaci';
 
 const panels = [
@@ -21,7 +22,7 @@ export default function App() {
   const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
   const isPfd = pathname === '/pfd';
-  const isPlaceholder = pathname === '/map';
+  const isMap = pathname === '/map';
 
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
@@ -62,8 +63,8 @@ export default function App() {
         <div className="intro">
           <div className="eyebrow">{isPfd ? 'B3 · PRIMARY FLIGHT DISPLAY' : 'B2 · TELEMETRIE'}</div>
           <h1>{pathname === '/pfd' ? 'Primární letový displej' : pathname === '/map' ? 'Mapa letu' : 'Přehled systému'}</h1>
-          <p>{isPlaceholder
-            ? 'Živá mapa je další samostatná etapa vývoje.'
+          <p>{isMap
+            ? 'Živá mapa sleduje letadlo a vykresluje jeho proletěnou trasu.'
             : isPfd
               ? 'Umělý horizont, indikovaná rychlost, výška a magnetický kurz se živými daty SimConnect.'
               : 'Přehled dat z MSFS 2020 přes SimConnect nebo z vývojového mock režimu.'}</p>
@@ -99,7 +100,7 @@ export default function App() {
           </div>
         )}
 
-        {!isPlaceholder && !isPfd && <PanelAktualizaci />}
+        {!isMap && !isPfd && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -110,8 +111,8 @@ export default function App() {
         )}
         {isPfd ? (
           <Pfd telemetry={validTelemetry} />
-        ) : isPlaceholder ? (
-          <p className="telemetry-offline">Mapa bude dostupná v etapě B4.</p>
+        ) : isMap ? (
+          <MovingMap telemetry={validTelemetry} />
         ) : (
           <>
           <h2>Aktuální telemetrie</h2>

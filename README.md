@@ -100,6 +100,15 @@ z MSFS 2020 a plynule vyhlazuje **pouze zobrazení**, zatímco telemetrie
 zůstává beze změn. Pokud se SimConnect odpojí, přístroj jasně oznámí
 neplatná data. Více v [českém návodu k PFD](docs/PFD_B3.md).
 
+## Pohyblivá mapa B4
+
+Na stránce `/map` se zobrazuje GPS poloha, magnetický kurz a
+proletěná stopa (omezená na 3600 bodů, přibližně hodina při 1 Hz).
+Souřadnicová mapa funguje bez internetu. Volitelný podklad
+OpenStreetMap se načte až po výslovném zapnutí: může odhalit
+přibližnou oblast letu provozovateli dlaždic.
+[Český návod k mapě](docs/MOVING_MAP_B4.md).
+
 ## Další vývoj
 
 Etapa B2 přidává skutečné údaje z MSFS 2020 a čeká na ověření
