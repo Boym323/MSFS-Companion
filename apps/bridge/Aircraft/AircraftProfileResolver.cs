@@ -14,10 +14,10 @@ public static class AircraftProfileResolver
 {
     private static readonly (string Pattern, AircraftProfile Profile)[] Rules =
     [
-        (@"(xcub|x.?cub)", new("xcub", "CubCrafters XCub", "G3X / podle varianty",
-            ["pfd", "map", "radio", "g3x"], false, "Ověřit konkrétní avioniku a Input Events v MSFS 2020.")),
         (@"(nxcub)", new("nxcub", "CubCrafters NXCub", "G3X (kandidát)",
             ["pfd", "map", "radio", "g3x"], false, "Ověřit variantu NXCub.")),
+        (@"(xcub|x.?cub)", new("xcub", "CubCrafters XCub", "G3X / podle varianty",
+            ["pfd", "map", "radio", "g3x"], false, "Ověřit konkrétní avioniku a Input Events v MSFS 2020.")),
         (@"(c172|cessna 172|skyhawk)", new("c172", "Cessna 172", "G1000 / analog podle varianty",
             ["pfd", "map", "radio", "g1000"], false, "G1000 jen pokud je fyzicky přítomný a enumerovaný.")),
         (@"(tbm.?930)", new("tbm930", "Daher TBM 930", "G3000",
