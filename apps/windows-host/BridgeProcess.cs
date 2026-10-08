@@ -5,6 +5,12 @@ namespace MsfsCompanion.WindowsHost;
 internal sealed class BridgeProcess : IDisposable
 {
     private Process? _child;
+    private readonly string _adminToken;
+
+    public BridgeProcess(string adminToken)
+    {
+        _adminToken = adminToken;
+    }
 
     public bool IsRunning
     {
@@ -52,6 +58,8 @@ internal sealed class BridgeProcess : IDisposable
             };
             info.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
             info.Environment["DOTNET_NOLOGO"] = "1";
+            info.Environment["MSFS_COMPANION_ADMIN_TOKEN"] = _adminToken;
+            info.Environment["MSFS_COMPANION_CONTROL_DIR"] = AdminControl.ControlDirectory;
 
             _child = new Process { StartInfo = info, EnableRaisingEvents = true };
             _child.OutputDataReceived += (_, e) =>
