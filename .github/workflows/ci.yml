@@ -133,6 +133,9 @@ jobs:
       - name: C19 NOAA weather failure recovery
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/weather-logic/MsfsCompanion.WeatherCheck.csproj --configuration Release
+      - name: C26 SimConnect traffic packet decoder
+        if: needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/traffic/MsfsCompanion.TrafficCheck.csproj -c Release
       - name: C21 NOAA SIGMET GeoJSON parsing
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/hazards/MsfsCompanion.HazardsCheck.csproj -c Release
