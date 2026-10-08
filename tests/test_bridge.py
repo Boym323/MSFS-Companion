@@ -197,6 +197,11 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/vatsim/nearby?lat=50&lon=14&radiusKm=5000")
         self.assertEqual(failure.exception.code, 400)
 
+    def test_sigmet_rejects_invalid_region_before_network(self):
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            get_json("/api/weather/hazards?lat=50&lon=14&radiusKm=9000")
+        self.assertEqual(failure.exception.code, 400)
+
     def test_noaa_weather_validates_icao_before_network(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/weather/123")
