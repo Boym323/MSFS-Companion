@@ -1,6 +1,6 @@
 namespace MsfsCompanion.Bridge.Telemetry;
 
-// The Windows SimConnect adapter will implement this interface in the next milestone.
+// Sdílené rozhraní pro vývojový mock a skutečný Windows SimConnect.
 public interface ITelemetrySource
 {
     string Mode { get; }

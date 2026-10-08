@@ -51,6 +51,10 @@ internal sealed class BridgeProcess : IDisposable
             };
             info.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
             info.Environment["DOTNET_NOLOGO"] = "1";
+            // Windows aplikace v produkci čte skutečný SimConnect.
+            // Pro diagnostiku lze proces spustit s proměnnou = mock.
+            info.Environment["MSFS_COMPANION_TELEMETRY_MODE"] =
+                Environment.GetEnvironmentVariable("MSFS_COMPANION_TELEMETRY_MODE") ?? "simconnect";
             info.Environment["MSFS_COMPANION_CONTROL_DIR"] = AdminControl.ControlDirectory;
 
             // Samostatný bridge zůstává na localhostu. Instalovaný hostitel

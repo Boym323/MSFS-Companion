@@ -13,4 +13,10 @@ public sealed class TelemetryStore
     {
         Interlocked.Exchange(ref _current, snapshot);
     }
+
+    public void Reset(string message)
+    {
+        Interlocked.Exchange(ref _current, new TelemetrySnapshot(
+            DateTimeOffset.UtcNow, message, 0, 0, 0, 0, 0, 0, 0, 0));
+    }
 }
