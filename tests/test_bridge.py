@@ -197,6 +197,11 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/vatsim/nearby?lat=50&lon=14&radiusKm=5000")
         self.assertEqual(failure.exception.code, 400)
 
+    def test_msfs_traffic_not_fabricated_in_mock(self):
+        result = get_json("/api/traffic/nearby")
+        self.assertFalse(result["available"])
+        self.assertEqual(result["targets"], [])
+
     def test_sigmet_rejects_invalid_region_before_network(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/weather/hazards?lat=50&lon=14&radiusKm=9000")
