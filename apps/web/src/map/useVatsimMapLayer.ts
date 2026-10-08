@@ -1,14 +1,7 @@
+import { mapQueryCoordinate, mapQueryRadiusKm, validMapPilots, type MapPilot } from './vatsimMap';
 import { useEffect, useState } from 'react';
 
-export type VatsimMapPilot = {
-  callsign: string;
-  latitude: number;
-  longitude: number;
-  altitudeFeet: number;
-  groundSpeedKt: number;
-  heading: number;
-  aircraft: string | null;
-};
+export type VatsimMapPilot = MapPilot;
 export type VatsimMapState = {
   available: boolean;
   stale: boolean;
@@ -26,11 +19,9 @@ export function useVatsimMapLayer(enabled: boolean, latitude: number | null,
   const [data, setData] = useState<VatsimMapState>(empty);
   // Snap requests to a coarse center so high-rate SimConnect movement does not
   // restart fetches or over-query the public VATSIM API.
-  const lat = latitude != null && Number.isFinite(latitude) && Math.abs(latitude) <= 85.05
-    ? Math.round(latitude * 10) / 10 : null;
-  const lon = longitude != null && Number.isFinite(longitude) && Math.abs(longitude) <= 180
-    ? Math.round(longitude * 10) / 10 : null;
-  const radiusKm = Math.max(30, Math.min(300, Math.round(100 * 2 ** (10 - zoom))));
+  const lat = mapQueryCoordinate(latitude, 85.05);
+  const lon = mapQueryCoordinate(longitude, 180);
+  const radiusKm = mapQueryRadiusKm(zoom);
 
   useEffect(() => {
     if (!enabled || lat === null || lon === null) {
@@ -57,11 +48,7 @@ export function useVatsimMapLayer(enabled: boolean, latitude: number | null,
             stale: payload.stale,
             updatedAt: payload.updatedAt,
             error: payload.error,
-            pilots: payload.available && Array.isArray(payload.pilots)
-              ? payload.pilots.slice(0, 80).filter(p =>
-                Number.isFinite(p.latitude) && Number.isFinite(p.longitude) &&
-                Math.abs(p.latitude) <= 85.05 && Math.abs(p.longitude) <= 180)
-              : [],
+            pilots: payload.available ? validMapPilots(payload.pilots) : [],
           });
         }
       } catch {
