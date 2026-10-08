@@ -17,3 +17,11 @@
 .cockpit-workspace-panel-head a { font-size:12px; color:#a7d8ed; white-space:nowrap; }
 @media(min-width:1100px) { .cockpit-workspace-panels--2 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:620px) { .cockpit-workspace-panel-head { flex-wrap:wrap; } .cockpit-workspace-panel { padding:3px; } }
+
+/* C40 – velké dotykové ovladače, bez automatického fullscreen nebo orientation lock. */
+.cockpit-workspace:fullscreen { background:#080e1c; padding:12px; overflow:auto; }
+.cockpit-workspace:fullscreen .cockpit-workspace-panels { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.cockpit-workspace:fullscreen .cockpit-workspace-panel { min-height:260px; }
+.cockpit-workspace button { touch-action:manipulation; min-height:48px; }
+@media (pointer:coarse) { .cockpit-workspace button,.cockpit-workspace-panel-head a { min-height:48px; padding:12px 15px; display:inline-flex; align-items:center; } .cockpit-workspace-settings input[type=checkbox] { height:25px;width:25px; } }
+@media(max-width:760px){.cockpit-workspace:fullscreen .cockpit-workspace-panels { grid-template-columns:minmax(0,1fr); }.cockpit-workspace:fullscreen {padding:6px} }
