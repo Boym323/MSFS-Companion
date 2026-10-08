@@ -1,0 +1,3 @@
+.capability-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:9px; margin:16px 0; }
+.capability-row { background:#10283e; border:1px solid #385270; border-radius:8px; padding:12px; display:grid; gap:7px; font-size:12px; overflow-wrap:anywhere; }
+.capability-row span { color:#b4c7dc; }
