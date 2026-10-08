@@ -13,6 +13,14 @@ const panels = [
   { href: '/aircraft', label: 'Letadlo' },
 ];
 
+const pageMeta = {
+  '/admin': { eyebrow: 'PALUBNÍ PŘEHLED', heading: 'Přehled systému', description: 'Stav propojení s MSFS 2020 a aktuální letové údaje.' },
+  '/pfd': { eyebrow: 'LETOVÉ PŘÍSTROJE', heading: 'Primární letový displej', description: 'Umělý horizont, rychlost, výška, vertikální rychlost a magnetický kurz.' },
+  '/map': { eyebrow: 'NAVIGACE', heading: 'Mapa letu', description: 'Aktuální poloha letadla a proletěná trasa.' },
+  '/flights': { eyebrow: 'LETOVÝ DENÍK', heading: 'Historie letů', description: 'Záznamy letů, jejich statistiky a přehrávání.' },
+  '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
+} as const;
+
 const values = [
   { key: 'airspeedKnots', title: 'Indikovaná rychlost', unit: 'KT', digits: 1 },
   { key: 'altitudeFeet', title: 'Výška', unit: 'FT', digits: 0 },
@@ -25,6 +33,7 @@ const values = [
 export default function App() {
   const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
+  const page = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta['/admin'];
   const isPfd = pathname === '/pfd';
   const isMap = pathname === '/map';
   const isFlights = pathname === '/flights';
@@ -59,7 +68,8 @@ export default function App() {
       <nav aria-label="Navigace" className="tabs">
         {panels.map((panel) => (
           <a key={panel.href} href={panel.href}
-            className={pathname === panel.href || (pathname === '/' && panel.href === '/admin') ? 'selected' : ''}>
+            className={pathname === panel.href || (pathname === '/' && panel.href === '/admin') ? 'selected' : ''}
+            aria-current={pathname === panel.href || (pathname === '/' && panel.href === '/admin') ? 'page' : undefined}>
             {panel.label}
           </a>
         ))}
@@ -67,17 +77,9 @@ export default function App() {
 
       <main>
         <div className="intro">
-          <div className="eyebrow">{isPfd ? 'B3 · PRIMARY FLIGHT DISPLAY' : 'B2 · TELEMETRIE'}</div>
-          <h1>{isPfd ? 'Primární letový displej' : isMap ? 'Mapa letu' : isFlights ? 'Historie letů' : isAircraft ? 'Aktuální letadlo' : 'Přehled systému'}</h1>
-          <p>{isMap
-            ? 'Živá mapa sleduje letadlo a vykresluje jeho proletěnou trasu.'
-            : isPfd
-              ? 'Umělý horizont, indikovaná rychlost, výška a magnetický kurz se živými daty SimConnect.'
-              : isFlights
-                ? 'Zaznamenané lety z Windows PC, jejich statistiky a přehrávání.'
-                : isAircraft
-                  ? 'Letové parametry, motor, vítr a stav autopilota – pouze čtení.'
-                  : 'Přehled dat z MSFS 2020 přes SimConnect nebo z vývojového mock režimu.'}</p>
+          <div className="eyebrow">{page.eyebrow}</div>
+          <h1>{page.heading}</h1>
+          <p>{page.description}</p>
         </div>
 
         <section className={isPfd ? 'summary summary--compact' : 'summary'}>
@@ -101,13 +103,16 @@ export default function App() {
         </section>
 
         {sourceIsLive && sourceStatus && (
-          <div className="telemetry-diagnostics" aria-label="Diagnostika přenosu telemetrie">
+          <details className="telemetry-diagnostics">
+            <summary>Diagnostika přenosu · {sourceStatus?.incomingRateHz.toFixed(1)} / {sourceStatus?.sampleRateHz.toFixed(1)} Hz</summary>
+            <div className="telemetry-diagnostics-body">
             <span><strong>Příjem ze simulátoru:</strong> {sourceStatus.incomingRateHz.toFixed(1)} Hz</span>
             <span><strong>Předávání do webu:</strong> {sourceStatus.sampleRateHz.toFixed(1)} Hz</span>
             <span><strong>Zpoždění ve frontě:</strong> {sourceStatus.publicationLagMs?.toFixed(0) ?? '—'} ms</span>
             <span><strong>Přijaté / předané:</strong> {sourceStatus.samplesReceived} / {sourceStatus.samplesPublished}</span>
             <span><strong>Přeskočené při převzorkování:</strong> {sourceStatus.framesSkipped}</span>
-          </div>
+            </div>
+          </details>
         )}
 
         {!isMap && !isPfd && !isFlights && !isAircraft && <PanelAktualizaci />}
