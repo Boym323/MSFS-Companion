@@ -23,6 +23,7 @@ builder.Services.AddSingleton<G1000Service>();
 builder.Services.AddSingleton<NavigationStore>();
 builder.Services.AddSingleton<AviationCatalog>();
 builder.Services.AddSingleton<LandingStore>();
+builder.Services.AddSingleton<AviationWeatherService>();
 
 // Windows instalátor nastavuje live režim. Samostatný vývojový server
 // zůstává v mock režimu, pokud není režim explicitně vyžádán.
@@ -119,6 +120,7 @@ app.MapCockpitControls();
 app.MapG1000();
 app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
+AviationWeatherService.MapAviationWeather(app);
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
 app.MapSimBrief();

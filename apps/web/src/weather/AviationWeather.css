@@ -1,0 +1,11 @@
+.weather-panel { display:grid; gap:16px; margin-bottom:35px; }
+.weather-panel p { font-size:13px; color:#a4bbd2; line-height:1.6; }
+.weather-form { display:flex; gap:12px; align-items:end; flex-wrap:wrap; }
+.weather-form label { display:grid; gap:8px; font-size:13px; }
+.weather-form input { border-radius:8px; padding:10px 12px; background:#142c42; color:#eef8ff; border:1px solid #466381; min-height:44px; }
+.weather-form button { min-height:44px; border:1px solid #4e7694; background:#16435f; color:white; border-radius:8px; padding:9px 15px; cursor:pointer; }
+.weather-form button:disabled { opacity:.4; cursor:not-allowed; }
+.weather-reports { display:grid; gap:12px; }
+.weather-reports article { background:#0f2238; border:1px solid #34516e; border-radius:10px; padding:15px; min-width:0; }
+.weather-reports h3 { margin:0 0 11px; }
+.weather-reports pre { white-space:pre-wrap; overflow-wrap:anywhere; color:#daf0ff; font:14px/1.6 monospace; margin:0; }
