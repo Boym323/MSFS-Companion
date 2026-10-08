@@ -1,113 +1,131 @@
-# Windows background app and automatic updates (V1)
+# Instalace a vzdálená správa MSFS Companion na Windows
 
-## What you get
+## Co instalátor dělá
 
-- A Windows x64 **MSFS Companion** app that lives in the notification area.
-  Double-click the tray icon to open the local dashboard.
-- Velopack per-user Setup installer, automatically started at **Windows login**
-  via the installer-provided `Startup` shortcut. No scheduled task, service,
-  admin login or SDK is needed after first installation.
-- The tray app launches and supervises the packaged ASP.NET Core bridge as a
-  hidden child process and restarts it if it exits unexpectedly.
-- It checks for updates shortly after launch and hourly and applies them
-  automatically **even while MSFS is running**. The game continues running,
-  but the web dashboard/bridge disconnects briefly as Companion restarts.
-- A `LocalAppData/MSFS Companion/settings.json` file stores the update feed,
-  defaulting to this repository's GitHub Releases.
-  Logs are at `LocalAppData/MSFS Companion/windows-host.log`.
-- A read-only dashboard runs locally at `http://127.0.0.1:8765/admin`.
-  Remote iPad/Mac access is **not yet enabled**: LAN authentication belongs to B2.
+- Nainstaluje aplikaci pro **Windows x64** a zobrazí ji v oznamovací
+  oblasti vedle hodin s vlastní ikonou letadla.
+- Ve **Správci úloh** se zobrazí popis **MSFS Companion**.
+  Samostatný podproces pro webový backend má popis
+  **MSFS Companion Bridge**.
+- Po přihlášení do Windows se Companion automaticky spouští
+  a hlídá svůj skrytý webový bridge.
+- Po spuštění a následně každou hodinu kontroluje aktualizace.
+- Aktualizace může krátce restartovat Companion a jeho bridge
+  **i během běžícího MSFS**. Simulátor se neukončuje.
+- Lokální web otevřete na `http://127.0.0.1:8765/admin`.
 
-### Install the first version
+## První instalace
 
-1. Open GitHub Actions → **Windows tray installer**.
-2. Download the `MSFS-Companion-Windows-Installer` artifact from a successful run.
-3. Run the contained `*Setup*.exe` on your Windows simulator PC.
-4. After install, MSFS Companion starts in the tray. Right-click the icon
-   for status, dashboard, manual update check, and update feed configuration.
-5. A new **Windows login** automatically starts it from now on.
+1. Otevřete [GitHub Releases](https://github.com/Boym323/MSFS-Companion/releases).
+2. U posledního vydání stáhněte `Boym323.MsfsCompanion-win-Setup.exe`.
+3. Spusťte instalátor a ověřte ikonu v oznamovací oblasti.
+4. Otevřete `http://127.0.0.1:8765/admin` na Windows PC.
+5. Pro první vzdálenou správu pokračujte následující kapitolou.
 
-The diagnostic B1 `MsfsCompanion.Probe.exe` remains separate from this
-persistent tray/bridge app. B2 will replace mock telemetry with SimConnect.
+Použijte **Setup.exe**, nikoli `Portable.zip`. Přenosné sestavení
+neposkytuje běžný instalovaný aktualizační kanál.
 
-### Verify the updater manually
+## Vynucení aktualizace z webu
 
-Right-click the tray icon and choose **Zkontrolovat aktualizace**.
-A manually requested check now produces an explicit result dialog when there
-is no newer release, the app was launched from Portable.zip, or a feed error
-occurred. When a new release exists, the tray shows download/restart progress.
+Správce na `/admin` má panel **Správa Windows aplikace**.
+Příkazy nejsou dostupné bez autorizace. Pro první spárování:
 
-Automatic hourly checks remain silent and do not display modal dialogs during
-flight. If a manual check fails, open the **Otevřít diagnostický log** menu;
-the log is also available under
-`%LOCALAPPDATA%\MSFS Companion\windows-host.log`.
+1. Jednou u Windows počítače klikněte pravým tlačítkem na ikonu
+   Companion vedle hodin.
+2. Vyberte **Zkopírovat správcovský klíč**. Jde o náhodný 256bitový
+   přístupový klíč uložený v profilu aktuálního uživatele.
+3. Přeneste klíč **soukromě a bezpečně** do svého Macu, ideálně přes
+   správce hesel. Nevkládejte jej do veřejného chatu ani do URL.
+4. Na webu `/admin` vložte klíč do panelu, potvrďte **Připojit správu**.
+   Pokud je Mac jen váš a důvěryhodný, můžete vybrat zapamatování klíče.
+5. Vyberte **Vynutit kontrolu a instalaci nové verze**.
 
-Note: the old v0.2.13 tray did not display a result dialog. If this fix has
-not yet updated your installation, inspect the tray's status entry by
-reopening the menu or check the log for `Update check/download error`.
-The latest published GitHub Release is the authoritative update source.
+Tím se vyvolá kontrola GitHub Releases na Windows PC. Pokud je
+novější verze dostupná, stáhne se a nainstaluje. Stav procesu se
+aktualizuje na stránce automaticky. Pokud nová verze není, aplikace
+vypíše, že už je aktuální; **nepřeinstalovává stejnou verzi**.
 
-## Automatic updates from public GitHub Releases
+Webový příkaz nepřistupuje přímo do Windows, nevykonává PowerShell
+ani neposílá žádné příkazy simulátoru. Backend pouze ověří správce
+a předá požadavek místnímu hostiteli.
 
-The source repository **Boym323/MSFS-Companion is public**. The Windows app
-uses GitHub Releases in this **same repository** as its default update channel:
+## Přístup z Macu bez návštěvy Windows PC
 
-`https://github.com/Boym323/MSFS-Companion`
+Backend zůstává navázán na `127.0.0.1:8765` a není přímo
+vystaven lokální síti ani internetu. K bezpečnému přístupu
+z dalšího počítače doporučujeme **Tailscale Serve**.
+Toto je **jednorázové nastavení**, ne automatická součást instalátoru.
 
-No second updates repository, GitHub personal access token or Windows client
-credentials are required.
+1. Nainstalujte Tailscale na Windows PC i Mac a přihlaste obě
+   zařízení do stejné soukromé sítě (tailnet).
+2. Na Windows PC jednou spusťte v PowerShellu:
 
-### Normal development workflow
+   ```powershell
+   tailscale serve --bg http://127.0.0.1:8765
+   tailscale serve status
+   ```
 
-1. Make a change on a feature branch and open a pull request.
-2. After review and successful CI, merge it to `main`.
-3. The **Windows tray installer** workflow builds the full application
-   and automatically publishes a new numbered GitHub Release, such as
-   `v0.2.37`. Each run on `main` uses an increasing Actions run number.
-4. The installed tray application checks the public release feed shortly
-   after launch and then hourly. If a newer version exists it downloads
-   and applies the update without manual interaction.
-5. Updating is permitted **while MSFS 2020 is running**. Only our own
-   Companion host and its bridge restart; `FlightSimulator.exe` is never
-   terminated or sent controls. Connected PFD/dashboard clients may
-   disconnect briefly and automatically reconnect.
+3. Tailscale zobrazí soukromou HTTPS adresu typu
+   `https://pocitac.nazev-tailnetu.ts.net`. Na Macu otevřete
+   tuto adresu s cestou `/admin`.
+4. Zadejte svůj správcovský klíč a můžete spravovat aktualizace
+   bez dalšího přístupu k Windows ploše.
 
-The publish step runs in a separate CI job with narrowly scoped
-`GITHUB_TOKEN` **Contents: write** permissions, on `main` push only,
-and after successful Windows build/tests. Pull requests and manual
-`workflow_dispatch` builds create installer artifacts but **never publish**.
-Ensure GitHub Actions permissions permit creating Releases, otherwise this
-job will fail and the release will not be available to clients.
+Používejte **Tailscale Serve**, nikdy **Tailscale Funnel** –
+Funnel by službu zveřejnil internetu. Provoz musí zůstat omezen
+pravidly vašeho tailnetu. HTTPS přenos a autorizovaný přístup
+jsou dvě nezávislé ochrany.
 
-A custom HTTPS update endpoint remains configurable in the tray, but
-is not required. The update feed defaults to the public source above.
+Oficiální návod:
+[Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve).
 
-### Development release risks
+### Bezpečnost přístupového klíče
 
-These are **unsigned development installers and releases**. Windows SmartScreen
-may warn, and Windows Defender or company policies may block execution.
-Public GitHub releases make the binaries downloadable by anyone.
-Review downloaded releases and use only on machines you control.
-A broken update can still take the Companion offline: the current
-version has **no automatic health-gated rollback**. Test the first
-installation and at least one real version-to-version update on Windows
-before treating unattended updates as production-ready.
+- Klíč uchovávejte jako heslo. Při zapamatování ve webu
+  se ukládá do úložiště příslušného prohlížeče na daném zařízení.
+- Nepoužívejte nedůvěryhodné počítače a nesdílejte klíč veřejně.
+- V případě kompromitace lze soubor
+  `%LOCALAPPDATA%\MSFS Companion\admin-access.token`
+  s **ukončenou aplikací** smazat a při dalším spuštění vznikne nový.
+  Poté aktualizujte klíč i na správních zařízeních.
+- Bridge spuštěný samostatně (například na Macu při vývoji)
+  správcovská API vůbec neregistruje.
+- Nikdy ručně nepřesměrovávejte port 8765 na internetovém routeru.
 
-### Recovery
+## Běžné aktualizace
 
-If a newer version fails, reinstall the last known-good `Setup.exe` and
-keep a backup of it; the initial V1 does **not** implement an automated
-health-gated rollback. Do not enable an unattended rollout to other
-computers until a tested upgrade and recovery cycle has passed.
+Zdroj je veřejný repozitář
+`https://github.com/Boym323/MSFS-Companion`.
 
-### Diagnostic test
+Po schválení a sloučení změn do `main` GitHub Actions sestaví
+aplikaci a publikuje novou verzi přes Releases. Nainstalovaný
+Windows hostitel ji standardně zkontroluje přibližně 20 sekund
+po spuštění a pak jednou za hodinu.
 
-`MsfsCompanion.WindowsHost.exe --self-test` checks the update policy
-(including permission to apply during MSFS) and default GitHub feed and exits immediately. It does not launch any simulator.
-Windows GitHub Actions also builds the production frontend and packages
-the updater. No real Windows login/session or second-version upgrade is
-exercised in Actions.
+Během aktualizace může dashboard krátce ztratit WebSocket spojení,
+ale MSFS pokračuje. Po restartu Companionu se web znovu připojí.
 
-Reference: [Velopack Windows packaging](https://docs.velopack.io/packaging/operating-systems/windows),
-[updates](https://docs.velopack.io/integrating/overview),
-[shortcuts](https://docs.velopack.io/integrating/shortcuts).
+## Diagnostika
+
+Přes nabídku u hodin vyberte **Otevřít diagnostický log**.
+Log je také v:
+
+```text
+%LOCALAPPDATA%\MSFS Companion\windows-host.log
+```
+
+V logu sledujte zejména zprávy o dostupné verzi, stažení nebo chybě.
+Z webu lze zobrazit stav, ale podrobný lokální diagnostický log
+se kvůli bezpečnosti **neposílá vzdáleně**.
+
+### Omezení vývojového vydání
+
+Instalační balíčky zatím nejsou digitálně podepsané a nemají
+automatický rollback. Před přechodem na produkční použití
+otestujte skutečný upgrade mezi dvěma verzemi, start po
+přihlášení a obnovu po výpadku připojení.
+
+Aktuální bridge stále poskytuje **mock telemetrii**; B2 připojí
+skutečný SimConnect. Samotná diagnostika B1 je oddělená aplikace.
+
+Oficiální dokumentace [Velopack](https://docs.velopack.io/packaging/operating-systems/windows).
