@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using SimConnect.NET;
+using SimConnect.NET.SimVar;
 
 namespace MsfsCompanion.Bridge.Telemetry;
 
@@ -10,28 +11,28 @@ namespace MsfsCompanion.Bridge.Telemetry;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct SimConnectAircraftData
 {
-    [SimConnect("PLANE LATITUDE", "degrees")]
+    [SimConnect("PLANE LATITUDE", "degrees", SimConnectDataType.FloatDouble)]
     public double Latitude;
 
-    [SimConnect("PLANE LONGITUDE", "degrees")]
+    [SimConnect("PLANE LONGITUDE", "degrees", SimConnectDataType.FloatDouble)]
     public double Longitude;
 
-    [SimConnect("AIRSPEED INDICATED", "knots")]
+    [SimConnect("AIRSPEED INDICATED", "knots", SimConnectDataType.FloatDouble)]
     public double AirspeedKnots;
 
-    [SimConnect("INDICATED ALTITUDE", "feet")]
+    [SimConnect("INDICATED ALTITUDE", "feet", SimConnectDataType.FloatDouble)]
     public double AltitudeFeet;
 
-    [SimConnect("VERTICAL SPEED", "feet per minute")]
+    [SimConnect("VERTICAL SPEED", "feet per minute", SimConnectDataType.FloatDouble)]
     public double VerticalSpeedFeetPerMinute;
 
-    [SimConnect("PLANE HEADING DEGREES MAGNETIC", "degrees")]
+    [SimConnect("PLANE HEADING DEGREES MAGNETIC", "degrees", SimConnectDataType.FloatDouble)]
     public double HeadingDegrees;
 
-    [SimConnect("PLANE PITCH DEGREES", "degrees")]
+    [SimConnect("PLANE PITCH DEGREES", "degrees", SimConnectDataType.FloatDouble)]
     public double PitchDegrees;
 
-    [SimConnect("PLANE BANK DEGREES", "degrees")]
+    [SimConnect("PLANE BANK DEGREES", "degrees", SimConnectDataType.FloatDouble)]
     public double BankDegrees;
 
     public readonly bool IsValid() =>
