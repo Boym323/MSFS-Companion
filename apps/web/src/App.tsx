@@ -16,6 +16,18 @@ type TelemetrySnapshot = {
 
 type ConnectionState = 'connecting' | 'connected' | 'disconnected';
 
+type TelemetryStatus = {
+  mode: 'mock' | 'simconnect';
+  connected: boolean;
+  connectionState: string;
+  lastTelemetryUtc: string | null;
+  sampleAgeMs: number | null;
+  sampleRateHz: number;
+  samplesReceived: number;
+  connectionAttempts: number;
+  lastError: string | null;
+};
+
 const panels = [
   { href: '/admin', label: 'Přehled' },
   { href: '/pfd', label: 'PFD' },
@@ -34,6 +46,24 @@ const values = [
 export default function App() {
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
   const [connection, setConnection] = useState<ConnectionState>('connecting');
+  const [sourceStatus, setSourceStatus] = useState<TelemetryStatus | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/status', { cache: 'no-store' });
+        if (!response.ok) return;
+        const status = (await response.json()) as TelemetryStatus;
+        if (!disposed) setSourceStatus(status);
+      } catch {
+        if (!disposed) setSourceStatus(null);
+      }
+    };
+    void checkStatus();
+    const timer = window.setInterval(() => { void checkStatus(); }, 1500);
+    return () => { disposed = true; window.clearInterval(timer); };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -75,12 +105,28 @@ export default function App() {
     ? Math.max(0, Date.now() - new Date(telemetry.timestampUtc).getTime())
     : null;
 
+  const sourceIsLive = connection === 'connected'
+    && sourceStatus?.connected === true
+    && lastUpdateAgeMs !== null && lastUpdateAgeMs < 5000;
+  const sourceMode = sourceStatus?.mode;
+  const isMock = sourceMode === 'mock';
+  const sourceLabel = sourceIsLive
+    ? (isMock ? 'MOCK MODE' : 'SIMCONNECT LIVE')
+    : sourceMode === 'simconnect'
+      ? 'ČEKÁM NA MSFS'
+      : 'ČEKÁM NA BRIDGE';
+  const sourceHelp = sourceIsLive
+    ? (isMock ? 'Ukázková data pro vývoj' : 'Skutečná data z MSFS 2020')
+    : sourceStatus?.lastError ?? (sourceMode === 'simconnect'
+      ? 'Spusťte MSFS 2020 a načtěte let'
+      : 'Čekám na zdroj telemetrie');
+
   return (
     <div className="shell">
       <header className="topbar">
         <div className="brand"><span className="brand-icon">✈</span><div>
           <strong>MSFS Companion</strong>
-          <small>Flight deck · vývojová verze 0.1.0</small>
+          <small>Flight deck · B2 telemetrie</small>
         </div></div>
         <div className={`connection connection--${connection}`}>
           <span className="connection-dot" />
@@ -99,40 +145,49 @@ export default function App() {
 
       <main>
         <div className="intro">
-          <div className="eyebrow">FOUNDATION V1</div>
+          <div className="eyebrow">B2 · TELEMETRIE</div>
           <h1>{pathname === '/pfd' ? 'Primární letový displej' : pathname === '/map' ? 'Mapa letu' : 'Přehled systému'}</h1>
           <p>{isPlaceholder
-            ? 'Modul je připravený pro další etapu. Živá telemetrie už proudí přes WebSocket.'
-            : 'První funkční propojení .NET bridge, mock simulátoru a React dashboardu.'}</p>
+            ? 'Přístrojový modul připravujeme. Zdroj telemetrie již podporuje MSFS 2020.'
+            : 'Přehled dat z MSFS 2020 přes SimConnect nebo z vývojového mock režimu.'}</p>
         </div>
 
         <section className="summary">
           <article>
             <span className="label">Zdroj dat</span>
-            <strong>MOCK MODE</strong>
-            <span className="help">SimConnect připojíme na Windows</span>
+            <strong>{sourceLabel}</strong>
+            <span className="help">{sourceHelp}</span>
           </article>
           <article>
             <span className="label">Letadlo</span>
-            <strong>{telemetry?.aircraft ?? 'Čekám na data'}</strong>
-            <span className="help">Simulované hodnoty</span>
+            <strong>{sourceIsLive ? telemetry?.aircraft ?? 'Čekám na data' : 'Čekám na letadlo'}</strong>
+            <span className="help">{sourceIsLive ? (isMock ? 'Simulované hodnoty' : 'MSFS / SimConnect') : 'Spojení není aktivní'}</span>
           </article>
           <article>
             <span className="label">Telemetrie</span>
-            <strong>20 Hz</strong>
-            <span className="help">{lastUpdateAgeMs === null ? 'Dosud bez dat' : `Stáří vzorku cca ${lastUpdateAgeMs} ms`}</span>
+            <strong>{sourceIsLive ? `${sourceStatus?.sampleRateHz.toFixed(1) ?? '—'} Hz` : '—'}</strong>
+            <span className="help">{sourceIsLive && lastUpdateAgeMs !== null
+              ? `Stáří vzorku ${Math.round(lastUpdateAgeMs)} ms`
+              : sourceMode === 'simconnect' ? `Pokus o spojení č. ${sourceStatus?.connectionAttempts ?? 0}` : 'Dosud bez dat'}</span>
           </article>
         </section>
 
         {!isPlaceholder && <PanelAktualizaci />}
 
+        {!sourceIsLive && (
+          <p className="telemetry-offline" role="status">
+            {sourceMode === 'simconnect'
+              ? 'SimConnect není připojený nebo neposílá čerstvá data. Zobrazované hodnoty nejsou platné.'
+              : 'Čekám na telemetrii z bridge.'}
+          </p>
+        )}
         <h2>Aktuální telemetrie</h2>
         <section className="metrics">
           {values.map((metric) => (
             <article className="metric" key={metric.key}>
               <span className="label">{metric.title}</span>
               <div className="reading">
-                <strong>{telemetry ? telemetry[metric.key].toFixed(metric.digits) : '—'}</strong>
+                <strong>{telemetry && sourceIsLive ? telemetry[metric.key].toFixed(metric.digits) : '—'}</strong>
                 <span>{metric.unit}</span>
               </div>
             </article>
@@ -140,7 +195,7 @@ export default function App() {
         </section>
 
         <div className="footnote">
-          <span>GPS: {telemetry ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
+          <span>GPS: {telemetry && sourceIsLive ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
           <span>Žádné příkazy nejsou v této etapě povolené.</span>
         </div>
       </main>
