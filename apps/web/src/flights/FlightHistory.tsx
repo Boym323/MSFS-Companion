@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import FlightInsights from './FlightInsights';
+import FlightRouteMap from './FlightRouteMap';
 import './FlightHistory.css';
 
 type FlightSummary = {
@@ -36,25 +37,6 @@ function chart(samples: TelemetrySnapshot[], key: 'altitudeFeet' | 'airspeedKnot
     const y = 8 + (1 - (v - min) / range) * height;
     return `${index ? 'L' : 'M'} ${x.toFixed(1)} ${y.toFixed(1)}`;
   }).join(' ');
-}
-
-function trackPoints(samples: TelemetrySnapshot[]) {
-  if (samples.length < 1) return [];
-  const origin = samples[0].longitude;
-  const coords = samples.map((p) => ({
-    x: ((p.longitude - origin + 540) % 360) - 180,
-    y: p.latitude,
-  }));
-  const minX = Math.min(...coords.map((p) => p.x));
-  const maxX = Math.max(...coords.map((p) => p.x));
-  const minY = Math.min(...coords.map((p) => p.y));
-  const maxY = Math.max(...coords.map((p) => p.y));
-  const dX = Math.max(maxX - minX, .00001);
-  const dY = Math.max(maxY - minY, .00001);
-  return coords.map(({ x, y }) => ({
-    x: 20 + (x - minX) / dX * 580,
-    y: 20 + (1 - (y - minY) / dY) * 215,
-  }));
 }
 
 export default function FlightHistory() {
@@ -106,8 +88,6 @@ export default function FlightHistory() {
   const samples = detail?.samples ?? [];
   const index = Math.min(cursor, Math.max(0, samples.length - 1));
   const point = samples[index];
-  const route = trackPoints(samples);
-  const marker = route[index];
 
   useEffect(() => {
     if (!playing || samples.length < 2) return;
@@ -167,14 +147,7 @@ export default function FlightHistory() {
               </svg>
 
               <h3>Schéma proletěné trasy</h3>
-              <svg className="flight-history-route" viewBox="0 0 620 255" role="img"
-                aria-label="Schematická GPS stopa letu, sever nahoře">
-                {route.length >= 2 && <polyline
-                  points={route.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
-                  fill="none" stroke="#7de4ee" strokeWidth="3" strokeLinejoin="round" />}
-                {marker && <circle cx={marker.x} cy={marker.y} r="7" fill="#f6d982" stroke="#0a1830" strokeWidth="2" />}
-                <text x="585" y="20" textAnchor="end" fill="#9fc5de" fontSize="13">SEVER ↑</text>
-              </svg>
+              <FlightRouteMap samples={samples} selectedIndex={index} />
 
               <div className="flight-history-player">
                 <button type="button" disabled={samples.length < 2} onClick={() => {
