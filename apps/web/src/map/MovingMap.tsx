@@ -8,6 +8,7 @@ import { useFlightNavigation, FlightNavigationPanel } from './FlightNavigation';
 import { parsePln, type ImportedWaypoint } from './pln';
 import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
+import { useVatsimMapLayer } from './useVatsimMapLayer';
 import AviationAirportDetails from './AviationAirportDetails';
 import AirportSearch from './AirportSearch';
 import { useMapBackground } from './useMapBackground';
@@ -28,9 +29,12 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [showAviation, setShowAviation] = useState(true);
   const [showRunways, setShowRunways] = useState(true);
   const [showNavaids, setShowNavaids] = useState(true);
+  const [showVatsim, setShowVatsim] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
     telemetry?.longitude ?? null, zoom);
+  const vatsim = useVatsimMapLayer(showVatsim,
+    telemetry?.latitude ?? null, telemetry?.longitude ?? null, zoom);
   const navigation = useFlightNavigation(!!telemetry);
   const [importedPlan, setImportedPlan] = useState<ImportedWaypoint[]>(() => {
     try {
@@ -154,6 +158,19 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         Podklad OpenStreetMap (automaticky zapnutý, lze vypnout)
       </label>
 
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showVatsim}
+          onChange={event => setShowVatsim(event.target.checked)} />
+        VATSIM online letadla (volitelně, NEJSOU to letadla v MSFS)
+      </label>
+      {showVatsim && <p className="moving-map-vatsim-status" role="status">
+        {vatsim.available
+          ? `VATSIM: ${vatsim.pilots.length} online pilotů v okolí`
+          : 'VATSIM se načítá nebo není dostupný.'}
+        {vatsim.stale ? ' · Starší data' : ''}
+        {vatsim.updatedAt ? ` · ${new Date(vatsim.updatedAt).toLocaleTimeString('cs-CZ')}` : ''}
+        {vatsim.error ? ` · ${vatsim.error}` : ''}
+      </p>}
       <label className="moving-map-background"><input type="checkbox" checked={showLeg}
         onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
       <label className="moving-map-background">
@@ -225,6 +242,20 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
                 fontSize="11">{feature.ident}</text>}
             </g>;
           })}
+          {showVatsim && vatsim.pilots.map(pilot => {
+            const pt = mapPosition(pilot);
+            if (!pt || pt.x < -30 || pt.x > width + 30 || pt.y < -30 || pt.y > height + 30)
+              return null;
+            return <g key={pilot.callsign}>
+              <path
+                d={`M ${pt.x.toFixed(1)} ${(pt.y-7).toFixed(1)} L ${(pt.x+6).toFixed(1)} ${(pt.y+6).toFixed(1)} L ${pt.x.toFixed(1)} ${(pt.y+3).toFixed(1)} L ${(pt.x-6).toFixed(1)} ${(pt.y+6).toFixed(1)} Z`}
+                fill="#f19dc1" stroke="#2e1937" strokeWidth="1.5"
+                transform={`rotate(${pilot.heading} ${pt.x} ${pt.y})`} />
+              {zoom >= 10 && <text x={pt.x + 10} y={pt.y - 5}
+                fill="#ffe0f0" stroke="#251c37" strokeWidth="2" paintOrder="stroke"
+                fontSize="11">{pilot.callsign}</text>}
+            </g>;
+          })}
           {importedPath && <path d={importedPath} stroke="#bca5ff" strokeWidth="2.5"
             strokeDasharray="4 6" fill="none" />}
           {importedPlan.map((point, index) => {
@@ -268,7 +299,12 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         )}
 
       </div>
-      {showAviation && <AirportSearch onSelect={setSelectedAirport} />}
+      {showVatsim && vatsim.available && <p className="moving-map-vatsim-legend">
+        <span aria-hidden="true">▲</span> Růžové značky = síť VATSIM (nikoli MSFS AI/provoz v simulátoru).
+        Poloha i výška se mohou oproti skutečné scéně lišit.
+        {' '}<a href="/vatsim">Otevřít přehled VATSIM</a>
+      </p>}
+      {showAviation && <AirportSearch onSelect={setSelectedAirport} />
       {showAviation && aviation.available && <>
         <div className="moving-map-airports">
           <strong>Nejbližší letiště</strong>
