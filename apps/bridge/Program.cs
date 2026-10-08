@@ -120,7 +120,7 @@ app.MapCockpitControls();
 app.MapG1000();
 app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
-app.MapAviationWeather();
+AviationWeatherService.MapAviationWeather(app);
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
 app.MapSimBrief();
