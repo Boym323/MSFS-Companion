@@ -28,7 +28,7 @@ public sealed class G1000Service : IAsyncDisposable
 
             return new G1000Availability(_status, _aircraft,
                 _checkedAt == default ? null : _checkedAt,
-                G1000Catalog.All.Where(a => _events.ContainsKey(a.InputEvent)).Select(a => a.Id).ToArray(), _error);
+                G1000Catalog.All.Where(a => (_events.ContainsKey(a.InputEvent) || a.AlternateInputEvent is not null && _events.ContainsKey(a.AlternateInputEvent))).Select(a => a.Id).ToArray(), _error);
         }
         finally { _gate.Release(); }
     }
@@ -55,7 +55,10 @@ public sealed class G1000Service : IAsyncDisposable
             }
 
             var action = G1000Catalog.All.FirstOrDefault(x => x.Id == id);
-            if (action is null || !_events.TryGetValue(action.InputEvent, out var descriptor))
+            if (action is null) return false;
+            if (!_events.TryGetValue(action.InputEvent, out var descriptor)
+                && (action.AlternateInputEvent is null
+                    || !_events.TryGetValue(action.AlternateInputEvent, out descriptor)))
                 return false;
             await _client.InputEvents.SetInputEventAsync(descriptor.Hash, value, timeout.Token);
             return true; // jen odesláno, ne potvrzeno
@@ -97,7 +100,7 @@ public sealed class G1000Service : IAsyncDisposable
                 cancellationToken: timeout.Token);
             var discovered = await _client.InputEvents.EnumerateInputEventsAsync(timeout.Token);
             // Nikdy bez enumerace nepovolovat žádný aktuátor.
-            _events = discovered.Where(x => G1000Catalog.All.Any(a => a.InputEvent == x.Name))
+            _events = discovered.Where(x => G1000Catalog.All.Any(a => a.InputEvent == x.Name || a.AlternateInputEvent == x.Name))
                 .GroupBy(x => x.Name, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
             _status = _events.Count > 0 ? "ready" : "unsupported";
