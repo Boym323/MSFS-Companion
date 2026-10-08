@@ -248,6 +248,37 @@ jobs:
             }
           }
 
+      - name: Smoke test actual silent Velopack installation and version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = Get-ChildItem staging/releases -File -Filter '*Setup.exe' | Select-Object -First 1
+          if ($null -eq $setup) { throw 'Setup.exe was not produced' }
+          $installDir = Join-Path $env:RUNNER_TEMP 'msfs-companion-installed-smoke'
+          if (Test-Path $installDir) { throw 'Installation test folder already exists' }
+          # Velopack --silent installs without starting the regular tray.
+          $installed = Start-Process -FilePath $setup.FullName -ArgumentList @(
+            '--silent', '--installto', $installDir
+          ) -PassThru -Wait
+          if ($installed.ExitCode -ne 0) {
+            throw "Velopack Setup.exe silent install failed: $($installed.ExitCode)"
+          }
+          $hostExe = Join-Path $installDir 'current/MsfsCompanion.WindowsHost.exe'
+          if (!(Test-Path $hostExe)) { throw 'Installed Windows host is missing' }
+          $correct = Start-Process -FilePath $hostExe -ArgumentList @(
+            '--verify-installed-version', $env:APP_VERSION
+          ) -PassThru -Wait
+          if ($correct.ExitCode -ne 0) {
+            throw "Installed version does not match $env:APP_VERSION"
+          }
+          $mismatch = Start-Process -FilePath $hostExe -ArgumentList @(
+            '--verify-installed-version', '999.999.999'
+          ) -PassThru -Wait
+          if ($mismatch.ExitCode -eq 0) {
+            throw 'Installed-version guard accepted an incorrect version'
+          }
+          Write-Host "Real Windows Setup install/version check passed: $env:APP_VERSION"
+
       - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
