@@ -173,6 +173,11 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/map/aviation?lat=999&lon=0")
         self.assertEqual(failure.exception.code, 400)
 
+    def test_landing_stats_are_not_faked_in_mock(self):
+        last = get_json("/api/landings/latest")
+        self.assertFalse(last["connected"])
+        self.assertIsNone(last["landing"])
+
     def test_gps_navigation_not_faked_in_mock(self):
         navigation = get_json("/api/navigation/current")
         self.assertFalse(navigation["connected"])
