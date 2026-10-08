@@ -131,3 +131,46 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
 /* Pět modulů navigace musí zůstat použitelné i na 320px tabletu/mobilu. */
 .tabs { overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
 .tabs a { flex-shrink: 0; }
+
+/* B3.1 – vyvážené přístroje, čitelný kompas a samostatné VSI. */
+.pfd-stage svg { font-variant-numeric: tabular-nums; }
+.pfd-readouts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.pfd-readouts > span {
+  background: #101e31;
+  border: 1px solid #2b435e;
+  border-radius: 9px;
+  padding: 11px 14px;
+  min-width: 0;
+}
+.pfd-readouts small {
+  display: block;
+  color: #8fb3d2;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .07em;
+}
+.pfd-readouts strong {
+  display: block;
+  margin-top: 5px;
+  color: #f0f7ff;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.pfd-scroll-hint { display: none; color: #99aec7; font-size: 12px; }
+@media (max-width: 760px) {
+  .pfd-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pfd-stage { margin: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+  .pfd-stage svg { width: 100%; min-width: 760px; }
+  .pfd-scroll-hint { display: block; }
+}
+@media (max-width: 420px) {
+  .pfd-readouts > span { padding: 10px; }
+  .pfd-readouts strong { font-size: 15px; }
+  .pfd-panel-head { align-items: flex-start; }
+}

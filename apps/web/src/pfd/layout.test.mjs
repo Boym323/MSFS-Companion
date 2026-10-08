@@ -65,3 +65,16 @@ test('VSI má nulovou polohu uprostřed a omezený rozsah při extrémech', () =
   assert.ok(vsNeedleY(3000) > PFD_LAYOUT.vsi.y);
   assert.ok(vsNeedleY(-3000) < PFD_LAYOUT.vsi.y + PFD_LAYOUT.vsi.height);
 });
+
+test('SVG PFD skutečně používá deklarované clipPath a nemá staré překrývající popisky', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('./Pfd.tsx', import.meta.url), 'utf8');
+  for (const id of ['pfd-horizon', 'pfd-speed-scale', 'pfd-altitude-scale',
+    'pfd-vsi-scale', 'pfd-compass-scale']) {
+    assert.ok(source.includes('id="' + id + '"'), 'Chybí clipPath ' + id);
+    assert.ok(source.includes('clipPath="url(#' + id + ')"'), 'ClipPath není použit ' + id);
+  }
+  assert.ok(!source.includes('VÝŠKA · RYCHLOST'));
+  assert.ok(source.includes('vsiTicks.map'), 'Chybí skutečná VSI stupnice');
+  assert.ok(source.includes('pfd-readouts'), 'Doplňující texty musí být mimo kompas');
+});
