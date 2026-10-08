@@ -47,6 +47,12 @@ WebSocket `/ws` používá stále stejné pole telemetrie jako v B1.
 | Výslovné `MSFS_COMPANION_TELEMETRY_MODE=mock` | `mock` |
 | Výslovné `MSFS_COMPANION_TELEMETRY_MODE=simconnect` | `simconnect` |
 
+V nabídce Windows aplikace vedle hodin je také přepínač
+**Zdroj letových dat → SimConnect – skutečný MSFS / Mock – testovací
+hodnoty**. Volba se zapamatuje. Při změně se na okamžik restartuje
+jen bridge, nikoli MSFS. Pro dočasné ladění má přednost explicitně
+nastavená proměnná prostředí před uloženou volbou.
+
 Režim se přepíná **při startu bridge**. Při běhu simulátoru
 se vývojový mock nezapíná automaticky jako záloha, protože by
 přístroje ukazovaly vymyšlené údaje.
