@@ -33,6 +33,7 @@ public sealed class SimConnectTelemetrySource(
         }
 
         logger.LogInformation("SimConnect příjem každým sim frame, předávání do webu maximálně 20 Hz.");
+        var consecutiveFailures = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
             health.StartConnecting();
@@ -43,9 +44,10 @@ public sealed class SimConnectTelemetrySource(
             cockpitSystems.Reset();
             landings.Reset();
             store.Reset("Čekám na MSFS 2020");
+            var deliveredLiveData = false;
             try
             {
-                await ReadUntilDisconnectedAsync(stoppingToken);
+                await ReadUntilDisconnectedAsync(stoppingToken, () => deliveredLiveData = true);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -69,7 +71,10 @@ public sealed class SimConnectTelemetrySource(
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+                consecutiveFailures = deliveredLiveData ? 0 : Math.Min(5, consecutiveFailures + 1);
+                var wait = SimConnectRetryPolicy.DelayAfter(consecutiveFailures);
+                logger.LogInformation("Další pokus o připojení SimConnect za {Seconds} s.",wait.TotalSeconds);
+                await Task.Delay(wait, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -78,7 +83,7 @@ public sealed class SimConnectTelemetrySource(
         }
     }
 
-    private async Task ReadUntilDisconnectedAsync(CancellationToken stoppingToken)
+    private async Task ReadUntilDisconnectedAsync(CancellationToken stoppingToken, Action markLive)
     {
         await using var client = new SimConnectClient("MSFS Companion – živá telemetrie")
         {
@@ -174,6 +179,7 @@ public sealed class SimConnectTelemetrySource(
             var skipped = Math.Max(0, frame.Sequence - previousSequence - 1);
 
             store.Update(frame.Data.ToSnapshot(aircraft, frame.ReceivedUtc));
+            markLive();
             health.RecordPublished(frame.ReceivedUtc, DateTimeOffset.UtcNow, skipped);
         }
     }
