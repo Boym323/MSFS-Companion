@@ -1,0 +1,10 @@
+.advanced-avionics { display:grid; gap:16px; margin-bottom:30px; }
+.advanced-avionics p { color:#a7b9d4; font-size:13px; line-height:1.6; }
+.advanced-avionics label { display:grid; gap:8px; max-width:350px; font-size:13px; }
+.advanced-avionics select { background:#101a2d; color:#e8f4ff; border:1px solid #425d7d; padding:10px; border-radius:8px; min-height:44px; }
+.advanced-avionics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.advanced-avionics-item { display:grid; gap:10px; padding:14px; border:1px solid #304965; border-radius:10px; background:#101a2d; }
+.advanced-avionics-item span { font-size:13px; color:#e2ecfa; }
+.advanced-avionics-actions { display:flex; gap:8px; }
+.advanced-avionics button { min-height:44px; flex:1; background:#1a405e; color:#e6f6ff; border:1px solid #4d7194; border-radius:8px; cursor:pointer; }
+.advanced-avionics button:disabled { opacity:.4; cursor:not-allowed; }
