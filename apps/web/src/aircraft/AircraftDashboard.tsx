@@ -82,7 +82,7 @@ export default function AircraftDashboard({
         <div>
           <span className="eyebrow">B7 · AIRCRAFT DASHBOARD</span>
           <h2>{aircraft}</h2>
-          <p>{profileLabel(aircraft) · hodnoty zatím nebyly potvrzeny pro konkrétní kokpit}</p>
+          <p>{profileLabel(aircraft)} · hodnoty zatím nebyly potvrzeny pro konkrétní kokpit</p>
         </div>
         <span className="aircraft-dashboard-signal">
           {systems
