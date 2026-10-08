@@ -7,6 +7,7 @@ using MsfsCompanion.Bridge.Avionics;
 using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Recorder;
 using MsfsCompanion.Bridge.Aircraft;
+using MsfsCompanion.Bridge.Integrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -117,6 +118,7 @@ app.MapGet("/api/cockpit/systems", (CockpitSystemsStore systems) => Results.Ok(s
 app.MapCockpitControls();
 app.MapG1000();
 app.MapAdvancedAvionics();
+app.MapCapabilityCatalog();
 app.MapGet("/api/navigation/current", (NavigationStore nav) => Results.Ok(nav.Status()));
 app.MapAviationFeatures();
 app.MapSimBrief();
