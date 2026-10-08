@@ -11,8 +11,19 @@ MockTelemetrySource -> TelemetryStore -> HTTP /api/telemetry
                                       -> WebSocket /ws -> React dashboard
 ```
 
-Bridge zatím používá simulovanou telemetrii. Etapa B2 přidá
-`SimConnectTelemetrySource` pro Microsoft Flight Simulator 2020.
+Instalovaný Windows bridge používá `SimConnectTelemetrySource`
+pro skutečná data MSFS 2020. Samostatně spuštěný bridge
+používá `MockTelemetrySource` pro vývoj.
+
+## Živá SimConnect telemetrie
+
+Windows zdroj používá jednu strukturovanou SimConnect subscription
+pro 8 veličin, publikuje nejvýše 20 Hz a automaticky obnovuje
+připojení. Poslední vzorek a odhad publikované frekvence jsou
+k dispozici v `GET /api/status`. Bez aktuálních dat web
+nepředstírá připojení.
+
+Více informací: [B2 – živá telemetrie](LIVE_SIMCONNECT_B2.md).
 
 ## Síťový režim
 
