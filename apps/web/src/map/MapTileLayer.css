@@ -1,0 +1,6 @@
+.map-tile { position: absolute; width: 256px; height: 256px; max-width: none;
+  user-select: none; pointer-events: none; }
+.map-attribution { position: absolute; z-index: 6; bottom: 5px; right: 7px;
+  background: #f8fbfff0; color: #1c324c; padding: 3px 6px; border-radius: 3px;
+  font: 11px/1.3 sans-serif; }
+.map-attribution a { color: #134a83; text-decoration: underline; }

@@ -13,18 +13,24 @@ magnetického kurzu. Tlačítky +/− lze změnit přiblížení.
 
 ### Podklad a ochrana soukromí
 
-Výchozí režim zobrazuje vlastní souřadnicovou mřížku,
-letadlo a stopu. **Je použitelný i bez internetu.**
+OpenStreetMap se na stránce **/map načítá automaticky** při
+známé GPS poloze a dostupném internetu. I bez internetu
+zůstává funkční vlastní mřížka, symbol letadla a trasa.
 
-Při výslovném zapnutí volby **Zobrazit podklad OpenStreetMap**
-stahuje prohlížeč mapové dlaždice z
-`https://tile.openstreetmap.org`. Třetí strana tak může
-poznat přibližnou zobrazovanou oblast a veřejnou IP adresu
-prohlížeče. Uživatel má kdykoli možnost podklad vypnout.
+Podkladové dlaždice pro aktuálně viditelnou oblast stahuje přímo
+webový prohlížeč z `https://tile.openstreetmap.org`.
+Poskytovatel tak může poznat přibližnou zobrazovanou oblast,
+veřejnou IP adresu klienta a původ webové stránky; **neodesíláme
+mu celý záznam GPS bodů ani identifikaci letadla**. Přispěvatelům
+OpenStreetMap zůstává viditelná atribuce. Na stránkách /map
+a /flights je společná volba vypnutí podkladu uložená v prohlížeči.
+Při prvním otevření je zapnutá.
 
-Zobrazujeme povinné © OpenStreetMap přispěvatelé.
-Neodesíláme letové body ani identifikaci letadla žádnému
-dalšímu serveru Companionu.
+Na rozdíl od staré verze není pro OSM blokován HTTP Referer:
+server OSM jej vyžaduje podle pravidel používání dlaždic.
+Používá se normální vyrovnávací paměť prohlížeče, bez stahování
+dlaždic pro neviditelné oblasti nebo do offline archivu.
+Podmínky: https://operations.osmfoundation.org/policies/tiles/
 
 ### Stopa letu
 
@@ -34,8 +40,9 @@ nebo nepřirozeném přesunu o více než 100 km se stará stopa
 vyčistí, aby nevznikala chybná spojnice. Body lze odstranit
 tlačítkem **Smazat stopu**.
 
-**Stopa zatím není trvale uložená**: po obnovení stránky
-zmizí. Historii letů doplní etapa B5 (Flight Recorder).
+Živá stopa na stránce /map se neukládá: po obnovení stránky
+zmizí. Samostatný Flight Recorder B5 uchovává historii letů
+na Windows PC a zobrazuje ji na podkladové mapě v /flights.
 Při odpojení MSFS se mapa označí jako offline a přestane
 předstírat novou polohu.
 
@@ -46,8 +53,8 @@ předstírat novou polohu.
 3. Vyznačená stopa se musí prodlužovat přibližně 1× za sekundu.
 4. Změňte kurz, přibližujte a oddalujte mapu.
 5. Bez internetu musí zůstat dostupná mřížka a vlastní stopa.
-6. Zapnutí OSM podkladu vyžaduje internet; ověřte uvedené
-   licenční označení.
+6. OSM podklad musí být automaticky zapnutý; ověřte atribuci,
+   dostupnost bez internetu i možnost jej vypnout a opět zapnout.
 7. Po odpojení MSFS musí zmizet symbol aktuální polohy.
 
 Web je pouze informační doplněk ke **simulátoru**, nikoliv

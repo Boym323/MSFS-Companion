@@ -14,8 +14,7 @@
 .flight-history-summary span { color: #829bb7; display: block; font-size: 11px; }
 .flight-history-summary strong { display: block; margin-top: 6px; font-size: 14px; overflow-wrap: anywhere; }
 .flight-history-main h3 { font-size: 13px; font-weight: 650; margin: 18px 0 10px; color: #bad8ed; }
-.flight-history-chart, .flight-history-route { display: block; width: 100%; background: #0a1828; border: 1px solid #31506a; border-radius: 8px; }
-.flight-history-route { background-image: linear-gradient(90deg,#31506a33 1px,transparent 1px),linear-gradient(#31506a33 1px,transparent 1px); background-size: 44px 44px; }
+.flight-history-chart { display: block; width: 100%; background: #0a1828; border: 1px solid #31506a; border-radius: 8px; }
 .flight-history-player { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 17px; }
 .flight-history-player button { cursor: pointer; border: 1px solid #5a82a4; color: #e5f5ff; background: #244365; padding: 10px 12px; border-radius: 8px; }
 .flight-history-player button:disabled { cursor: not-allowed; opacity: .5; }

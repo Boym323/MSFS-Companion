@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import {
-  metersBetween, project, shortestWorldDistance, TILE_SIZE, wrapTileX,
+  metersBetween, project, shortestWorldDistance,
 } from './geo';
+import MapTileLayer from './MapTileLayer';
+import { useMapBackground } from './useMapBackground';
 import './MovingMap.css';
 
 type TrackPoint = {
@@ -13,11 +15,10 @@ type TrackPoint = {
 };
 
 const MAX_POINTS = 3600; // ~1h při 1 bodu/s; žádná neomezená paměť
-const TILE_ENDPOINT = 'https://tile.openstreetmap.org';
 
 export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot | null }) {
   const [zoom, setZoom] = useState(11);
-  const [tilesEnabled, setTilesEnabled] = useState(false);
+  const [tilesEnabled, setTilesEnabled] = useMapBackground();
   const [track, setTrack] = useState<TrackPoint[]>([]);
   const [size, setSize] = useState({ width: 920, height: 500 });
   const viewport = useRef<HTMLDivElement>(null);
@@ -68,26 +69,6 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
     && Math.abs(center.longitude) <= 180;
   const world = validCenter ? project(center, zoom) : null;
   const { width, height } = size;
-  const tiles: { x: number; y: number; key: string; url: string; left: number; top: number }[] = [];
-
-  if (tilesEnabled && world) {
-    const startX = Math.floor((world.x - width / 2) / TILE_SIZE);
-    const endX = Math.ceil((world.x + width / 2) / TILE_SIZE);
-    const startY = Math.floor((world.y - height / 2) / TILE_SIZE);
-    const endY = Math.ceil((world.y + height / 2) / TILE_SIZE);
-    for (let x = startX; x <= endX; x++) {
-      for (let y = startY; y <= endY; y++) {
-        if (y < 0 || y >= 2 ** zoom) continue;
-        tiles.push({
-          x, y, key: `${zoom}-${x}-${y}`,
-          url: `${TILE_ENDPOINT}/${zoom}/${wrapTileX(x, zoom)}/${y}.png`,
-          left: x * TILE_SIZE - world.x + width / 2,
-          top: y * TILE_SIZE - world.y + height / 2,
-        });
-      }
-    }
-  }
-
   const trackPath = world && track.length >= 2
     ? track.map((point, index) => {
         const p = project(point, zoom);
@@ -125,16 +106,11 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       <label className="moving-map-background">
         <input type="checkbox" checked={tilesEnabled}
           onChange={(event) => setTilesEnabled(event.target.checked)} />
-        Zobrazit podklad OpenStreetMap (vyžaduje internet)
+        Podklad OpenStreetMap (automaticky zapnutý, lze vypnout)
       </label>
 
       <div ref={viewport} className="moving-map-canvas" aria-label="Mapa centrovaná na aktuální GPS polohu">
-        {tilesEnabled && tiles.map((tile) => (
-          <img key={tile.key} className="moving-map-tile" src={tile.url}
-            alt="" loading="lazy" referrerPolicy="no-referrer"
-            width={TILE_SIZE} height={TILE_SIZE}
-            style={{ left: tile.left, top: tile.top }} />
-        ))}
+        <MapTileLayer center={world} zoom={zoom} width={width} height={height} enabled={tilesEnabled} />
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
           <path d={trackPath} stroke="#79e6f8" fill="none"
@@ -161,11 +137,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
             <span>Proletěná trasa zůstane zachována po dobu otevření této stránky.</span>
           </div>
         )}
-        {tilesEnabled && (
-          <div className="moving-map-attribution">
-            © <a href="https://www.openstreetmap.org/copyright" rel="noopener noreferrer" target="_blank">OpenStreetMap</a> přispěvatelé
-          </div>
-        )}
+
       </div>
       <div className="moving-map-stats">
         <span><strong>GPS:</strong> {telemetry
@@ -176,9 +148,10 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         <span><strong>Uložené body:</strong> {track.length} / {MAX_POINTS}</span>
       </div>
       <p className="moving-map-note">
-        Základní mapa a trasa fungují bez internetu. Podklad OSM se stáhne pouze po zapnutí;
-        tím může poskytovatel mapových dlaždic zjistit přibližnou polohu zobrazené oblasti.
-        V B5 doplníme trvalý záznam letů.
+        Podklad OpenStreetMap se načítá automaticky, pokud je dostupný internet.
+        Bez internetu zůstane viditelná souřadnicová mřížka a stopa letu. Mapový server
+        může odvodit přibližnou zobrazenou oblast z požadovaných dlaždic.
+        Podklad lze vypnout; volba platí i pro historii letů.
       </p>
     </section>
   );

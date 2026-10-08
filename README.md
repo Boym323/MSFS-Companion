@@ -104,15 +104,16 @@ neplatná data. Více v [českém návodu k PFD](docs/PFD_B3.md).
 
 Na stránce `/map` se zobrazuje GPS poloha, magnetický kurz a
 proletěná stopa (omezená na 3600 bodů, přibližně hodina při 1 Hz).
-Souřadnicová mapa funguje bez internetu. Volitelný podklad
-OpenStreetMap se načte až po výslovném zapnutí: může odhalit
-přibližnou oblast letu provozovateli dlaždic.
+Souřadnicová mapa funguje bez internetu. Podklad
+OpenStreetMap se zapíná automaticky a lze jej vypnout:
+poskytovatel dlaždic může odhadnout zobrazenou oblast.
 [Český návod k mapě](docs/MOVING_MAP_B4.md).
 
 ## Záznam a přehrávání letů B5
 
 Samostatná stránka `/flights` nabízí výpis uložených letů,
-graf výšky a rychlosti, schematickou GPS stopu a přehrávání.
+graf výšky a rychlosti, GPS stopu na automaticky zobrazeném
+podkladu OpenStreetMap a přehrávání.
 Windows bridge zaznamenává přibližně jeden vzorek za sekundu
 **nezávisle na otevřeném dashboardu**, nejvýše 30 letů / 100 MB
 v profilu uživatele. Při přepnutí na mock se testovací záznam
