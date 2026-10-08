@@ -8,7 +8,7 @@ namespace MsfsCompanion.WindowsHost;
 internal sealed class CompanionTrayContext : ApplicationContext
 {
     private readonly NotifyIcon _icon;
-    private readonly BridgeProcess _bridge = new(AdminControl.GetOrCreateToken());
+    private readonly BridgeProcess _bridge = new();
     private readonly System.Windows.Forms.Timer _healthTimer;
     private readonly System.Windows.Forms.Timer _updateTimer;
     private readonly System.Windows.Forms.Timer _webRequestTimer;
@@ -46,11 +46,20 @@ internal sealed class CompanionTrayContext : ApplicationContext
         menu.Items.Add(_automaticUpdates);
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Zkopírovat správcovský klíč", null, (_, _) =>
+        menu.Items.Add(new ToolStripMenuItem("Zkopírovat adresu dashboardu v LAN", null, (_, _) =>
         {
-            Clipboard.SetText(AdminControl.GetOrCreateToken());
-            MessageBox.Show("Správcovský klíč byl zkopírován. Vkládejte ho pouze do svého webového dashboardu. " +
-                "Nesdílejte jej veřejně.", "MSFS Companion", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var lan = LanAccess.Find();
+            if (lan is null)
+            {
+                MessageBox.Show("Nebyla nalezena privátní IPv4 adresa Wi-Fi nebo Ethernetu. " +
+                    "Zkontrolujte připojení počítače k domácí síti.",
+                    "MSFS Companion", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            Clipboard.SetText(lan.DashboardUrl);
+            MessageBox.Show($"Adresa pro Mac a ostatní zařízení v domácí síti byla zkopírována:\n{lan.DashboardUrl}",
+                "MSFS Companion", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }));
         menu.Items.Add(new ToolStripMenuItem("Otevřít diagnostický log", null, (_, _) =>
             Process.Start(new ProcessStartInfo("notepad.exe", $"\"{EventLogFile.PathOnDisk}\"") { UseShellExecute = true })));
@@ -74,7 +83,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             if (_exiting || _checking || _applyingUpdate || !AdminControl.HasPendingRequests())
                 return;
 
-            EventLogFile.Write("Vzdálená autorizovaná žádost o kontrolu aktualizací.");
+            EventLogFile.Write("Požadavek na kontrolu aktualizací z webu v domácí síti.");
             await CheckUpdatesAsync(force: true, fromWeb: true);
         };
         _webRequestTimer.Start();

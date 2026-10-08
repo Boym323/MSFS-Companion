@@ -5,13 +5,6 @@ namespace MsfsCompanion.WindowsHost;
 internal sealed class BridgeProcess : IDisposable
 {
     private Process? _child;
-    private readonly string _adminToken;
-
-    public BridgeProcess(string adminToken)
-    {
-        _adminToken = adminToken;
-    }
-
     public bool IsRunning
     {
         get
@@ -58,8 +51,22 @@ internal sealed class BridgeProcess : IDisposable
             };
             info.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
             info.Environment["DOTNET_NOLOGO"] = "1";
-            info.Environment["MSFS_COMPANION_ADMIN_TOKEN"] = _adminToken;
             info.Environment["MSFS_COMPANION_CONTROL_DIR"] = AdminControl.ControlDirectory;
+
+            // Samostatný bridge zůstává na localhostu. Instalovaný hostitel
+            // přidá pouze konkrétní privátní IPv4 adresu Wi-Fi/Ethernet adaptéru.
+            var lan = LanAccess.Find();
+            if (lan is not null)
+            {
+                info.Environment["Kestrel__Endpoints__Lan__Url"] = $"http://{lan.Address}:8765";
+                info.Environment["MSFS_COMPANION_LAN_ADDRESS"] = lan.Address.ToString();
+                info.Environment["MSFS_COMPANION_LAN_NETMASK"] = lan.Mask.ToString();
+                EventLogFile.Write($"Dashboard v domácí síti: {lan.DashboardUrl}");
+            }
+            else
+            {
+                EventLogFile.Write("Soukromá IPv4 adresa nenalezena; dashboard zůstává jen na localhostu.");
+            }
 
             _child = new Process { StartInfo = info, EnableRaisingEvents = true };
             _child.OutputDataReceived += (_, e) =>

@@ -14,6 +14,18 @@ builder.Services.AddHostedService(
 
 var app = builder.Build();
 
+// Kontrola všech příchozích spojení včetně HTML, API a WebSocketu.
+// Zamezuje přístupu z jiných podsítí i DNS rebindingu.
+app.Use(async (context, next) =>
+{
+    if (!LanRequestPolicy.Allows(context))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+    await next(context);
+});
+
 // The Windows installer bundles the Vite production build into wwwroot.
 // Vite development continues to proxy requests from port 5173 as before.
 app.UseDefaultFiles();
@@ -36,8 +48,8 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryStore store) =>
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
 
-// Správa aktualizací vyžaduje náhodný klíč ze spuštěného Windows hostitele.
-// Samostatně spuštěný bridge tyto cesty vůbec neregistruje.
+// Správa aktualizací je dostupná pouze ve Windows hostiteli a v LAN.
+// POST vyžaduje kontrolu původu požadavku, nikoli uživatelský klíč.
 app.MapAdminUpdates();
 
 // Read-only telemetry stream. Cockpit commands require a separately
