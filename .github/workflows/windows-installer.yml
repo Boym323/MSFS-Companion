@@ -1,0 +1,153 @@
+name: Windows tray installer
+
+on:
+  pull_request:
+    paths:
+      - "apps/windows-host/**"
+      - "apps/bridge/**"
+      - "apps/web/**"
+      - "docs/WINDOWS_INSTALLER.md"
+      - ".github/workflows/windows-installer.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/windows-host/**"
+      - "apps/bridge/**"
+      - "apps/web/**"
+      - ".github/workflows/windows-installer.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version for manual/test build (for example 0.2.0)"
+        required: true
+        default: "0.2.0"
+
+# Automatic development releases are published only after a successful
+# main-branch Windows build. PRs cannot access release write privileges.
+permissions:
+  contents: read
+
+env:
+  APP_VERSION: ${{ github.event_name == 'push' && format('0.2.{0}', github.run_number) || inputs.version || '0.2.0' }}
+
+jobs:
+  windows-installer:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build production web dashboard
+        shell: pwsh
+        working-directory: apps/web
+        run: |
+          npm install --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw "frontend build failed" }
+
+      - name: Publish self-contained Windows bridge and tray
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:APP_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid SemVer version' }
+          dotnet publish apps/bridge/MsfsCompanion.Bridge.csproj -c Release -r win-x64 --self-contained true -o staging/app/bridge
+          if ($LASTEXITCODE -ne 0) { throw 'Bridge publish failed' }
+          dotnet publish apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release -r win-x64 --self-contained true -o staging/app
+          if ($LASTEXITCODE -ne 0) { throw 'Tray host publish failed' }
+          New-Item -ItemType Directory -Force staging/app/bridge/wwwroot | Out-Null
+          Copy-Item apps/web/dist/* staging/app/bridge/wwwroot/ -Recurse -Force
+          if (!(Test-Path staging/app/MsfsCompanion.WindowsHost.exe)) { throw 'Tray executable missing' }
+          if (!(Test-Path staging/app/bridge/MsfsCompanion.Bridge.exe)) { throw 'Bridge executable missing' }
+          if (!(Test-Path staging/app/bridge/wwwroot/index.html)) { throw 'Frontend missing' }
+
+      - name: Smoke test packaged HTTP API and React dashboard
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = (Resolve-Path staging/app/bridge/MsfsCompanion.Bridge.exe).Path
+          $workDir = (Resolve-Path staging/app/bridge).Path
+          $bridgeProcess = Start-Process -FilePath $exe -WorkingDirectory $workDir -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Milliseconds 250
+              try {
+                $status = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/status" -TimeoutSec 2
+                if ($status.status -eq 'ok') { $ready = $true; break }
+              } catch { }
+            }
+            if (!$ready) { throw 'Bundled Windows bridge failed to start' }
+            $html = Invoke-WebRequest -Uri "http://127.0.0.1:8765/admin" -TimeoutSec 5
+            if ($html.StatusCode -ne 200 -or !$html.Content.Contains("MSFS Companion")) {
+              throw 'Bundled React dashboard is unavailable'
+            }
+            Write-Host 'Windows bundled API and React smoke test passed'
+          } finally {
+            if (!$bridgeProcess.HasExited) { Stop-Process -Id $bridgeProcess.Id -Force }
+            $bridgeProcess.Dispose()
+          }
+
+      - name: Verify safety policy without running the simulator
+        shell: pwsh
+        run: |
+          # WinExe applications are GUI-subsystem processes. PowerShell's &
+          # operator may return before they exit, leaving LASTEXITCODE stale.
+          $selfTest = Start-Process -FilePath (Resolve-Path ./staging/app/MsfsCompanion.WindowsHost.exe).Path -ArgumentList '--self-test' -PassThru -Wait
+          if ($selfTest.ExitCode -ne 0) { throw "Update safety policy test failed: $($selfTest.ExitCode)" }
+
+      - name: Package Velopack installer and update feed
+        shell: pwsh
+        run: |
+          dotnet tool install --global vpk --version 1.2.161
+          if ($LASTEXITCODE -ne 0) { throw 'Installing vpk failed' }
+          vpk pack --packId Boym323.MsfsCompanion --packVersion $env:APP_VERSION --packDir staging/app --mainExe MsfsCompanion.WindowsHost.exe --packTitle "MSFS Companion" --packAuthors "Boym323" --shortcuts "Startup,StartMenuRoot" --channel win --outputDir staging/releases
+          if ($LASTEXITCODE -ne 0) { throw 'Velopack pack failed' }
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MSFS-Companion-Windows-Installer
+          path: staging/releases/*
+          retention-days: 14
+          if-no-files-found: error
+
+  publish-update:
+    name: Publish development release to GitHub Releases
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: windows-installer
+    runs-on: windows-2022
+    timeout-minutes: 20
+    # Keep privileged publish separate from code running in PR builds.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: MSFS-Companion-Windows-Installer
+          path: staging/releases
+      - name: Check generated Velopack release files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path staging/releases/releases.win.json)) { throw 'Velopack update manifest missing' }
+          if (@(Get-ChildItem staging/releases -Filter '*Setup.exe').Count -lt 1) { throw 'Windows Setup.exe missing' }
+          if (@(Get-ChildItem staging/releases -Filter '*.nupkg').Count -lt 1) { throw 'Velopack package missing' }
+      - name: Publish update into the same public repository
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet tool install --global vpk --version 1.2.161
+          if ($LASTEXITCODE -ne 0) { throw 'Installing vpk failed' }
+          vpk upload github --repoUrl https://github.com/Boym323/MSFS-Companion --outputDir staging/releases --channel win --token $env:VPK_TOKEN --publish --tag "v$env:APP_VERSION" --releaseName "MSFS Companion development $env:APP_VERSION" --targetCommitish "${{ github.sha }}"
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing Velopack update failed' }

@@ -12,6 +12,11 @@ builder.Services.AddHostedService(
     provider => provider.GetRequiredService<MockTelemetrySource>());
 
 var app = builder.Build();
+
+// The Windows installer bundles the Vite production build into wwwroot.
+// Vite development continues to proxy requests from port 5173 as before.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseWebSockets(new WebSocketOptions
 {
     KeepAliveInterval = TimeSpan.FromSeconds(20)
@@ -67,5 +72,13 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
         // Browser disconnected unexpectedly. Reconnection is handled by the UI.
     }
 });
+
+// Reject unknown API paths instead of routing them to the SPA fallback.
+// This also keeps unauthenticated cockpit-control endpoints unavailable.
+app.Map("/api/{**unmatched}", () => Results.NotFound());
+app.Map("/api", () => Results.NotFound());
+
+// Unknown frontend routes use the bundled React entry point.
+app.MapFallbackToFile("index.html");
 
 app.Run();
