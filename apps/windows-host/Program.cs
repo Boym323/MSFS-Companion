@@ -1,4 +1,5 @@
 using Velopack;
+using Velopack.Sources;
 
 namespace MsfsCompanion.WindowsHost;
 
@@ -12,6 +13,25 @@ internal static class Program
         if (args.Contains("--self-test"))
         {
             return UpdatePolicy.SelfTest() && CompanionMdnsPublisher.SelfTest() && UpdateRecoveryJournal.SelfTest() ? 0 : 1;
+        }
+
+        // CI tests the *installed* version. This is read-only, never contacts
+        // the release feed and must not start the tray/bridge or run updates.
+        if (args is ["--verify-installed-version", var target])
+        {
+            try
+            {
+                var manager = new UpdateManager(
+                    new GithubSource(HostSettings.DefaultFeedUrl, null, false));
+                var installed = manager.IsInstalled
+                    ? manager.CurrentVersion?.ToString() : null;
+                return UpdateRecoveryJournal.MatchesTargetVersion(target, installed) ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                EventLogFile.Write("C33 installed-version smoke failed: " + ex.GetType().Name);
+                return 1;
+            }
         }
 
         // Keep this before normal application startup: Velopack may run
