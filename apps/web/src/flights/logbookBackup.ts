@@ -2,7 +2,7 @@ import type {TelemetrySnapshot} from '../telemetry/types';
 
 export type ArchivedFlight={
  summary:{id:string;aircraft:string;mode:'mock'|'simconnect';
-  startedAtUtc:string;lastAtUtc:string;active:boolean};
+  startedAtUtc:string;lastAtUtc:string;endedAtUtc?:string|null;active:boolean};
  samples:TelemetrySnapshot[];
 };
 export type FlightArchive={
@@ -28,7 +28,9 @@ function validFlight(value:unknown):value is ArchivedFlight{
   &&typeof s.id==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(s.id)
   &&typeof s.aircraft==='string'&&s.aircraft.length<=200
   &&(s.mode==='simconnect'||s.mode==='mock')
-  &&date(s.startedAtUtc)&&date(s.lastAtUtc)&&typeof s.active==='boolean'
+  &&date(s.startedAtUtc)&&date(s.lastAtUtc)&&date(s.endedAtUtc) && s.active===false
+  &&Date.parse(s.startedAtUtc)<=Date.parse(s.lastAtUtc)
+  &&Date.parse(s.lastAtUtc)<=Date.parse(s.endedAtUtc!)
   &&Array.isArray(f.samples)&&f.samples.length<=10000&&f.samples.every(validSample);
 }
 export function createLogbookArchive(flights:ArchivedFlight[],exportedAtUtc:string):string{
