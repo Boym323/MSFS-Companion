@@ -89,7 +89,7 @@ internal static class RecoveryPackageCache
                 return null;
             var item=JsonSerializer.Deserialize<Candidate>(File.ReadAllText(Manifest));
             if(item is not {Schema:1}||SafeVersion(item.Version)is null||
-                item.Sha256.Length!=64||!item.Sha256.All(Uri.IsHexDigit)||
+                string.IsNullOrWhiteSpace(item.Sha256)||item.Sha256.Length!=64||!item.Sha256.All(Uri.IsHexDigit)||
                 item.Bytes<100_000||item.Bytes>400_000_000||
                 item.SavedAtUtc>DateTimeOffset.UtcNow.AddMinutes(5)||
                 item.SavedAtUtc<DateTimeOffset.UtcNow.AddDays(-90)||
