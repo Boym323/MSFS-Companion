@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import {normalizeVerification,verificationKey,pilotReviewAllowed,
+  type PilotResult,type VerificationMap} from './verification';
 import './G1000Remote.css';
 
 type Availability = {
@@ -47,6 +49,32 @@ export default function G1000Remote({ live }: { live: boolean }) {
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [selectedAction,setSelectedAction]=useState('');
+  const [reviews,setReviews]=useState<VerificationMap>({});
+  const aircraftKey=verificationKey(live?availability?.aircraft??null:null);
+  const offered=availability?.status==='ready'?availability.availableActions:[];
+  useEffect(()=>{
+    setSelectedAction('');
+    try{
+      const raw=aircraftKey?window.localStorage.getItem(aircraftKey):null;
+      setReviews(raw?normalizeVerification(JSON.parse(raw),Date.now()):{});
+    }catch{setReviews({});}
+  },[aircraftKey]);
+  const setManualReview=(result:PilotResult)=>{
+    if(!pilotReviewAllowed(live,availability?.status,availability?.aircraft,offered,selectedAction)
+      ||!aircraftKey)return;
+    const next=normalizeVerification({...reviews,
+      [selectedAction]:{result,checkedAtUtc:new Date().toISOString()}},Date.now());
+    try{window.localStorage.setItem(aircraftKey,JSON.stringify(next));setReviews(next);
+      setFeedback('Ruční hodnocení uloženo v tomto prohlížeči.');}
+    catch{setFeedback('Úložiště prohlížeče není dostupné. Hodnocení nebylo uloženo.');}
+  };
+  const clearManualReview=()=>{
+    if(!selectedAction||!aircraftKey)return;
+    const next={...reviews};delete next[selectedAction];
+    try{window.localStorage.setItem(aircraftKey,JSON.stringify(next));setReviews(next);}
+    catch{setFeedback('Změnu se nepodařilo uložit.');}
+  };
 
   useEffect(() => {
     if (!live) { setAvailability(null); return; }
@@ -94,12 +122,43 @@ export default function G1000Remote({ live }: { live: boolean }) {
       availability?.status === 'unsupported' ? 'Pro letadlo nebyly nalezeny G1000 události' :
       availability?.status === 'unavailable' ? 'Input Events nyní nedostupné' : 'Načítám…'}</strong>
       {availability?.aircraft ? ` · ${availability.aircraft}` : ''}</p>
+    <section className="g1000-manual-validation">
+      <h3>C43 · Ruční ověření účinku Input Events</h3>
+      <p>Enumerace události ani úspěšná HTTP odpověď neprokazuje změnu v kokpitu.
+        Vyberte skutečně nabízený ovladač, vyzkoušejte jej v MSFS a výsledek
+        označte výhradně podle vlastního pozorování. Uložení je pouze v tomto prohlížeči.</p>
+      <label>Ověřovaná událost
+        <select value={selectedAction} onChange={e=>setSelectedAction(e.target.value)}
+          disabled={!live||offered.length===0}>
+          <option value="">Vyberte dostupný ovladač…</option>
+          {actions.filter(a=>offered.includes(a.id)).map(action=>
+            <option key={action.id} value={action.id}>{action.id} · {action.label}</option>)}
+        </select>
+      </label>
+      {selectedAction&&<p>Ruční záznam: {reviews[selectedAction]
+        ?(reviews[selectedAction].result==='pass'?'Funguje':'Odchylka / nefunguje')+
+          ' · '+new Date(reviews[selectedAction].checkedAtUtc).toLocaleString('cs-CZ')
+        :'Dosud netestováno'}</p>}
+      <div className="g1000-manual-buttons">
+        <button type="button" disabled={!selectedAction||!live||!offered.includes(selectedAction)}
+          onClick={()=>setManualReview('pass')}>Ručně potvrdit funkčnost</button>
+        <button type="button" disabled={!selectedAction||!live||!offered.includes(selectedAction)}
+          onClick={()=>setManualReview('fail')}>Zaznamenat odchylku</button>
+        <button type="button" disabled={!selectedAction||!reviews[selectedAction]}
+          onClick={clearManualReview}>Zrušit hodnocení</button>
+      </div>
+      <p>Uloženo {Object.keys(reviews).length} ručních hodnocení pro
+        {' '}{availability?.aircraft??'neověřené letadlo'}. Po změně letadla se záznamy
+        automaticky nepřenášejí.</p>
+    </section>
     {(['pfd', 'mfd'] as const).map(display => <div className="g1000-section" key={display}>
       <h3>{display.toUpperCase()}</h3>
       <div className="g1000-grid">{actions.filter(a => a.id.startsWith(display + '.')).map(a => {
         const enabled = live && !busy && !!availability?.availableActions.includes(a.id);
         return <div className="g1000-control" key={a.id}>
-          <span>{a.label} {!enabled && !availability?.availableActions.includes(a.id) ? '· nepodporováno' : ''}</span>
+          <span>{a.label} {!enabled && !availability?.availableActions.includes(a.id) ? '· nepodporováno' : ''}
+            {enabled&&reviews[a.id]?' · '+(reviews[a.id].result==='pass'
+              ?'ručně ověřeno':'ručně hlášená odchylka'):''}</span>
           {a.rotary ? <div className="g1000-buttons">
             <button type="button" disabled={!enabled} onClick={() => void send(a.id, -1)}
               aria-label={a.label + ' snížit'}>−</button>
