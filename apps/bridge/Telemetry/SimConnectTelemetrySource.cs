@@ -171,6 +171,8 @@ public sealed class SimConnectTelemetrySource(
             =="a320-asobo-candidate" ? SubscribeA320Engines(client,stoppingToken):null;
         using var a320FcuSubscription=AircraftProfileResolver.Resolve(aircraft).Id
             =="a320-asobo-candidate" ? SubscribeA320Fcu(client,stoppingToken):null;
+        using var a320AuxSubscription=AircraftProfileResolver.Resolve(aircraft).Id
+            =="a320-asobo-candidate" ? SubscribeA320Aux(client,stoppingToken):null;
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -355,6 +357,24 @@ public sealed class SimConnectTelemetrySource(
         catch(Exception ex)
         {
             logger.LogWarning(ex,"Airbus engine SimVars unavailable; base PFD stays live.");
+            return null;
+        }
+    }
+
+    private ISimVarSubscription? SubscribeA320Aux(SimConnectClient client,CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<A320SimConnectAuxData>(
+                SimConnectPeriod.Second,data=>
+                {
+                    if(identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
+                        a320.UpdateAux(data,DateTimeOffset.UtcNow);
+                },cancellationToken:token);
+        }
+        catch(Exception ex)
+        {
+            logger.LogWarning(ex,"A320 optional APU/fuel SimVars unavailable.");
             return null;
         }
     }
