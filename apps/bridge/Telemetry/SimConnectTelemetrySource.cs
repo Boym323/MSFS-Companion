@@ -2,6 +2,7 @@ using System.Diagnostics;
 using SimConnect.NET;
 using SimConnect.NET.SimVar;
 using MsfsCompanion.Bridge.Navigation;
+using MsfsCompanion.Bridge.Aircraft;
 
 namespace MsfsCompanion.Bridge.Telemetry;
 
@@ -19,6 +20,7 @@ public sealed class SimConnectTelemetrySource(
     NavigationStore navigationStore,
     CockpitSystemsStore cockpitSystems,
     LandingStore landings,
+    AircraftIdentityGuard identity,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -37,6 +39,7 @@ public sealed class SimConnectTelemetrySource(
         while (!stoppingToken.IsCancellationRequested)
         {
             health.StartConnecting();
+            identity.Reset();
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
@@ -59,6 +62,7 @@ public sealed class SimConnectTelemetrySource(
                 health.SetWaiting($"{ex.GetType().Name}: {ex.Message}");
             }
 
+            identity.Reset();
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
@@ -117,6 +121,15 @@ public sealed class SimConnectTelemetrySource(
             logger.LogDebug(ex, "Nepodařilo se přečíst TITLE.");
         }
 
+        identity.Begin(aircraft,DateTimeOffset.UtcNow);
+        // Independent slow identity subscription: aircraft switches are detected
+        // while the same SimConnect connection is still alive. A missing TITLE
+        // never permits writing commands to the old aircraft.
+        using var titleSubscription=client.SimVars.Subscribe<string>(
+            "TITLE","",SimConnectPeriod.Second,
+            value=>identity.Observe(value,DateTimeOffset.UtcNow),
+            cancellationToken:stoppingToken);
+
         var buffer = new LatestFrameBuffer<SimConnectAircraftData>();
         var firstReceivedAt = Stopwatch.GetTimestamp();
         var invalidPackets = 0;
@@ -157,6 +170,13 @@ public sealed class SimConnectTelemetrySource(
         {
             if (!client.IsConnected)
                 throw new IOException("SimConnect se odpojil.");
+            if (!identity.Trusted(aircraft,DateTimeOffset.UtcNow))
+                throw new IOException("Změna nebo ztráta TITLE; obnovuji identitu letadla.");
+            if (titleSubscription.Completion.IsCompleted)
+            {
+                await titleSubscription.Completion;
+                throw new IOException("Odběr identity letadla se ukončil.");
+            }
 
             if (subscription.Completion.IsCompleted)
             {
