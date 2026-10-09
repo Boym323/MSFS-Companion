@@ -39,3 +39,18 @@ Prahových 56 dní je pouze opatrný UI indikátor, **nikoli záruka
 platnosti AIRAC**. Nevyhodnocujeme oficiální NOTAM, časovou aktivaci
 prostoru ani právní status. Soukromě importované soubory OpenAir
 nemají ověřený datum účinnosti – UI to výslovně uvádí.
+
+## C45 V2.2 – automatické nalezení posledního vydání
+
+Bridge se při čtení českých prostorů pokusí stáhnout omezený
+oficiální index `https://airspace.aeroklub.cz/docs/public/`.
+Z odkazů `CZ_all_YY-MM-DD.txt` vybírá nejnovější účinný soubor,
+nejvýše aktuální datum, a skládá URL jen z pevné domény Aeroklubu.
+Nemůže následovat libovolnou URL vloženou do HTML.
+
+Při chybě katalogu se použije poslední bezpečně známý soubor
+`CZ_all_26-04-01.txt`, ale API to označí jako neověřenou
+aktuálnost; mapová vrstva vyžaduje ruční souhlas při starém
+nebo neověřeném zdroji. Rozpoznaná nová data se načítají
+nejvýše každých 24 hodin s omezením velikosti souboru.
+Katalog Aeroklubu není NOTAM rozhraní ani živé řízení TSA/TRA.

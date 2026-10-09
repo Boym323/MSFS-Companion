@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace MsfsCompanion.Bridge.Integrations;
 
@@ -8,6 +10,7 @@ namespace MsfsCompanion.Bridge.Integrations;
 /// </summary>
 public sealed class CzechAirspaceService : IDisposable
 {
+    private static readonly Uri Index = new("https://airspace.aeroklub.cz/docs/public/");
     private static readonly Uri Source = new(
         "https://airspace.aeroklub.cz/docs/public/CZ_all_26-04-01.txt");
     public const string EffectiveDate = "2026-04-01";
@@ -21,9 +24,56 @@ public sealed class CzechAirspaceService : IDisposable
         Timeout = TimeSpan.FromSeconds(18)
     };
     private string? _data;
+    private Uri _selectedSource=Source;
+    private string _selectedEffectiveDate=EffectiveDate;
     private DateTimeOffset? _fetchedUtc;
     private DateTimeOffset _attemptUtc = DateTimeOffset.MinValue;
     private string? _lastError;
+
+    // Source discovery only extracts a constrained filename from the fixed,
+    // official HTTPS directory. It never follows publisher-provided arbitrary URLs.
+    public static (string FileName,string EffectiveDate)? FindCurrentRelease(
+        string html,DateTimeOffset now)
+    {
+        if(html.Length>150_000)return null;
+        var candidates=new List<(string FileName,DateTime Date)>();
+        foreach(Match match in Regex.Matches(html,@"CZ_all_(\d{2})-(\d{2})-(\d{2})\.txt",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
+            TimeSpan.FromMilliseconds(200)))
+        {
+            var candidate="20"+match.Groups[1].Value+"-"+
+                match.Groups[2].Value+"-"+match.Groups[3].Value;
+            if(!DateTime.TryParseExact(candidate,"yyyy-MM-dd",
+                CultureInfo.InvariantCulture,DateTimeStyles.None,out var date)||
+                date.Year<2025||
+                date.Date>now.UtcDateTime.Date)continue;
+            candidates.Add(("CZ_all_"+match.Groups[1].Value+"-"+
+                match.Groups[2].Value+"-"+match.Groups[3].Value+".txt",date));
+        }
+        if(candidates.Count==0)return null;
+        var best=candidates.OrderByDescending(x=>x.Date).First();
+        return (best.FileName,best.Date.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture));
+    }
+
+    private async Task<string> ReadLimitedAsync(Uri uri,int maxBytes,CancellationToken cancellation)
+    {
+        using var response=await _http.GetAsync(uri,HttpCompletionOption.ResponseHeadersRead,cancellation);
+        if(!response.IsSuccessStatusCode)
+            throw new HttpRequestException("OpenAir HTTP "+(int)response.StatusCode);
+        if(response.Content.Headers.ContentLength is { } length&&length>maxBytes)
+            throw new InvalidDataException("OpenAir maximum size exceeded");
+        await using var stream=await response.Content.ReadAsStreamAsync(cancellation);
+        using var memory=new MemoryStream();
+        var buffer=new byte[16_384];
+        int count;
+        while((count=await stream.ReadAsync(buffer.AsMemory(),cancellation))>0)
+        {
+            if(memory.Length+count>maxBytes)
+                throw new InvalidDataException("OpenAir maximum size exceeded");
+            memory.Write(buffer,0,count);
+        }
+        return Encoding.UTF8.GetString(memory.ToArray());
+    }
 
     public async Task<object> GetAsync(CancellationToken cancellation)
     {
@@ -37,30 +87,37 @@ public sealed class CzechAirspaceService : IDisposable
                 _attemptUtc = now;
                 try
                 {
-                    using var response = await _http.GetAsync(Source,
-                        HttpCompletionOption.ResponseHeadersRead, cancellation);
-                    if (!response.IsSuccessStatusCode)
-                        throw new HttpRequestException("OpenAir HTTP " + (int)response.StatusCode);
-                    if (response.Content.Headers.ContentLength is > MaxBytes)
-                        throw new InvalidDataException("OpenAir maximum size exceeded");
-
-                    await using var stream = await response.Content.ReadAsStreamAsync(cancellation);
-                    using var memory = new MemoryStream();
-                    var buffer = new byte[16_384];
-                    int length;
-                    while ((length = await stream.ReadAsync(buffer.AsMemory(), cancellation)) > 0)
+                    Uri target=Source;
+                    string effective=EffectiveDate;
+                    var catalogVerified=false;
+                    try
                     {
-                        if (memory.Length + length > MaxBytes)
-                            throw new InvalidDataException("OpenAir maximum size exceeded");
-                        memory.Write(buffer, 0, length);
+                        var listing=await ReadLimitedAsync(Index,150_000,cancellation);
+                        var latest=FindCurrentRelease(listing,now);
+                        if(latest is { } published)
+                        {
+                            target=new Uri(Index,published.FileName);
+                            effective=published.EffectiveDate;
+                            catalogVerified=true;
+                        }
                     }
-                    var text = Encoding.UTF8.GetString(memory.ToArray());
+                    catch(Exception ex) when(!cancellation.IsCancellationRequested)
+                    {
+                        // Retain known fixed source only when catalog is unavailable.
+                        _lastError="Katalog Aeroklubu nelze ověřit ("+ex.GetType().Name+").";
+                    }
+                    var text=await ReadLimitedAsync(target,MaxBytes,cancellation);
                     if (!text.Contains("\nAC ", StringComparison.Ordinal) &&
                         !text.StartsWith("AC ", StringComparison.Ordinal))
                         throw new InvalidDataException("OpenAir source missing airspace definitions");
                     _data = text;
+                    _selectedSource=target;
+                    _selectedEffectiveDate=effective;
                     _fetchedUtc = DateTimeOffset.UtcNow;
-                    _lastError = null;
+                    // Index failure must remain visible even if the known
+                    // historical file downloaded without error.
+                    _lastError=catalogVerified?null:
+                        "Nelze ověřit aktuální vydání v katalogu Aeroklubu.";
                 }
                 catch (Exception ex) when (!cancellation.IsCancellationRequested)
                 {
@@ -75,8 +132,8 @@ public sealed class CzechAirspaceService : IDisposable
                 available = _data is not null,
                 stale,
                 updatedAtUtc = _fetchedUtc,
-                effectiveDate = EffectiveDate,
-                source = Source.ToString(),
+                effectiveDate = _selectedEffectiveDate,
+                source = _selectedSource.ToString(),
                 publisher = "Aeroklub České republiky / Jan Zahradka",
                 data = _data,
                 error = _lastError
