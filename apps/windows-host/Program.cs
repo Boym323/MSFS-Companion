@@ -12,7 +12,7 @@ internal static class Program
         // run without the updater's packaging hooks or process exit logic.
         if (args.Contains("--self-test"))
         {
-            return UpdatePolicy.SelfTest() && CompanionMdnsPublisher.SelfTest() && UpdateRecoveryJournal.SelfTest() ? 0 : 1;
+            return UpdatePolicy.SelfTest() && CompanionMdnsPublisher.SelfTest() && UpdateRecoveryJournal.SelfTest() && RecoveryPackageCache.SelfTest() ? 0 : 1;
         }
 
         // Velopack initialization is required before locating installed
@@ -22,6 +22,27 @@ internal static class Program
 
         // CI tests the actual installed version without starting tray/bridge.
         // The updater feed is not contacted by reading CurrentVersion.
+        // Exercise the actual installed package cache on Windows CI,
+        // not a mock directory. This deliberately never invokes rollback.
+        if (args is ["--smoke-recovery-package", var expectedVersion])
+        {
+            try
+            {
+                var manager=new UpdateManager(
+                    new GithubSource(HostSettings.DefaultFeedUrl,null,false));
+                return manager.IsInstalled &&
+                    UpdateRecoveryJournal.MatchesTargetVersion(expectedVersion,
+                        manager.CurrentVersion?.ToString()) &&
+                    RecoveryPackageCache.TryCapture(expectedVersion) &&
+                    RecoveryPackageCache.VerifiedPackage() is not null ? 0 : 1;
+            }
+            catch(Exception ex)
+            {
+                EventLogFile.Write("C42 installed package smoke: "+ex.GetType().Name);
+                return 1;
+            }
+        }
+
         if (args is ["--verify-installed-version", var target])
         {
             try
