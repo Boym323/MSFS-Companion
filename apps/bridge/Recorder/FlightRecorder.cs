@@ -75,6 +75,7 @@ public sealed partial class FlightRecorder(
         try
         {
             Directory.CreateDirectory(_directory);
+            RecoverInterruptedImports(); // Before publishing any recovered metadata.
             RecoverOrphanedSessions();
             Prune();
         }
