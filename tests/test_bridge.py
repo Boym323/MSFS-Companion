@@ -168,6 +168,33 @@ class BridgeSmokeTests(unittest.TestCase):
             urllib.request.urlopen(req, timeout=3)
         self.assertIn(error.exception.code, (404, 405))
 
+    def test_c49_flight_restore_is_loopback_and_same_origin_only(self):
+        # Malicious pages or LAN tablets must not write the Windows flight archive.
+        body = b'{"schema":"kokpit-flight-backup-v1","flights":[]}'
+        for headers in [
+            {"Content-Type": "application/json"},
+            {"Content-Type": "application/json",
+             "X-MSFS-Companion-Action": "restore-flights"},
+            {"Content-Type": "application/json",
+             "X-MSFS-Companion-Action": "restore-flights",
+             "Origin": "http://evil.invalid"},
+        ]:
+            request = urllib.request.Request(
+                BASE + "/api/flights/restore", data=body,
+                headers=headers, method="POST")
+            with self.assertRaises(urllib.error.HTTPError) as failure:
+                urllib.request.urlopen(request, timeout=3)
+            self.assertEqual(failure.exception.code, 403)
+        # Explicit authenticated-local action still must reject bad data.
+        request = urllib.request.Request(
+            BASE + "/api/flights/restore", data=b'{"schema":"unexpected"}',
+            headers={"Content-Type": "application/json",
+                     "X-MSFS-Companion-Action": "restore-flights",
+                     "Origin": BASE}, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            urllib.request.urlopen(request, timeout=3)
+        self.assertIn(failure.exception.code, (400, 409))
+
     def test_simbrief_rejects_invalid_pilot_id_without_network(self):
         with self.assertRaises(urllib.error.HTTPError) as failure:
             get_json("/api/flightplans/simbrief/invalid")
