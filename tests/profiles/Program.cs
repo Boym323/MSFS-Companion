@@ -10,6 +10,9 @@ Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "airbus-addon", "
 Check(AircraftProfileResolver.Resolve("Fenix Airbus A320").Id == "airbus-addon", "fenix separated");
 Check(AircraftProfileResolver.Resolve("iniBuilds Airbus A320neo").Id == "airbus-addon", "v2 separated");
 Check(AircraftProfileResolver.IsAirbusLike("A320neo"),"airbus identification");
+Check(AircraftProfileResolver.IsAirbusLike("iniBuilds A321neo"),"A321 addon must be Airbus-protected");
+Check(AircraftProfileResolver.IsAirbusLike("Airbus A350-900"),"other Airbus family AP policy");
+Check(AircraftProfileResolver.Resolve("iniBuilds A321neo").Id=="airbus-addon","iniBuilds A321 addon profile");
 Check(!AircraftProfileResolver.Resolve("Asobo Airbus A320neo").Verified,"unverified candidate");
 var identity = new AircraftIdentityGuard();
 var at = DateTimeOffset.UtcNow;
