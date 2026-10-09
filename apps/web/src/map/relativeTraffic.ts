@@ -1,4 +1,4 @@
-import { metersBetween } from './geo';
+import { metersBetween } from './geo.ts';
 import type { SimTrafficTarget } from './useSimTraffic';
 
 type Ownship = {latitude:number; longitude:number; altitudeFeet:number; headingDegrees:number};
