@@ -1,5 +1,5 @@
-export type PanelId = 'pfd' | 'map' | 'aircraft' | 'controls' | 'g1000' | 'avionics';
-const allowed = new Set<PanelId>(['pfd','map','aircraft','controls','g1000','avionics']);
+export type PanelId = 'pfd' | 'map' | 'aircraft' | 'controls' | 'g1000' | 'avionics' | 'a320';
+const allowed = new Set<PanelId>(['pfd','map','aircraft','controls','g1000','avionics','a320']);
 export type Layout = { columns: 1 | 2; visible: PanelId[] };
 
 export function normalizeWorkspace(input: unknown): Layout {
