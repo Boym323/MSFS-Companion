@@ -111,9 +111,11 @@ export default function FlightHistory() {
     setBackupBusy(true);setBackupMessage('Zpracovávám dostupné lety z Windows bridge…');
     setBackupPreview(null);
     try{
-      if(flights.length>30)throw Error('Překročen počet letů dostupných pro jediný archiv.');
+      const finalized=flights.filter(f=>!f.active&&f.endedAtUtc!==null);
+      if(!finalized.length)throw Error('Nejsou k dispozici dokončené lety vhodné k obnově.');
+      if(finalized.length>30)throw Error('Překročen počet letů dostupných pro jediný archiv.');
       const records:ArchivedFlight[]=[];
-      for(const item of flights){
+      for(const item of finalized){
         const controller=new AbortController();
         const timer=window.setTimeout(()=>controller.abort(),10000);
         try{
@@ -121,7 +123,7 @@ export default function FlightHistory() {
             {cache:'no-store',signal:controller.signal});
           if(!response.ok)throw Error('Nepodařilo se stáhnout let '+item.id);
           const data=await response.json() as FlightDetail;
-          if(data.summary.id!==item.id||!Array.isArray(data.samples))
+          if(data.summary.id!==item.id||data.summary.active||!data.summary.endedAtUtc||!Array.isArray(data.samples))
             throw Error('Let '+item.id+' neodpovídá požadovanému záznamu.');
           records.push({summary:data.summary,samples:data.samples});
         }finally{window.clearTimeout(timer);}
@@ -209,13 +211,13 @@ export default function FlightHistory() {
       {error && <p className="telemetry-offline" role="status">{error}</p>}
       <section className="flight-history-backup">
         <h3>C49 · Záloha letového deníku</h3>
-        <p>Exportujte všechny momentálně dostupné záznamy letů z Windows bridge do
+        <p>Exportujte všechny dokončené záznamy letů z Windows bridge do
           jednoho místního JSON souboru. Archiv může obsahovat GPS souřadnice,
           názvy letadel a časy letů. Neposílá se žádné externí službě.</p>
         <div className="flight-history-backup-actions">
           <button type="button" disabled={backupBusy||flights.length===0}
             onClick={()=>void exportBackup()}>
-            {backupBusy?'Vytvářím zálohu…':'Zálohovat dostupné lety JSON'}
+            {backupBusy?'Vytvářím zálohu…':'Zálohovat dokončené lety JSON'}
           </button>
           <label>Zkontrolovat existující zálohu (pouze lokální náhled)
             <input type="file" accept=".json,application/json"
