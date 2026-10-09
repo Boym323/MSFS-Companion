@@ -4,7 +4,7 @@ import {createLogbookArchive,inspectLogbookArchive} from './logbookBackup.ts';
 
 const makeFlight=(id='20261009T070000-abcdef012345')=>({
  summary:{id,aircraft:'C172',mode:'simconnect',startedAtUtc:'2026-10-09T07:00:00Z',
- lastAtUtc:'2026-10-09T07:01:00Z',active:false},
+ lastAtUtc:'2026-10-09T07:01:00Z',endedAtUtc:'2026-10-09T07:01:00Z',active:false},
  samples:[{timestampUtc:'2026-10-09T07:00:00Z',aircraft:'C172',
    latitude:50.5,longitude:14.4,altitudeFeet:2500,airspeedKnots:100}],
 });
