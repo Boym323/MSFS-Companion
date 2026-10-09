@@ -32,6 +32,7 @@ function validFlight(value:unknown):value is ArchivedFlight{
   &&Array.isArray(f.samples)&&f.samples.length<=10000&&f.samples.every(validSample);
 }
 export function createLogbookArchive(flights:ArchivedFlight[],exportedAtUtc:string):string{
+ if(flights.some(f=>f?.summary?.active===true))throw Error('Aktivní let nelze uložit do obnovitelné zálohy. Ukončete let a export zopakujte.');
  if(flights.length>30||!date(exportedAtUtc))throw Error('Neplatná velikost nebo datum zálohy.');
  if(flights.some(f=>!validFlight(f)))
    throw Error('Některý záznam letu má neplatné údaje.');
