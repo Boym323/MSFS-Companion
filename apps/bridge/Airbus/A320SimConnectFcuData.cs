@@ -35,6 +35,8 @@ public struct A320SimConnectFcuData
         AutopilotMaster}.All(double.IsFinite)
         &&SelectedSpeedKnots is >= 0 and <= 600
         &&SelectedMach is >= 0 and <= 2
+        &&SelectedHeadingDegrees is >= -360 and <= 360
+        &&AutopilotMaster is 0 or 1
         &&SelectedAltitudeFeet is >= -2000 and <= 65000
         &&Math.Abs(SelectedVerticalSpeedFpm)<=12000
         &&ValidSlot(SpeedSlotIndex)&&ValidSlot(HeadingSlotIndex)
