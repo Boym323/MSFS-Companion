@@ -109,7 +109,7 @@ internal static class Program
         if(!Version(target)||!Version(previous)||Same(target,previous)||
             Path.GetFileName(updater)!="Update.exe"||
             !Path.IsPathFullyQualified(updater)||!File.Exists(updater)||
-            !ReadPending(target,previous).EqualsSafe())return 2;
+            ReadPending(target,previous) is null)return 2;
         if(!ValidBackup(previous)){Write("no trustworthy offline package, monitoring disabled");return 3;}
         try{
             using var old=Process.GetProcessById(originalPid);
@@ -149,7 +149,6 @@ internal static class Program
         {Write("automatic rollback could not start: "+ex.GetType().Name);return 8;}
     }
 
-    private static bool EqualsSafe(this Pending? item)=>item is not null;
     private static async Task<int> Main(string[] args)
     {
         if(args is ["--self-test"])
