@@ -47,7 +47,7 @@ public sealed partial class FlightRecorder
             catch(JsonException ex){throw new IOException("Invalid C49 import journal.",ex);}
             if(marker is not {Schema:1}||marker.BatchId!=batch||
                 marker.Ids is null||marker.Ids.Length is < 1 or > 30||
-                marker.Ids.Any(id=>!ValidId.IsMatch(id))||
+                marker.Ids.Any(id=>id is null||!ValidId.IsMatch(id))||
                 marker.Ids.Distinct(StringComparer.Ordinal).Count()!=marker.Ids.Length)
                 throw new IOException("Invalid C49 import ownership journal.");
             // Preflight the ENTIRE batch before deleting anything: malformed or
@@ -59,7 +59,8 @@ public sealed partial class FlightRecorder
                 try
                 {
                     using var json=JsonDocument.Parse(File.ReadAllText(meta));
-                    if(!json.RootElement.TryGetProperty("restoreBatchId",out var owner)||
+                    if(json.RootElement.ValueKind!=JsonValueKind.Object ||
+                       !json.RootElement.TryGetProperty("restoreBatchId",out var owner)||
                        owner.GetString()!=batch)
                         throw new IOException("C49 marker does not own recorded flight.");
                 }
@@ -202,6 +203,10 @@ public sealed partial class FlightRecorder
                             owned.Add(data);
                             using var buffered=new StreamWriter(writer);
                             buffered.Write(entry.Data);
+                            buffered.Flush();
+                            // Do not remove the recovery journal until the flight
+                            // body is durably flushed, even after a hard power loss.
+                            writer.Flush(flushToDisk:true);
                         }
                         using (var writer=new FileStream(meta,FileMode.CreateNew,
                             FileAccess.Write,FileShare.None))
@@ -209,6 +214,8 @@ public sealed partial class FlightRecorder
                             owned.Add(meta);
                             using var buffered=new StreamWriter(writer);
                             buffered.Write(entry.Metadata);
+                            buffered.Flush();
+                            writer.Flush(flushToDisk:true);
                         }
                     }
                     File.Delete(markerPath); // Commit: only complete batches become permanent.
