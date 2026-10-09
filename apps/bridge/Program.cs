@@ -153,6 +153,47 @@ app.MapGet("/api/flights/{id}", (string id, FlightRecorder recorder) =>
     return flight is null ? Results.NotFound() : Results.Ok(flight);
 });
 
+// C49: restoration is explicitly restricted to the Windows machine's
+// localhost browser. A trusted-LAN session (even if controls are unpaired)
+// must not write to or replace the Windows user's flight history.
+app.MapPost("/api/flights/restore", async (HttpContext context,
+    FlightRecorder recorder) =>
+{
+    if (!MsfsCompanion.Bridge.Controls.ControlAccess.IsLoopback(context) ||
+        !MsfsCompanion.Bridge.Controls.ControlAccess.SameOrigin(context) ||
+        context.Request.Headers["X-MSFS-Companion-Action"] != "restore-flights")
+        return Results.StatusCode(403);
+    context.Response.Headers.CacheControl="no-store";
+    const int limit = 20_000_000;
+    if (context.Request.ContentLength is > limit)
+        return Results.BadRequest(new {error="Záloha přesahuje 20 MB."});
+    if (!context.Request.HasJsonContentType())
+        return Results.BadRequest(new {error="Očekávám JSON archiv."});
+    try
+    {
+        await using var buffer = new MemoryStream();
+        var block = new byte[16_384];
+        while (true)
+        {
+            var read=await context.Request.Body.ReadAsync(block,context.RequestAborted);
+            if(read==0)break;
+            if(buffer.Length+read>limit)
+                return Results.BadRequest(new {error="Záloha přesahuje 20 MB."});
+            buffer.Write(block,0,read);
+        }
+        buffer.Position=0;
+        var backup=await System.Text.Json.JsonSerializer.DeserializeAsync<FlightBackupArchive>(
+            buffer,new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web),
+            context.RequestAborted);
+        var result=recorder.RestoreArchive(backup);
+        return result.Success?Results.Ok(result):Results.Conflict(result);
+    }
+    catch(System.Text.Json.JsonException)
+    {
+        return Results.BadRequest(new {error="Neplatný nebo poškozený archiv JSON."});
+    }
+});
+
 // Správa aktualizací je dostupná pouze ve Windows hostiteli a v LAN.
 // POST vyžaduje kontrolu původu požadavku, nikoli uživatelský klíč.
 app.MapAdminUpdates();
