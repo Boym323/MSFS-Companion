@@ -13,6 +13,7 @@ import useSigmet from './useSigmet';
 import {useSimTraffic} from './useSimTraffic';
 import {relativeTraffic} from './relativeTraffic';
 import {parseOpenAir, type Airspace} from './openAir';
+import {assessAirspaceSource} from './airspaceFreshness';
 import {groundQuery,parseGroundMap,type GroundMap} from './groundMap';
 import {comparePlan} from './planCrosscheck';
 import AviationAirportDetails from './AviationAirportDetails';
@@ -41,6 +42,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [airspaces,setAirspaces] = useState<Airspace[]>([]);
   const [showAirspaces,setShowAirspaces] = useState(false);
   const [airspaceMessage,setAirspaceMessage] = useState('');
+  const [pendingOldAirspace,setPendingOldAirspace] = useState<Airspace[]|null>(null);
   const [czechLoading,setCzechLoading] = useState(false);
   async function loadCzechAirspace() {
     if(czechLoading) return;
@@ -54,8 +56,14 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       };
       if(!payload.available||!payload.data) throw Error(payload.error||'Zdroj není dostupný.');
       const parsed=parseOpenAir(payload.data);
-      setAirspaces(parsed.regions);setShowAirspaces(true);
-      setAirspaceMessage('Aeroklub ČR · platnost zdrojového souboru od '+
+      const freshness=assessAirspaceSource(payload.effectiveDate,payload.stale,Date.now());
+      setAirspaces([]);setShowAirspaces(false);setPendingOldAirspace(null);
+      if(!freshness.usable)throw Error(freshness.reason+' Český soubor nelze bezpečně označit.');
+      if(freshness.requiresAcknowledgement)setPendingOldAirspace(parsed.regions);
+      else {setAirspaces(parsed.regions);setShowAirspaces(true);}
+      setAirspaceMessage('C45 · '+freshness.reason+' '+
+        (freshness.requiresAcknowledgement?'Pro orientační zobrazení je nutné ruční potvrzení. ':'')+
+        'Aeroklub ČR · platnost zdrojového souboru od '+
         payload.effectiveDate+' · '+parsed.regions.length+' polygonů, '+
         parsed.skipped+' přeskočených (neplatná či složitá geometrie). '+
         (payload.stale?'Mezipaměť je zastaralá. ':'')+
@@ -304,12 +312,18 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
             if(file.size>2_000_000){setAirspaceMessage('Soubor je větší než 2 MB.');return;}
             void file.text().then(text=>{
               const result=parseOpenAir(text);
+              setPendingOldAirspace(null);
               setAirspaces(result.regions);setShowAirspaces(true);
               setAirspaceMessage('Import: '+result.regions.length+' polygonů; '+result.skipped+
-                ' nepodporovaných (například oblouky).');
+                ' neúplných nebo nepodporovaných. Datum účinnosti ručně importovaného souboru nebylo ověřeno.');
             }).catch(()=>setAirspaceMessage('Soubor OpenAir nelze načíst.'));
           }}/>
         </label>
+        {pendingOldAirspace&&<button type="button" onClick={()=>{
+          setAirspaces(pendingOldAirspace);setShowAirspaces(true);
+          setPendingOldAirspace(null);
+          setAirspaceMessage('C45 · Ručně povoleno orientační zobrazení staršího zdroje. Není určeno pro skutečnou navigaci.');
+        }}>Rozumím stáří zdroje – zobrazit pouze v simulátoru</button>}
         <label><input type="checkbox" checked={showAirspaces} onChange={e=>setShowAirspaces(e.target.checked)}
           disabled={!airspaces.length}/> Zobrazit načtené prostory ({airspaces.length})</label>
         {airspaceMessage&&<p role="status">{airspaceMessage}</p>}
