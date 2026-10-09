@@ -285,3 +285,21 @@ GitHub CI potvrzuje sestavení a simulované regresní scénáře, **ne však
 reálný let nebo destruktivní výpadek dvou nainstalovaných verzí**.
 Závislosti nyní kontroluje také
 [týdenní bezpečnostní audit](docs/DEPENDENCY_SECURITY.md).
+
+## Asobo A320neo (MSFS 2020)
+
+Samostatná stránka `/a320` a volitelný panel
+`/workspace` zobrazují 1Hz **read-only** FCU/ENG/APU/fuel
+diagnostiku, vedle dosavadní 20Hz PFD a mapy. Identita
+`TITLE` je průběžně kontrolována a měření mimo správné
+letadlo, při výpadku nebo po 6 sekundách stáří se skryjí.
+Generické `autopilot.*` povely jsou u Airbusu
+z bezpečnostních důvodů vypnuté.
+
+Automatické testy zkoušejí data a bezpečnostní pravidla,
+nikoliv skutečný účinek FCU na Asobo A320neo.
+Pilotní akceptační postup:
+[Asobo A320](docs/ACCEPTANCE_A320.md),
+[identita](docs/A320_01_IDENTITY.md),
+[FCU a motory](docs/A320_02_03_READBACK.md),
+[dashboard](docs/A320_04_DASHBOARD.md).
