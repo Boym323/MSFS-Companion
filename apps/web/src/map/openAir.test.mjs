@@ -47,3 +47,29 @@ test('C45 legacy simple polygon still renders; dateline longitudes are finite',(
  assert.equal(near180.regions.length,1);
  assert.ok(near180.regions[0].points.every(p=>Math.abs(p.longitude)<=180));
 });
+
+test('C45 Aeroklub 2026 DC cylinders with *NM annotations are drawn',()=>{
+ const source='AC Q\nAN DROPZONE Kromeriz 122.205\nAH FL 95\nAL 0 AGL\n'+
+  'V X=49:17:08 N 017:24:57 E\nDC 2 *NM';
+ const result=parseOpenAir(source);
+ assert.equal(result.regions.length,1);
+ assert.equal(result.skipped,0);
+ assert.equal(result.regions[0].points.length,72);
+ const center={latitude:49+17/60+8/3600,longitude:17+24/60+57/3600};
+ assert.ok(Math.abs(metersBetween(center,result.regions[0].points[0])/1852-2)<0.02);
+});
+test('C45 real Aeroklub DB arc with *OKL annotation retains center',()=>{
+ const sample='AC GS\nAN TRA GA SLANY 5A 122.405\nAH 5000 MSL\nAL 3500 MSL\n'+
+  'V X=50:05:45 N 014:15:56 E *OKL 14.8 NM\nV D=-\n'+
+  'DB 50:18:06 N 014:03:15 E, 50:15:33 N 013:58:41 E\n'+
+  'V X=50:05:45 N 014:15:56 E *OKL 17.5 NM\nV D=+\n'+
+  'DB 50:17:10 N 013:55:18 E, 50:20:56 N 014:02:26 E';
+ const result=parseOpenAir(sample);
+ assert.equal(result.skipped,0);
+ assert.equal(result.regions.length,1);
+ assert.ok(result.regions[0].points.length>5);
+});
+test('C45 annotation stripping does not permit invalid units',()=>{
+ const source='AC Q\nAN TEST\nV X=49:17:08 N 017:24:57 E\nDC 999 *NM';
+ assert.equal(parseOpenAir(source).regions.length,0);
+});
