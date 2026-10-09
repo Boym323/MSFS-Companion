@@ -1,23 +1,24 @@
 import { useEffect, useState } from 'react';
 import type { AirportDetail } from './useAviationFeatures';
 
-export default function AviationAirportDetails({ ident, onClose }: {
+export default function AviationAirportDetails({ ident, onClose, onDetail }: {
   ident: string; onClose: () => void;
+  onDetail?: (value: AirportDetail | null) => void;
 }) {
   const [detail, setDetail] = useState<AirportDetail | null>(null);
   const [error, setError] = useState(false);
   useEffect(() => {
     let closed = false;
     const controller = new AbortController();
-    setDetail(null); setError(false);
+    setDetail(null); setError(false); onDetail?.(null);
     void fetch('/api/map/aviation/airport/' + encodeURIComponent(ident),
       { cache: 'no-store', signal: controller.signal })
       .then(async res => {
         if (!res.ok) throw new Error('Letiště není dostupné.');
         return await res.json() as AirportDetail;
       })
-      .then(result => { if (!closed) setDetail(result); })
-      .catch(() => { if (!closed) setError(true); });
+      .then(result => { if (!closed) {setDetail(result);onDetail?.(result);} })
+      .catch(() => { if (!closed) {setError(true);onDetail?.(null);} });
     return () => { closed = true; controller.abort(); };
   }, [ident]);
 
