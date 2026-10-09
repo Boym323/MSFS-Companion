@@ -7,7 +7,9 @@ repozitáře `Boym323/MSFS-Companion`.
 - Na Windows se aktualizace kontrolují přibližně 20 sekund
   po spuštění a dále každých 60 minut.
 - Na místním dashboardu lze kdykoli kliknout na
-  **Vynutit kontrolu a instalaci nové verze**.
+  **Vynutit kontrolu a instalaci nové verze**. Tlačítko
+  okamžitě odešle požadavek bez potvrzovacího dialogu;
+  průběh a případné chyby se ukazují přímo v panelu.
 - Kontrola je přístupná pouze ze stejné privátní podsítě;
   nevyžaduje klíč ani Tailscale.
 - Nová verze může restartovat MSFS Companion a bridge i

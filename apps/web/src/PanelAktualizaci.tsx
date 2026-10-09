@@ -52,9 +52,6 @@ export default function PanelAktualizaci() {
 
   async function vynutit() {
     if (ceka) return;
-    if (!window.confirm('Zkontrolovat novou verzi na Windows PC? Pokud existuje aktualizace, krátce se restartuje pouze Companion. MSFS zůstane běžet.'))
-      return;
-
     setCeka(true);
     try {
       const odpoved = await fetch('/api/admin/updates/check', {
