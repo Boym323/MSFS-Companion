@@ -13,7 +13,8 @@ naváže se smazanými sekundárními daty. Neplatná/stará
 identita (10 s) nemůže odeslat příkaz. Stav je read-only
 `GET /api/aircraft/identity`, s atributem `trusted`.
 
-Pro každý známý Airbus / A320 se blokují generické
+Pro každý známý Airbus / A320, včetně rozpoznaných variant A318/A319/A321,
+A330/A350/A380 a samostatných názvů iniBuilds, se blokují generické
 `autopilot.*` Key Events – včetně AP on/off a heading/
 altitude/vertical speed. Zbytek stávajícího povoleného
 ovládání funguje se stejnými LAN/CSRF omezeními a rate
