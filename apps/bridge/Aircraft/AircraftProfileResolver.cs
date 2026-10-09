@@ -26,13 +26,30 @@ public static class AircraftProfileResolver
             ["pfd", "map", "radio", "g1000"], false, "Ověřit variantu avioniky.")),
         (@"(da.?62|diamond 62)", new("da62", "Diamond DA62", "G1000 (kandidát)",
             ["pfd", "map", "radio", "g1000"], false, "Ověřit variantu avioniky.")),
-        (@"(a320|airbus)", new("airbus", "Airbus", "Airliner FMC/FCU",
-            ["pfd", "map", "radio", "airliner"], false, "Standardní AP Eventy nemusí ovládat addony.")),
+        // TITLE is a candidate, NOT proof of Asobo aircraft package identity.
+        // Named third-party variants must never inherit Asobo-specific assumptions.
+        (@"(a32nx|flybywire|fenix|inibuilds|inibuild)", new("airbus-addon",
+            "Airbus – jiná avionika", "Add-on FCU/MCDU (neověřeno)",
+            ["pfd", "map", "radio", "airliner"], false,
+            "Nejedná se o potvrzený profil výchozí Asobo A320neo.")),
+        (@"(a320[ -]?neo|a320neo|a320)", new("a320-asobo-candidate",
+            "Airbus A320neo (Asobo kandidát)", "FCU/MCDU (read-only diagnostika)",
+            ["pfd", "map", "radio", "airliner"], false,
+            "Podoba TITLE nestačí k potvrzení Asobo V1; generické AP povely blokovány.")),
+        (@"(airbus)", new("airbus", "Airbus – neověřeno", "Airliner FMC/FCU",
+            ["pfd", "map", "radio", "airliner"], false,
+            "Generické AP povely blokovány, dokud nejsou ověřené pro variantu.")),
         (@"(g36|bonanza)", new("g36", "Beechcraft Bonanza G36", "G1000 (kandidát)",
             ["pfd", "map", "radio", "g1000"], false, "Ověřit avioniku.")),
         (@"(c208|caravan)", new("c208", "Cessna 208", "G1000 (kandidát)",
             ["pfd", "map", "radio", "g1000"], false, "Ověřit avioniku.")),
     ];
+
+    public static bool IsAirbusLike(string? title) =>
+        title is {Length: > 0 and <= 256} &&
+        Regex.IsMatch(title,@"(airbus|a320|a32nx|flybywire|fenix)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(50));
 
     public static AircraftProfile Resolve(string? title)
     {
