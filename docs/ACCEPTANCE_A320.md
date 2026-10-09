@@ -22,13 +22,13 @@ Neexistuje společná garantovaná sada Input Events pro všechny varianty.
    (včetně zdroje/addonu a verze), vydání Kokpitu a čas testu.
 2. Na `/aircraft`, `/map` a `/validation` ověřit, že zdroj je
    **simconnect + connected**, nikoli mock, a telemetrie není stale.
-3. **Neslibovat dálkové ovládání FCU/MCDU.** Aktuální profil
-   `airbus` v `AircraftProfileResolver` má
-   `Verified=false`, `Airliner FMC/FCU` a kandidátní panely
-   `pfd/map/radio/airliner`. Samostatná A320 FCU/MCDU integrace
-   není doložena. Výstupy Cockpit Commands je nutné porovnat
-   se skutečným stavem v simulátoru, jinak zůstávají
-   `SENT / UNVERIFIED`.
+3. **Neslibovat dálkové ovládání FCU/MCDU.** Profil
+   `a320-asobo-candidate` zůstává `Verified=false`, protože
+   samotný TITLE nepotvrzuje konkrétní avioniku Asobo V1.
+   Nová stránka `/a320` čte N1/N2 obou motorů a obecné
+   FCU reference, nikoli potvrzený FMA či MCDU.
+   Generické `autopilot.*` Key Events jsou pro Airbus
+   na serveru blokované, dokud nemáme skutečné ověření.
 
 ## Testy – hlavní cockpit a průběh letu
 
@@ -68,3 +68,13 @@ nepřidávat kódem neověřené H-Events nebo L-Variables.
 Windows rollback test [#19](https://github.com/Boym323/MSFS-Companion/issues/19)
 zůstává nezávislý na konkrétním modelu letadla. Neprovádět jej
 během letu.
+
+## A320-05 – konzistence aktivního GPS legu
+
+Po změně GPS waypoint indexu, množství bodů, aktivity plánu či
+souřadnic aktivního bodu se starý `GPS WP NEXT ID` zneplatní,
+dokud z nezávislého SimConnect odběru nepřijde nový název.
+Importovaný PLN / SimBrief bod se nyní označí za `match`
+pouze při souběhu identifikátoru **i** polohy do 2 NM.
+Pouhá geometrická blízkost je `uncertain`, stejně tak pouze
+identický název. Žádný zápis do MCDU/FMS neprobíhá.
