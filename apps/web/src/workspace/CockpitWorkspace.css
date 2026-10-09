@@ -25,3 +25,7 @@
 .cockpit-workspace button { touch-action:manipulation; min-height:48px; }
 @media (pointer:coarse) { .cockpit-workspace button,.cockpit-workspace-panel-head a { min-height:48px; padding:12px 15px; display:inline-flex; align-items:center; } .cockpit-workspace-settings input[type=checkbox] { height:25px;width:25px; } }
 @media(max-width:760px){.cockpit-workspace:fullscreen .cockpit-workspace-panels { grid-template-columns:minmax(0,1fr); }.cockpit-workspace:fullscreen {padding:6px} }
+
+.cockpit-workspace-aircraft{display:grid;gap:11px;background:#142b42;border:1px solid #43617b;border-radius:11px;padding:16px}
+.cockpit-workspace-aircraft>strong{color:#d6eeff}
+.cockpit-workspace-aircraft .cockpit-workspace-choices{gap:10px}

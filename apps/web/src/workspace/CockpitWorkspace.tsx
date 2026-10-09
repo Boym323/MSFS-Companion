@@ -8,6 +8,7 @@ import G1000Remote from '../g1000/G1000Remote';
 import AdvancedAvionics from '../avionics/AdvancedAvionics';
 import './CockpitWorkspace.css';
 import { normalizeWorkspace, type PanelId, type Layout } from './layout';
+import { recommendedAircraftLayout, aircraftLayoutStorageKey } from './aircraftPresets';
 
 const panels: { id: PanelId; name: string; path: string }[] = [
   { id:'pfd', name:'PFD', path:'/pfd' },
@@ -35,6 +36,26 @@ export default function CockpitWorkspace({ telemetry, live }: {
 }) {
   const [layout, setLayout] = useState<Layout>(saved);
   const [fullscreen, setFullscreen] = useState(false);
+  const [aircraftMessage,setAircraftMessage]=useState('');
+  const aircraftKey=live?aircraftLayoutStorageKey(telemetry?.aircraft):null;
+  const recommended=live?recommendedAircraftLayout(telemetry?.aircraft):null;
+  useEffect(()=>setAircraftMessage(''),[aircraftKey]);
+  function saveForAircraft(){
+    if(!aircraftKey)return;
+    try {
+      window.localStorage.setItem(aircraftKey,JSON.stringify(normalizeWorkspace(layout)));
+      setAircraftMessage('Rozložení uloženo pouze v tomto prohlížeči pro toto letadlo.');
+    } catch {setAircraftMessage('Rozložení nelze uložit (úložiště prohlížeče není dostupné).');}
+  }
+  function loadForAircraft(){
+    if(!aircraftKey)return;
+    try {
+      const data=window.localStorage.getItem(aircraftKey);
+      if(!data){setAircraftMessage('Pro toto letadlo ještě nemáte vlastní uložené rozložení.');return;}
+      setLayout(normalizeWorkspace(JSON.parse(data)));
+      setAircraftMessage('Ručně načteno rozložení tohoto letadla.');
+    } catch {setAircraftMessage('Rozložení nelze načíst (neplatné či nedostupné údaje).');}
+  }
   useEffect(() => {const sync = () => setFullscreen(document.fullscreenElement !== null);
     document.addEventListener('fullscreenchange',sync);
     return ()=>document.removeEventListener('fullscreenchange',sync);},[]);
@@ -89,6 +110,27 @@ export default function CockpitWorkspace({ telemetry, live }: {
           Obnovit výchozí
         </button>
       </div>
+      <section className="cockpit-workspace-aircraft">
+        <strong>C50 · Profil rozložení podle letadla</strong>
+        <p>{aircraftKey ? 'Aktuální letadlo: '+telemetry?.aircraft
+          : 'Pro uložení konkrétního rozložení musí být připojen živý MSFS.'}</p>
+        <p>Výběr je vždy ruční: změna letadla sama nepřepne žádný panel.
+          Kandidátní avionika nemusí být v MSFS dostupná.</p>
+        <div className="cockpit-workspace-choices">
+          <button type="button" disabled={!recommended}
+            onClick={()=>{if(recommended){setLayout(recommended.layout);
+              setAircraftMessage('Načten návrh: '+recommended.name+'. Ovladače je nutné ověřit v MSFS.');}}}>
+            Použít doporučené panely
+          </button>
+          <button type="button" disabled={!aircraftKey} onClick={saveForAircraft}>
+            Uložit pro toto letadlo
+          </button>
+          <button type="button" disabled={!aircraftKey} onClick={loadForAircraft}>
+            Načíst uložené
+          </button>
+        </div>
+        {aircraftMessage&&<p role="status">{aircraftMessage}</p>}
+      </section>
       <fieldset>
         <legend>Aktivní panely (max. 3)</legend>
         {panels.map(panel =>
