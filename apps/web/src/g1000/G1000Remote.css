@@ -10,3 +10,9 @@
 .g1000-buttons button { flex: 1; }
 .g1000-remote button:disabled { opacity: .35; cursor: not-allowed; }
 .g1000-help { border-top: 1px solid #26384f; padding-top: 10px; }
+
+.g1000-manual-validation{display:grid;gap:12px;padding:17px;background:#112b42;border:1px solid #426682;border-radius:13px}
+.g1000-manual-validation h3{margin:0}
+.g1000-manual-validation label{display:grid;gap:8px;max-width:520px;font-size:13px;color:#d0e5f6}
+.g1000-manual-validation select{min-height:46px;background:#0b2236;color:#e6f3ff;border:1px solid #5481a0;border-radius:8px;padding:8px}
+.g1000-manual-buttons{display:flex;gap:10px;flex-wrap:wrap}
