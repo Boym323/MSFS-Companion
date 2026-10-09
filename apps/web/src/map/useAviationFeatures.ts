@@ -15,7 +15,8 @@ export type AirportDetail = {
   airport: { ident: string; name: string; airportType: string;
     latitude: number; longitude: number; elevationFeet: number | null };
   runways: { lowIdent: string; highIdent: string; lengthFeet: number | null;
-    surface: string }[];
+    surface: string; latitude:number; longitude:number;
+    endLatitude:number; endLongitude:number }[];
   frequencies: { type: string; description: string; frequencyMhz: number }[];
   source: string; updatedAt: string;
 };
