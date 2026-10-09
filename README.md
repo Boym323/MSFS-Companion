@@ -234,3 +234,37 @@ Na `/workspace` lze sestavit až tři panely (PFD, mapa, letadlo,
 COM/NAV, G1000 nebo další avionika), vybrat jeden či dva sloupce a
 přesouvat jejich pořadí. Rozložení se ukládá pouze v prohlížeči.
 Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
+
+## Nové etapy C41–C50 – stav implementace
+
+- **C41:** Na `/validation` lze porovnat read-only SimVars/GPS před a po změně v MSFS.
+  Ruční potvrzení avioniky je stále nutné. [Dokumentace](docs/VALIDATION_C41.md).
+- **C42:** Částečně hotovo – update journal zná předchozí instalovanou a
+  poslední úspěšně ověřenou verzi. **Automatický rollback a nezávislý watchdog
+  zatím neexistují.** [Dokumentace](docs/UPDATE_C42_RECOVERY_PROVENANCE.md).
+- **C43:** Na `/g1000` lze ručně potvrzovat/hlásit odchylky jednotlivých
+  enumerovaných Input Events pro přesné letadlo. [Dokumentace](docs/AVIONICS_C43.md).
+- **C44:** Na `/map` se shoda GPS × PLN/SimBrief odvozuje z polohy a
+  identifikátoru odděleně. Žádná automatická synchronizace do FMS.
+  [Dokumentace](docs/FLIGHT_PLAN_C44.md).
+- **C45:** OpenAir mapa podporuje jednoduché oblouky `DA`/`DB` a kružnice
+  `DC`; invalidní tvary odmítá. NOTAM/AIRAC nejsou ověřené.
+  [Dokumentace](docs/AIRSPACE_C45.md).
+- **C46:** Volitelná SimConnect traffic vrstva ukazuje relativní vzdálenost,
+  směr a výškový rozdíl; **nejde o TCAS**. [Dokumentace](docs/TRAFFIC_C46.md).
+- **C47:** Letištní briefing ukazuje složky větru z čerstvého METAR podle
+  geometrie drah. [Dokumentace](docs/RUNWAY_WIND_C47.md).
+- **C48:** `/progress` nabízí orientační TOD pro aktuální GPS leg, nikoliv
+  VNAV autopilota. [Dokumentace](docs/DESCENT_C48.md).
+- **C49:** `/flights` umí exportovat hromadnou GPS zálohu JSON a lokálně
+  zkontrolovat její formát; **produkční obnova do recorderu zatím ne**.
+  [Dokumentace](docs/LOGBOOK_C49.md).
+- **C50:** `/workspace` ukládá uživatelsky vyvolané presety jednotlivých
+  letadel, bez automatického přepínání panelů.
+  [Dokumentace](docs/WORKSPACE_C50.md).
+
+Automatické CI není náhradou za test s reálným MSFS 2020.
+Aktuální otevřené validační úkoly jsou [issue #19](https://github.com/Boym323/MSFS-Companion/issues/19),
+[#20](https://github.com/Boym323/MSFS-Companion/issues/20),
+[#23](https://github.com/Boym323/MSFS-Companion/issues/23)
+a [#24](https://github.com/Boym323/MSFS-Companion/issues/24).

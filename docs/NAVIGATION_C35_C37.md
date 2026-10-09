@@ -3,8 +3,10 @@
 ## C35 – vzdušné prostory
 Přes `/map` lze lokálně importovat textový OpenAir soubor. Podporovány jsou
 hranice s přímými body `DP`, názvy (`AN`), třída (`AC`) a výškové limity
-(`AL`, `AH`). Oblouky `DA`, `DB`, `DC` ani nesrozumitelná geometrie
-se **nezobrazují**, aby nevznikl falešný tvar oblasti. Nejvýše 160 oblastí
+(`AL`, `AH`). Základní oblouky `DA`, `DB` a kružnice `DC` jsou nyní
+přibližně vykresleny přes podporované `V X` a `V D`.
+Neplatná, příliš složitá či nerozpoznaná geometrie se **vynechá**,
+aby nevznikl falešný tvar oblasti. Viz [C45](AIRSPACE_C45.md). Nejvýše 160 oblastí
 s nejvýše 250 body na oblast. Údaje poskytuje pilot, Companion je nestahuje
 automaticky. Doporučený veřejný zdroj pro podporované regiony:
 https://openflightmaps.org/ (použití podle licenčních podmínek OFMA).
@@ -45,6 +47,8 @@ odmítnutí přesměrování a pevná cílová URL bez možnosti klientského SS
 V procesu zůstává poslední načtená kopie pro případ výpadku.
 
 **Důležité:** Nejde o automaticky verifikovaný aktuální cyklus AIRAC ani
-živé NOTAM. U složitých prostorů s obloukovými body parser bezpečně
-přeskočí celý nepodporovaný objekt, místo nepravdivého vykreslení.
+živé NOTAM. U neplatných nebo nepodporovaných složitých tvarů parser bezpečně
+přeskočí celý objekt místo nepravdivého vykreslení. Podporované
+oblouky se aproximují nejvýše po 5°; nejde o garantovanou
+letecko-navigační přesnost.
 Nepoužívat pro skutečnou leteckou navigaci.
