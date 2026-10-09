@@ -585,25 +585,48 @@ internal sealed class CompanionTrayContext : ApplicationContext
         // installed version is not a rollback-capable binary snapshot.
         var previousVersion = _updateManager.IsInstalled
             ? _updateManager.CurrentVersion?.ToString() : null;
-        // Optional recovery cache: failure never corrupts the update feed.
-        // A missing/full-package candidate is NOT advertised as restorable.
+        // Capture even for manual recovery, but never silently degrade an
+        // explicitly enabled watchdog into an unprotected update.
         if(previousVersion is not null &&
             !RecoveryPackageCache.TryCapture(previousVersion))
-            EventLogFile.Write("C42: no verified offline rollback package found.");
-        if(!UpdateRecoveryJournal.TryArm(
-            _pendingUpdate!.TargetFullRelease.Version.ToString(),previousVersion))
+            EventLogFile.Write("C42: no freshly captured rollback package found.");
+        var matchingPackage=previousVersion is not null &&
+            RecoveryPackageCache.VerifiedPackageForVersion(previousVersion) is not null;
+        if(!UpdatePolicy.RecoveryRequirementMet(_settings.EnableRecoveryWatchdog,
+            previousVersion,matchingPackage))
+        {
+            _updateStatus.Text="Aktualizace pozastavena – není dostupná bezpečná obnova";
+            AdminControl.WriteStatus("error",
+                "Watchdog je zapnutý, ale chybí ověřená předchozí verze. "+
+                "Aktualizace neproběhla; vypněte experimentální watchdog nebo "+
+                "obnovte místní balíček.");
+            EventLogFile.Write("C42: protected update blocked: no matching rollback package.");
+            return;
+        }
+        var targetVersion=_pendingUpdate!.TargetFullRelease.Version.ToString();
+        if(!UpdateRecoveryJournal.TryArm(targetVersion,previousVersion))
         {
             _updateStatus.Text="Nelze vytvořit bezpečnostní záznam aktualizace";
             AdminControl.WriteStatus("error","Aktualizaci nelze bezpečně zaznamenat.");
             EventLogFile.Write("C33: update blocked because journal cannot be armed.");
             return;
         }
-        if(_settings.EnableRecoveryWatchdog&&previousVersion is not null)
+        if(_settings.EnableRecoveryWatchdog)
         {
-            if(RecoveryPackageCache.VerifiedPackage() is not null &&
-                !RecoveryPackageCache.TryStartSupervisor(
-                    _pendingUpdate!.TargetFullRelease.Version.ToString(),previousVersion))
-                EventLogFile.Write("C42: experimentální watchdog nebyl spuštěn; automatický návrat nelze garantovat.");
+            // RecoveryRequirementMet guarantees that this version is non-null
+            // and has a SHA-256-checked matching full package.
+            if(previousVersion is null ||
+                !RecoveryPackageCache.TryStartSupervisor(targetVersion,previousVersion))
+            {
+                var canceled=previousVersion is not null &&
+                    UpdateRecoveryJournal.CancelBeforeApply(targetVersion,previousVersion);
+                _updateStatus.Text="Aktualizace pozastavena – watchdog se nespustil";
+                AdminControl.WriteStatus("error",
+                    "Aktualizace nebyla použita: požadovaný obnovovací proces se "+
+                    "nepodařilo spustit. "+(canceled?"":"Zkontrolujte update journal."));
+                EventLogFile.Write("C42: protected update blocked: watchdog failed to start; journalCanceled="+canceled);
+                return;
+            }
         }
         _applyingUpdate = true;
         try
