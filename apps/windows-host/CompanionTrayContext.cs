@@ -503,7 +503,12 @@ internal sealed class CompanionTrayContext : ApplicationContext
             || _updateManager is null)
             return;
 
-        if(!UpdateRecoveryJournal.TryArm(_pendingUpdate!.TargetFullRelease.Version.ToString()))
+        // Capture provenance before handing control to Velopack; the last
+        // installed version is not a rollback-capable binary snapshot.
+        var previousVersion = _updateManager.IsInstalled
+            ? _updateManager.CurrentVersion?.ToString() : null;
+        if(!UpdateRecoveryJournal.TryArm(
+            _pendingUpdate!.TargetFullRelease.Version.ToString(),previousVersion))
         {
             _updateStatus.Text="Nelze vytvořit bezpečnostní záznam aktualizace";
             AdminControl.WriteStatus("error","Aktualizaci nelze bezpečně zaznamenat.");
