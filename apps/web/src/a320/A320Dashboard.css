@@ -21,6 +21,11 @@
 .a320-aux{margin-top:18px;padding-top:14px;border-top:1px solid #30465e;color:#d8e9f9}
 .a320-aux h4{margin:0 0 10px;font-size:14px}
 .a320-aux p{font-size:13px}
+.a320-proof{margin-top:16px}
+.a320-proof-actions{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}
+.a320-proof-actions button{padding:10px 14px;background:#1e4160;border:1px solid #4f7899;border-radius:8px;color:#f3f8ff;font:inherit;cursor:pointer}
+.a320-proof-actions button:disabled{opacity:.48;cursor:not-allowed}
+.a320-proof-changes{font-size:13px;color:#e5f2ff;line-height:1.8}
 .a320-nav{margin-top:16px}
 .a320-footer{font-size:12px;color:#a7bbd1;line-height:1.6;margin-top:17px}
 @media(max-width:980px){.a320-sections{grid-template-columns:1fr}}
