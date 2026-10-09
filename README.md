@@ -187,8 +187,11 @@ nikoli. Viz [omezení a ověření B10](docs/FLIGHT_INTELLIGENCE_B10.md).
 
 Windows build lze volitelně podepisovat po doplnění infrastruktury
 certifikátů, ale dokud není `WINDOWS_SIGN_PARAMS` nakonfigurován,
-zůstávají instalátory nepodepsaná vývojová vydání. Obnova předchozí
-verze je v tuto chvíli manuální; automatický rollback není hotový.
+zůstávají instalátory nepodepsaná vývojová vydání. Základní
+manuální obnova předchozí verze používá SHA-256 ověřený plný balíček.
+Samostatný watchdog je přibalený jako **experimentální opt-in funkce,
+standardně vypnutá**. Automatický návrat zatím nebyl prokázán
+záměrně poškozenou aktualizací dvou nainstalovaných Windows verzí.
 Viz [příprava podepisování a obnova](docs/RELEASE_HARDENING.md).
 
 
@@ -240,15 +243,17 @@ Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
 - **C41:** Na `/validation` lze porovnat read-only SimVars/GPS před a po změně v MSFS.
   Ruční potvrzení avioniky je stále nutné. [Dokumentace](docs/VALIDATION_C41.md).
 - **C42:** Částečně hotovo – update journal zná předchozí instalovanou a
-  poslední úspěšně ověřenou verzi. **Automatický rollback a nezávislý watchdog
-  zatím neexistují.** [Dokumentace](docs/UPDATE_C42_RECOVERY_PROVENANCE.md).
+  poslední úspěšně ověřenou verzi. **Nezávislý watchdog je implementovaný jako experimentální opt-in
+  funkce, standardně vypnutý; skutečný crash/downgrade test dvou
+  Windows vydání ještě neproběhl.** [Dokumentace](docs/UPDATE_C42_RECOVERY_PROVENANCE.md).
 - **C43:** Na `/g1000` lze ručně potvrzovat/hlásit odchylky jednotlivých
   enumerovaných Input Events pro přesné letadlo. [Dokumentace](docs/AVIONICS_C43.md).
 - **C44:** Na `/map` se shoda GPS × PLN/SimBrief odvozuje z polohy a
   identifikátoru odděleně. Žádná automatická synchronizace do FMS.
   [Dokumentace](docs/FLIGHT_PLAN_C44.md).
-- **C45:** OpenAir mapa podporuje jednoduché oblouky `DA`/`DB` a kružnice
-  `DC`; invalidní tvary odmítá. NOTAM/AIRAC nejsou ověřené.
+- **C45:** OpenAir mapa podporuje oblouky `DA`/`DB`, kružnice `DC`,
+  reálné anotace souborů Aeroklubu a automatický výběr posledního
+  účinného katalogového souboru. **Živá aktivace a NOTAM nejsou ověřené**.
   [Dokumentace](docs/AIRSPACE_C45.md).
 - **C46:** Volitelná SimConnect traffic vrstva ukazuje relativní vzdálenost,
   směr a výškový rozdíl; **nejde o TCAS**. [Dokumentace](docs/TRAFFIC_C46.md).
@@ -257,7 +262,8 @@ Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
 - **C48:** `/progress` nabízí orientační TOD pro aktuální GPS leg, nikoliv
   VNAV autopilota. [Dokumentace](docs/DESCENT_C48.md).
 - **C49:** `/flights` umí exportovat hromadnou GPS zálohu JSON a lokálně
-  zkontrolovat její formát; **produkční obnova do recorderu zatím ne**.
+  zkontrolovat její formát; **lokální obnova do recorderu je dostupná na Windows loopbacku**;
+  data se importují pod novými ID a aktivní nahrávání blokuje import.
   [Dokumentace](docs/LOGBOOK_C49.md).
 - **C50:** `/workspace` ukládá uživatelsky vyvolané presety jednotlivých
   letadel, bez automatického přepínání panelů.
