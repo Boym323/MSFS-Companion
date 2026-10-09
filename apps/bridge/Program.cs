@@ -7,6 +7,7 @@ using MsfsCompanion.Bridge.Avionics;
 using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Recorder;
 using MsfsCompanion.Bridge.Aircraft;
+using MsfsCompanion.Bridge.Airbus;
 using MsfsCompanion.Bridge.Integrations;
 using MsfsCompanion.Bridge.Traffic;
 
@@ -14,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<TelemetryStore>();
 builder.Services.AddSingleton<AircraftIdentityGuard>();
+builder.Services.AddSingleton<A320ReadbackStore>();
 builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
 builder.Services.AddSingleton<RadioStore>();
@@ -110,6 +112,15 @@ app.MapGet("/api/aircraft/identity", (AircraftIdentityGuard identity,
         &&identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow);
     return Results.Ok(new { trusted,title=trusted?current.Title:null,
         changed=current.Changed,observedAtUtc=current.ObservedAtUtc });
+});
+
+app.MapGet("/api/aircraft/airbus/a320/status", (AircraftIdentityGuard identity,
+    A320ReadbackStore a320,ITelemetrySource source,TelemetryHealth health,
+    TelemetryStore store) =>
+{
+    var trusted=source.Mode=="simconnect"&&health.Snapshot(source.Mode).Connected &&
+        identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow);
+    return Results.Ok(a320.Status(identity.Current.Title,trusted,DateTimeOffset.UtcNow));
 });
 
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
