@@ -45,7 +45,7 @@ public sealed record FlightDetail(FlightSummary Summary, IReadOnlyList<FlightRec
 /// Read-only flight recorder: max. 1 sample/s, six hours per segment,
 /// 30 recent flights, 100 MiB on disk. Never calls SimConnect write API.
 /// </summary>
-public sealed class FlightRecorder(
+public sealed partial class FlightRecorder(
     TelemetryStore store,
     TelemetryHealth health,
     AircraftSystemsStore systemsStore,
