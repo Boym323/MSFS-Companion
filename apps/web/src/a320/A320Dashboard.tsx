@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import type {TelemetrySnapshot} from '../telemetry/types';
 import {useFlightNavigation,FlightNavigationPanel} from '../map/FlightNavigation';
+import {compareA320FcuEvidence,type FcuEvidence} from './fcuEvidence';
 import './A320Dashboard.css';
 
 type Engines={
@@ -32,8 +33,11 @@ export default function A320Dashboard({telemetry,live}:{
 }){
  const [status,setStatus]=useState<Readback|null>(null);
  const [error,setError]=useState('');
+ const [baseline,setBaseline]=useState<FcuEvidence|null>(null);
+ const [after,setAfter]=useState<FcuEvidence|null>(null);
  const navigation=useFlightNavigation(live);
  const aircraft=telemetry?.aircraft??'';
+ useEffect(()=>{setBaseline(null);setAfter(null);},[aircraft,live]);
  useEffect(()=>{
    if(!live||!aircraft){setStatus(null);return;}
    let closed=false,inFlight=false;
@@ -61,6 +65,29 @@ export default function A320Dashboard({telemetry,live}:{
  },[aircraft,live]);
 
  const e=status?.engines??null,f=status?.fcu??null,aux=status?.aux??null;
+ const canCapture=!!status?.connected&&!!status.aircraft&&!!f
+   &&status.fcuAgeMs!==null&&status.fcuAgeMs<3000;
+ function capture(asBaseline:boolean){
+   if(!canCapture||!status?.aircraft||!f)return;
+   const point:FcuEvidence={aircraft:status.aircraft,
+     capturedAtUtc:new Date().toISOString(),fcu:f};
+   if(asBaseline){setBaseline(point);setAfter(null);}
+   else setAfter(point);
+ }
+ const evidence=baseline&&after?compareA320FcuEvidence(baseline,after):null;
+ function exportEvidence(){
+   if(!baseline||!after||!evidence)return;
+   const sanitized={schema:'kokpit-a320-fcu-evidence-v1',
+     note:'Pozorování obecných SimVars, nikoli potvrzení FCU aktuátoru.',
+     before:baseline,after,comparison:evidence};
+   const url=URL.createObjectURL(new Blob([JSON.stringify(sanitized,null,2)],
+     {type:'application/json'}));
+   const link=document.createElement('a');
+   link.href=url;link.download='kokpit-asobo-a320-fcu-evidence.json';
+   document.body.append(link);link.click();link.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+
  return <section className="a320-dashboard" aria-label="Diagnostika Airbus A320neo">
   <div className="a320-heading">
    <div>
@@ -122,6 +149,31 @@ export default function A320Dashboard({telemetry,live}:{
     </div>
    </article>
   </div>
+  <section className="a320-section a320-proof">
+   <h3>A320-07 · Ruční validace FCU</h3>
+   <p className="a320-hint">Nejprve zachyťte FCU, pak změňte skutečný knob
+    Asobo A320neo přímo v MSFS a zachyťte další stav. Kokpit
+    zde žádný povel do simulátoru neposílá.</p>
+   <div className="a320-proof-actions">
+    <button type="button" disabled={!canCapture}
+      onClick={()=>capture(true)}>Výchozí FCU</button>
+    <button type="button" disabled={!canCapture||!baseline}
+      onClick={()=>capture(false)}>Po změně</button>
+    <button type="button" disabled={!evidence}
+      onClick={exportEvidence}>Export JSON</button>
+   </div>
+   <p className="a320-hint" role="status">
+    {!baseline?'Výchozí měření chybí.':
+     !after?'Výchozí stav zachycen. Změňte FCU přímo v MSFS.':
+     evidence?.reason}
+   </p>
+   {evidence?.changes.length?<ul className="a320-proof-changes">
+     {evidence.changes.map((change,i)=><li key={i}>{change}</li>)}
+   </ul>:null}
+   <p className="a320-hint">Změna obecné SimVar neprokazuje funkčnost
+    dálkového ovládání. Pro pilotní PASS porovnejte displej FCU/FMA.
+    Export neobsahuje GPS stopu ani přístupové tokeny.</p>
+  </section>
   <section className="a320-section a320-nav">
    <FlightNavigationPanel navigation={status?navigation:null}/>
    <p className="a320-hint">Zobrazení je pouze read-only GPS readback, nikoli
