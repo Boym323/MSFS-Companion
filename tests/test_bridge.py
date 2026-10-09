@@ -154,6 +154,27 @@ class BridgeSmokeTests(unittest.TestCase):
                 urllib.request.urlopen(request, timeout=3)
             self.assertEqual(error.exception.code, 404)
 
+    def test_a320_readback_never_fabricates_values_in_mock(self):
+        identity = get_json("/api/aircraft/identity")
+        self.assertFalse(identity["trusted"])
+        self.assertIsNone(identity["title"])
+        status = get_json("/api/aircraft/airbus/a320/status")
+        self.assertFalse(status["connected"])
+        self.assertEqual(status["mode"], "read_only")
+        self.assertFalse(status["verifiedAircraft"])
+        self.assertFalse(status["fmaVerified"])
+        for field in ("engines", "fcu", "aux"):
+            self.assertIsNone(status[field])
+        self.assertIsNone(status["aircraft"])
+        for path in ("/api/aircraft/airbus/a320/status",
+                     "/api/aircraft/identity"):
+            req = urllib.request.Request(
+                BASE + path, method="POST", data=b"{}",
+                headers={"Content-Type": "application/json"})
+            with self.assertRaises(urllib.error.HTTPError) as failure:
+                urllib.request.urlopen(req, timeout=3)
+            self.assertIn(failure.exception.code, (404, 405))
+
     def test_read_only_aircraft_systems_are_marked_mock_in_ci(self):
         response = get_json("/api/aircraft/systems")
         self.assertTrue(response["connected"])
