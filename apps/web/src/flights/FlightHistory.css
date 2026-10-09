@@ -49,3 +49,8 @@
 .flight-history-backup-actions input{max-width:100%;color:#d8edf7}
 .flight-history-backup-actions button{min-height:44px;padding:9px 12px;border-radius:8px;background:#275474;border:1px solid #6093b6;color:#f0f9ff;cursor:pointer}
 .flight-history-backup-actions button:disabled{opacity:.5;cursor:not-allowed}
+
+.flight-history-restore{display:grid;gap:11px;border:1px solid #607b92;background:#1d3548;border-radius:10px;padding:12px}
+.flight-history-restore label{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
+.flight-history-restore input{width:19px;height:19px;flex-shrink:0}
+.flight-history-restore button{min-height:44px;max-width:300px;background:#225b6a;color:#e7faf3;border:1px solid #83afa9;border-radius:8px}
