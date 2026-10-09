@@ -107,6 +107,26 @@ internal static class RecoveryPackageCache
         }
     }
 
+    // A valid cached package for a DIFFERENT version is not a rollback
+    // candidate. Avoid accidentally reusing it after a failed capture.
+    internal static string? VerifiedPackageForVersion(string? version)
+    {
+        if(SafeVersion(version) is null || VerifiedPackage() is null)return null;
+        try
+        {
+            var item=JsonSerializer.Deserialize<Candidate>(File.ReadAllText(Manifest));
+            return item is {Schema:1} &&
+                string.Equals(item.Version,version,StringComparison.OrdinalIgnoreCase)
+                ?Package:null;
+        }
+        catch(Exception ex) when(ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            EventLogFile.Write("C42: recovery package version could not be verified: "+
+                ex.GetType().Name);
+            return null;
+        }
+    }
+
     internal static string? LocalUpdater()
     {
         var root=InstallationRoot();
@@ -122,7 +142,7 @@ internal static class RecoveryPackageCache
         {
             var bundled=Path.Combine(AppContext.BaseDirectory,"recovery-watch",
                 "MsfsCompanion.RecoveryWatch.exe");
-            if(!File.Exists(bundled)||VerifiedPackage() is null)return false;
+            if(!File.Exists(bundled)||VerifiedPackageForVersion(previous) is null)return false;
             Directory.CreateDirectory(BasePath);
             var deployed=Path.Combine(BasePath,"RecoveryWatchdog.exe");
             File.Copy(bundled,deployed,overwrite:true);

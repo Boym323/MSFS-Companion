@@ -114,6 +114,28 @@ internal static class UpdateRecoveryJournal
             return null;
         }
     }
+    // Only before an updater process has been launched. A failed supervisor
+    // start must never leave a pending update masquerading as an in-flight one.
+    internal static bool CancelBeforeApply(string target,string previous)
+    {
+        try
+        {
+            var pending=Load();
+            if(pending is not {Schema:2} ||
+               !MatchesTargetVersion(target,pending.TargetVersion) ||
+               !MatchesTargetVersion(previous,pending.PreviousVersion))
+                return false;
+            File.Delete(PathOnDisk);
+            return !File.Exists(PathOnDisk);
+        }
+        catch(Exception ex)
+        {
+            EventLogFile.Write("C42: nelze zrušit nenastartovanou aktualizaci: "+
+                ex.GetType().Name);
+            return false;
+        }
+    }
+
     internal static void MarkFailed()
     {
         try
