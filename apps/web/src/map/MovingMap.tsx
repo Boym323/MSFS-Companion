@@ -11,6 +11,7 @@ import { useAviationFeatures } from './useAviationFeatures';
 import { useVatsimMapLayer } from './useVatsimMapLayer';
 import useSigmet from './useSigmet';
 import {useSimTraffic} from './useSimTraffic';
+import {relativeTraffic} from './relativeTraffic';
 import {parseOpenAir, type Airspace} from './openAir';
 import {groundQuery,parseGroundMap,type GroundMap} from './groundMap';
 import {comparePlan} from './planCrosscheck';
@@ -187,6 +188,8 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
     }catch{setGroundMessage('OSM pojezdové cesty se nepodařilo načíst. Zkuste později.');}
     finally{window.clearTimeout(timeout);setGroundLoading(false);}
   }
+  const nearbyTraffic=showSimTraffic && telemetry && simTraffic.available && !simTraffic.stale
+    ? relativeTraffic(telemetry,simTraffic.targets) : [];
   const distance = track.reduce((total, point, index) => {
     if (index === 0) return total;
     return total + metersBetween(track[index - 1], point);
@@ -234,12 +237,28 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
           onChange={event=>setShowSimTraffic(event.target.checked)} />
         Letadla z MSFS (nativní SimConnect · experimentální)
       </label>
-      {showSimTraffic&&<p className="moving-map-traffic-status" role="status">
-        {simTraffic.available ? `MSFS: ${simTraffic.targets.length} potvrzených objektů v okolí` :
-          'MSFS provoz nepotvrzen – čekám na odpověď SimConnectu.'}
-        {simTraffic.stale?' · Starší data byla skryta':''}
-        {' · '}{simTraffic.status}
-      </p>}
+      {showSimTraffic&&<>
+        <p className="moving-map-traffic-status" role="status">
+          {simTraffic.available&&!simTraffic.stale
+            ? `MSFS: ${simTraffic.targets.length} potvrzených objektů v okolí`
+            : 'MSFS provoz nepotvrzen – čekám na odpověď SimConnectu.'}
+          {simTraffic.stale?' · Starší data byla skryta':''}
+          {' · '}{simTraffic.status}
+        </p>
+        {nearbyTraffic.length>0&&<section className="moving-map-relative-traffic"
+          aria-label="Nejbližší provoz v MSFS">
+          <h3>C46 · Nejbližší provoz</h3>
+          <ul>{nearbyTraffic.map(target=><li key={target.objectId}>
+            <strong>AI #{target.objectId}</strong>
+            <span>{target.distanceNm.toFixed(1)} NM</span>
+            <span>{target.side} · {target.bearingTrue}° zeměpisně</span>
+            <span>{target.altitudeDifferenceFeet>=0?'+':''}{target.altitudeDifferenceFeet} ft</span>
+            {target.onGround&&<span>Na zemi</span>}
+          </li>)}</ul>
+          <p>Pouze orientační pozice z MSFS. Není to TCAS, predikce srážek
+            ani potvrzení všech multiplayerových objektů.</p>
+        </section>}
+      </>}
       <label className="moving-map-background">
         <input type="checkbox" checked={showVatsim}
           onChange={event => setShowVatsim(event.target.checked)} />
@@ -388,7 +407,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
               <title>{hazard.description}</title>
             </path>;
           })}
-          {showSimTraffic && simTraffic.available && simTraffic.targets.map(plane=>{
+          {showSimTraffic && simTraffic.available && !simTraffic.stale && simTraffic.targets.map(plane=>{
             const pos=mapPosition(plane);
             if(!pos||pos.x < -30||pos.x > width+30||pos.y < -30||pos.y > height+30)return null;
             return <g key={'msfs-'+plane.objectId}>
