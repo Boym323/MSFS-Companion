@@ -22,13 +22,16 @@ ruční instalátor z GitHub Releases. Plná kopie zůstává
 zabezpečená pouze integritním hashem z původní lokální
 instalace; to **není digitální podpis vydavatele**.
 
-**Důležité omezení:** Zatím stále nejde o automatický
-rollback při úplném selhání Windows hostitele. Pokud
-se host vůbec nespustí, nabídku nelze otevřít.
-Nezávislý watchdog a test záměrně poškozené instalace
-na skutečném Windows počítači budou vyžadovat další
-samostatný krok. Není vhodné zapínat neotestovaný
-proces, který by automaticky měnil spustitelné soubory.
-Na CI proběhne sestavení Windows, `--self-test` a
-skutečná tichá instalace, nikoli reálné převrácení dvou
-nainstalovaných vydání.
+**Aktuální stav:** Nezávislý recovery watchdog je již
+implementovaný jako **experimentální opt-in (default OFF)**,
+viz [C42 watchdog](UPDATE_C42_WATCHDOG.md). Jeho spuštění
+vyžaduje SHA256-ověřený celý balíček přesně předchozí verze;
+pokud chybí nebo se supervisor nespustí, aktualizace se
+zapnutou ochranou vůbec nezačne. Hostitel, bridge ani MSFS
+se při nezdařeném požadavku nesmějí násilně ukončit.
+
+Samotný destruktivní test A→B→A se selháním nové instalace
+zatím na skutečném Windows dokončený není. CI ověřuje sestavení,
+self-test a nativní instalaci, nikoli tento scénář.
+Před produkčním povolením automatického rollbacku postupujte
+podle [akceptačního protokolu](STABILIZATION_ACCEPTANCE.md).
