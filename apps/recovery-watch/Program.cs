@@ -17,6 +17,8 @@ internal static class Program
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MSFS Companion");
     private static readonly string Recovery=Path.Combine(Root,"recovery");
     private static readonly string PendingPath=Path.Combine(Root,"pending-update.json");
+    private static readonly string FailedPath=Path.Combine(Root,"failed-update.json");
+    private static readonly string VerifiedPath=Path.Combine(Root,"last-verified-update.json");
     private static readonly string Manifest=Path.Combine(Recovery,"recovery-candidate.json");
     private static readonly string Package=Path.Combine(Recovery,"previous-full.nupkg");
     private static readonly string Log=Path.Combine(Root,"windows-host.log");
@@ -55,11 +57,11 @@ internal static class Program
         {return false;}
     }
 
-    private static Pending? ReadPending(string target,string previous)
+    private static Pending? ReadAttempt(string path,string target,string previous)
     {
         try{
-            if(!File.Exists(PendingPath)||new FileInfo(PendingPath).Length>4096)return null;
-            var pending=JsonSerializer.Deserialize<Pending>(File.ReadAllText(PendingPath));
+            if(!File.Exists(path)||new FileInfo(path).Length>4096)return null;
+            var pending=JsonSerializer.Deserialize<Pending>(File.ReadAllText(path));
             return pending is {Schema:2}&&Same(pending.TargetVersion,target)
                 &&Same(pending.PreviousVersion,previous)
                 &&pending.ArmedAtUtc<=DateTimeOffset.UtcNow.AddMinutes(5)
@@ -68,6 +70,20 @@ internal static class Program
         }catch(Exception ex)when(ex is IOException or JsonException or UnauthorizedAccessException)
         {return null;}
     }
+    private static bool SuccessfulUpdateConfirmed(string target,DateTimeOffset armedAt)
+    {
+        try{
+            if(!File.Exists(VerifiedPath)||new FileInfo(VerifiedPath).Length>4096)return false;
+            using var doc=JsonDocument.Parse(File.ReadAllText(VerifiedPath));
+            var root=doc.RootElement;
+            var version=root.GetProperty("Version").GetString();
+            var verified=root.GetProperty("VerifiedAtUtc").GetDateTimeOffset();
+            return Same(version,target)&&verified>=armedAt&&
+                verified<=DateTimeOffset.UtcNow.AddMinutes(5);
+        }catch(Exception ex)when(ex is IOException or JsonException or UnauthorizedAccessException
+            or KeyNotFoundException or InvalidOperationException){return false;}
+    }
+
     private static bool HostRunning()
     {
         try{
@@ -109,7 +125,7 @@ internal static class Program
         if(!Version(target)||!Version(previous)||Same(target,previous)||
             Path.GetFileName(updater)!="Update.exe"||
             !Path.IsPathFullyQualified(updater)||!File.Exists(updater)||
-            ReadPending(target,previous) is null)return 2;
+            ReadAttempt(PendingPath,target,previous) is null)return 2;
         if(!ValidBackup(previous)){Write("no trustworthy offline package, monitoring disabled");return 3;}
         try{
             using var old=Process.GetProcessById(originalPid);
@@ -118,10 +134,18 @@ internal static class Program
         // Velopack may need substantial time to extract self-contained .NET.
         for(var seconds=0;seconds<240;seconds+=3)
         {
-            if(ReadPending(target,previous) is null){Write("new host confirmed or journal changed; exit");return 0;}
+            var pending=ReadAttempt(PendingPath,target,previous);
+            if(pending is not null&&SuccessfulUpdateConfirmed(target,pending.ArmedAtUtc))
+            {Write("new host confirmed, watchdog exits");return 0;}
+            var failed=ReadAttempt(FailedPath,target,previous);
+            if(pending is null&&failed is null)
+            {Write("update journal no longer belongs to this attempt");return 0;}
+            if(failed is not null&&SuccessfulUpdateConfirmed(target,failed.ArmedAtUtc))
+            {Write("new host confirmed; stale failed marker ignored");return 0;}
             await Task.Delay(3000);
         }
-        if(ReadPending(target,previous) is null || HostRunning() ||
+        if(ReadAttempt(PendingPath,target,previous) is null &&
+             ReadAttempt(FailedPath,target,previous) is null || HostRunning() ||
             !ValidBackup(previous) ||
             !NewVersionActuallyInstalled(Path.GetDirectoryName(updater)!,target))
         {Write("host running, source changed or installed target not proven; abort");return 5;}
@@ -151,6 +175,9 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
+        if(args is ["--check-installed-target",var installedTarget,var installationRoot])
+            return Version(installedTarget)&&NewVersionActuallyInstalled(installationRoot,installedTarget)
+                ?0:1;
         if(args is ["--self-test"])
         {
             var valid=Version("0.2.128")&&!Version("../unsafe")&&
