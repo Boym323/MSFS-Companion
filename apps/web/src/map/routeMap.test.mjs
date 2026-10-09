@@ -58,6 +58,7 @@ test('C37 importovaný plán není automaticky plan v MSFS',()=>{
  const plan=[{id:'LKPR',latitude:50,longitude:14}];
  assert.equal(comparePlan(plan,null).state,'no-active');
  const nav={flightPlanActive:true,waypointActive:true,nextWaypointId:'LKPR',nextWaypoint:null};
- assert.equal(comparePlan(plan,nav).state,'match');
+ assert.equal(comparePlan(plan,nav).state,'uncertain');
+ assert.equal(comparePlan(plan,nav).evidence,'identifier');
  assert.equal(comparePlan(plan,{...nav,nextWaypointId:'XYZZ'}).state,'uncertain');
 });
