@@ -1,4 +1,5 @@
 using MsfsCompanion.Bridge.Navigation;
+using MsfsCompanion.Bridge.Integrations;
 
 static void Check(bool result, string name)
 {
@@ -50,4 +51,20 @@ var across = new AviationCatalogSnapshot(DateTimeOffset.UtcNow,
     [], [], []);
 Check(AviationCatalog.FindNearby(across, 50, 179.9, 25).Any(),
     "anti-meridian search");
+// C45: official-directory candidate selection must be deterministic and
+// reject future or attacker-supplied URLs.
+var now=new DateTimeOffset(2026,10,9,7,0,0,TimeSpan.Zero);
+var listing="<a href='CZ_all_26-04-01.txt'>2026 April</a>"+
+    "<a href='CZ_all_26-09-03.txt'>2026 September</a>"+
+    "<a href='https://evil.invalid/hack.txt'>Ignore</a>"+
+    "<a href='CZ_all_26-12-01.txt'>Not yet effective</a>";
+var chosen=CzechAirspaceService.FindCurrentRelease(listing,now);
+Check(chosen is { FileName:"CZ_all_26-09-03.txt",
+    EffectiveDate:"2026-09-03" }, "select latest current official publication");
+Check(CzechAirspaceService.FindCurrentRelease(
+    "<a href='CZ_all_26-12-01.txt'>future</a>",now) is null,
+    "future not-yet-effective release not selected");
+Check(CzechAirspaceService.FindCurrentRelease(
+    "<a href='https://evil.invalid/malicious.nupkg'>attack</a>",now) is null,
+    "arbitrary links not used for OpenAir download");
 Console.WriteLine("PASS: C8 OurAirports CSV parsing, runways, frequencies, regional query and dateline.");
