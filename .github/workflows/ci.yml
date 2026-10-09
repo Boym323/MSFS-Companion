@@ -151,6 +151,9 @@ jobs:
       - name: C5 Aircraft Profiles
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/profiles/MsfsCompanion.ProfilesCheck.csproj --configuration Release
+      - name: A320-02/03 Airbus read-only SimVars and FCU validity
+        if: needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/airbus-logic/MsfsCompanion.A320Check.csproj --configuration Release
       - name: Runtime smoke tests (HTTP, WebSocket, mock)
         if: needs.changes.outputs.smoke == 'true' || needs.changes.outputs.all == 'true'
         run: |
