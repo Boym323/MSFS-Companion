@@ -1,4 +1,5 @@
 using MsfsCompanion.Bridge.Aircraft;
+using MsfsCompanion.Bridge.Telemetry;
 static void Check(bool x, string reason) { if (!x) throw new Exception(reason); }
 Check(AircraftProfileResolver.Resolve("Cessna 172 Skyhawk G1000").Id == "c172", "c172");
 Check(AircraftProfileResolver.Resolve("CubCrafters NXCub").Id == "nxcub", "specific before general");
@@ -9,6 +10,8 @@ Check(AircraftProfileResolver.Resolve("Asobo Airbus A320neo").Id == "a320-asobo-
 Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "airbus-addon", "fbw separated");
 Check(AircraftProfileResolver.Resolve("Fenix Airbus A320").Id == "airbus-addon", "fenix separated");
 Check(AircraftProfileResolver.Resolve("iniBuilds Airbus A320neo").Id == "airbus-addon", "v2 separated");
+// SimConnect.NET odmítá prázdnou jednotku v TITLE GetAsync/Subscribe.
+Check(SimConnectTelemetrySource.AircraftTitleUnit == "string", "TITLE SimVar unit is nonempty string");
 Check(AircraftProfileResolver.IsAirbusLike("A320neo"),"airbus identification");
 Check(AircraftProfileResolver.IsAirbusLike("iniBuilds A321neo"),"A321 addon must be Airbus-protected");
 Check(AircraftProfileResolver.IsAirbusLike("Airbus A350-900"),"other Airbus family AP policy");

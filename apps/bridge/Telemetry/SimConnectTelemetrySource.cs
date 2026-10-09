@@ -25,6 +25,8 @@ public sealed class SimConnectTelemetrySource(
     A320ReadbackStore a320,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
+    // SimConnect.NET rejects empty units even for string-valued TITLE.
+    public const string AircraftTitleUnit = "string";
     public string Mode => "simconnect";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -112,7 +114,7 @@ public sealed class SimConnectTelemetrySource(
         {
             using var titleTimeout = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             titleTimeout.CancelAfter(TimeSpan.FromSeconds(3));
-            var title = await client.SimVars.GetAsync<string>("TITLE", "", cancellationToken: titleTimeout.Token);
+            var title = await client.SimVars.GetAsync<string>("TITLE", AircraftTitleUnit, cancellationToken: titleTimeout.Token);
             if (!string.IsNullOrWhiteSpace(title))
                 aircraft = title.Trim();
         }
@@ -130,7 +132,7 @@ public sealed class SimConnectTelemetrySource(
         // while the same SimConnect connection is still alive. A missing TITLE
         // never permits writing commands to the old aircraft.
         using var titleSubscription=client.SimVars.Subscribe<string>(
-            "TITLE","",SimConnectPeriod.Second,
+            "TITLE",AircraftTitleUnit,SimConnectPeriod.Second,
             value=>identity.Observe(value,DateTimeOffset.UtcNow),
             cancellationToken:stoppingToken);
 

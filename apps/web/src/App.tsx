@@ -1,4 +1,5 @@
 import { useTelemetry } from './telemetry/useTelemetry';
+import CockpitHeader from './navigation/CockpitHeader';
 import Pfd from './pfd/Pfd';
 import MovingMap from './map/MovingMap';
 import FlightHistory from './flights/FlightHistory';
@@ -24,31 +25,6 @@ import LiveValidation from './validation/LiveValidation';
 import './vatsim/VatsimCenter.css';
 import './weather/AviationWeather.css';
 import './aircraft/AircraftCapabilities.css';
-
-const panels = [
-  { href: '/admin', label: 'Přehled' },
-  { href: '/pilot', label: 'Letový asistent' },
-  { href: '/validation', label: 'Ověření MSFS' },
-  { href: '/health', label: 'Diagnostika' },
-  { href: '/pfd', label: 'PFD' },
-  { href: '/map', label: 'Mapa' },
-  { href: '/flight-plan', label: 'Plán letu' },
-  { href: '/briefing', label: 'Briefing' },
-  { href: '/progress', label: 'Průběh letu' },
-  { href: '/fuel', label: 'Palivo' },
-  { href: '/radio-assistant', label: 'Radio' },
-  { href: '/checklists', label: 'Checklisty' },
-  { href: '/workspace', label: 'Moje panely' },
-  { href: '/flights', label: 'Historie letů' },
-  { href: '/aircraft', label: 'Letadlo' },
-  { href: '/a320', label: 'Airbus A320' },
-  { href: '/capabilities', label: 'Profily' },
-  { href: '/weather', label: 'Počasí' },
-  { href: '/vatsim', label: 'VATSIM' },
-  { href: '/controls', label: 'Ovládání' },
-  { href: '/g1000', label: 'G1000' },
-  { href: '/avionics', label: 'Avionika' },
-];
 
 const pageMeta = {
   '/pilot': {eyebrow:'KOKPIT C34/C38',heading:'Letový asistent',description:'Jedno místo pro navigaci, mapu, rádio, palivo a checklisty.'},
@@ -125,26 +101,9 @@ export default function App() {
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <div className="brand"><span className="brand-icon">✈</span><div>
-          <strong>MSFS Companion</strong>
-          <small>Flight deck · MSFS 2020</small>
-        </div></div>
-        <div className={`connection connection--${connection}`}>
-          <span className="connection-dot" />
-          {connection === 'connected' ? 'Bridge připojen' : connection === 'connecting' ? 'Připojování' : 'Bridge odpojen'}
-        </div>
-      </header>
-
-      <nav aria-label="Navigace" className="tabs">
-        {panels.map((panel) => (
-          <a key={panel.href} href={panel.href}
-            className={pathname === panel.href || (pathname === '/' && panel.href === '/admin') ? 'selected' : ''}
-            aria-current={pathname === panel.href || (pathname === '/' && panel.href === '/admin') ? 'page' : undefined}>
-            {panel.label}
-          </a>
-        ))}
-      </nav>
+      <CockpitHeader pathname={pathname} connection={connection}
+        sourceStatus={sourceStatus} sourceIsLive={sourceIsLive}
+        aircraft={sourceIsLive ? telemetry?.aircraft ?? null : null} />
 
       <main>
         <div className="intro">
