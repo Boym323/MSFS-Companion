@@ -92,6 +92,14 @@ internal static class Program
             finally{foreach(var process in processes)process.Dispose();}
         }catch(Exception){return true;} // fail closed
     }
+    private static bool BridgeRunning()
+    {
+        try{
+            var processes=Process.GetProcessesByName("MsfsCompanion.Bridge");
+            try{return processes.Length>0;}
+            finally{foreach(var process in processes)process.Dispose();}
+        }catch(Exception){return true;} // Never kill an actively recording bridge.
+    }
     private static bool NewVersionActuallyInstalled(string root,string target)
     {
         try{
@@ -145,7 +153,7 @@ internal static class Program
             await Task.Delay(3000);
         }
         if(ReadAttempt(PendingPath,target,previous) is null &&
-             ReadAttempt(FailedPath,target,previous) is null || HostRunning() ||
+             ReadAttempt(FailedPath,target,previous) is null || HostRunning() || BridgeRunning() ||
             !ValidBackup(previous) ||
             !NewVersionActuallyInstalled(Path.GetDirectoryName(updater)!,target))
         {Write("host running, source changed or installed target not proven; abort");return 5;}
