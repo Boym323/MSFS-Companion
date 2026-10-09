@@ -18,12 +18,19 @@ function coordinate(value:string):number|null {
   if(!Number.isFinite(coordinate)||minutes>=60||seconds>=60||coordinate>max)return null;
   return axis==='S'||axis==='W'?-coordinate:coordinate;
 }
+// The Aeroklub 2026 public source writes comments on geometric lines,
+ // e.g. "V X=50:05:45 N 014:15:56 E *OKL 14.8 NM" and "DC 2 *NM".
+function withoutAnnotation(value:string):string{
+  return value.replace(/\s+\*.*$/,'').trim();
+}
 function point(value:string):Point|null{
+  value=withoutAnnotation(value);
   const m=/^(\d{1,3}:\d{1,2}(?:\.\d+)?(?::\d{1,2}(?:\.\d+)?)?\s*[NS])\s+(\d{1,3}:\d{1,2}(?:\.\d+)?(?::\d{1,2}(?:\.\d+)?)?\s*[EW])$/i.exec(value.trim());
   const latitude=m?coordinate(m[1]):null,longitude=m?coordinate(m[2]):null;
   return latitude===null||longitude===null?null:{latitude,longitude};
 }
 function radius(value:string):number|null{
+  value=withoutAnnotation(value);
   if(!/^(?:\d+(?:\.\d+)?)$/.test(value.trim()))return null;
   const number=Number(value);
   // Limit geometry complexity and skip exceptionally large/unverified arcs.
