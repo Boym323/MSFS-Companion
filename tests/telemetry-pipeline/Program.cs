@@ -1,5 +1,10 @@
 using MsfsCompanion.Bridge.Telemetry;
 
+// SimConnect.NET odmítá prázdnou jednotku. TITLE musí při GetAsync
+// i při periodickém odběru používat stejnou platnou jednotku "string".
+if (SimConnectTelemetrySource.AircraftTitleUnit != "string")
+    throw new Exception("SimConnect TITLE musí používat jednotku string.");
+
 // Deterministický scénář: MSFS poskytuje přesně 30 snímků každou sekundu;
 // nezávislá publikační smyčka tiká 20x/s. Žádné čekání na skutečný čas.
 var buffer = new LatestFrameBuffer<int>();
