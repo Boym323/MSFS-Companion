@@ -37,6 +37,12 @@ var fcu=new A320SimConnectFcuData {
     VerticalSpeedSlotIndex=1,AutopilotMaster=1
 };
 Check(fcu.IsValid(),"valid FCU readback");
+fcu.AutopilotMaster=2;
+Check(!fcu.IsValid(),"invalid AP boolean must not display OFF/ON");
+fcu.AutopilotMaster=1;
+fcu.SelectedHeadingDegrees=721;
+Check(!fcu.IsValid(),"invalid heading must not wrap into plausible HDG");
+fcu.SelectedHeadingDegrees=270;
 store.UpdateFcu(fcu,at);
 var read=Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1));
 Check(read.GetProperty("fcu").GetProperty("speedSlotIndex").GetInt32()==2,
