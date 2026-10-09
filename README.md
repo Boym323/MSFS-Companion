@@ -52,6 +52,15 @@ na `simdeck` → `simdeck.local`. Název aplikace a aktualizační mechanismus
 zůstávají **MSFS Companion**. Alternativou je původní adresa podle IP.
 Podrobnosti: [mDNS nastavení](docs/MDNS_C12.md).
 
+## Navigace Kokpitu
+
+Horní lišta používá sedm přehledných sekcí: **Přehled, Let, Mapa,
+Navigace, Letadlo, Historie a Nastavení**. Druhý řádek ukazuje pouze
+související stránky z dané sekce. Žádná původní obrazovka nezmizela;
+například Airbus A320, G1000 i Avionika jsou pod **Letadlo**.
+Na iPadu a mobilu se záložky zalamují místo horizontálního
+ořezávání. Lišta zvlášť ukazuje spojení s bridge a s MSFS.
+
 ## Windows a domácí síť
 
 Nainstalujte poslední `Setup.exe` z
