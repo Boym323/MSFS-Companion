@@ -111,3 +111,19 @@ nelze nahradit testy GitHub Actions**.
 
 Z důvodu těchto omezení je B2 určeno zatím pro vývoj a
 nepoužívejte dashboard jako certifikovaný letový přístroj.
+
+## Oprava TITLE a opakovaného připojování
+
+Pokud Windows bridge uváděl `ArgumentException: The value cannot be an
+empty string (Parameter 'unit')`, příčinou byla prázdná jednotka
+SimConnect při prvním čtení `TITLE` a při jeho následném 1Hz
+sledování. Obě cesty nyní předávají `string`. Starší verze
+mohly po úspěšném otevření SimConnect kvůli této výjimce
+opakovaně připojení rušit, zatímco web hlásil „Bridge připojen“.
+
+Bridge a MSFS mají v horním panelu oddělené stavy. Po aktualizaci
+Windows instalace spusťte MSFS 2020, načtěte let a ověřte
+`SIMCONNECT LIVE`, reálnou telemetrii i změnu názvu letadla
+bez převzetí starých hodnot. Automatická CI ověřuje pouze
+kontrakt jednotky a chod bridge bez simulátoru;
+skutečné potvrzení vyžaduje Windows s běžícím MSFS.
