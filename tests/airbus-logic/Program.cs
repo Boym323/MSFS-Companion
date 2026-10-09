@@ -50,6 +50,21 @@ Check(Inspect(store,"FlyByWire A32NX",true,at.AddSeconds(1))
     .GetProperty("fcu").ValueKind==JsonValueKind.Null,"addon cannot reuse Asobo snapshot");
 Check(Inspect(store,"Airbus A320 Neo",false,at.AddSeconds(1))
     .GetProperty("engines").ValueKind==JsonValueKind.Null,"untrusted aircraft cannot leak previous values");
+var aux=new A320SimConnectAuxData{
+    ApuRpmPercent=98,ApuGeneratorActive=1,FuelTotalWeightPounds=22000
+};
+Check(aux.IsValid(),"valid APU and FOB values");
+store.UpdateAux(aux,at);
+var auxStatus=Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1));
+Check(auxStatus.GetProperty("aux").GetProperty("apuRpmPercent").GetDouble()==98,
+    "APU readback");
+Check(auxStatus.GetProperty("aux").GetProperty("fuelTotalWeightPounds").GetDouble()==22000,
+    "FOB pounds readback");
+aux.FuelTotalWeightPounds=double.NaN;
+Check(!aux.IsValid(),"invalid fuel weight rejected");
+store.UpdateAux(aux,at.AddSeconds(2));
+Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(7))
+    .GetProperty("aux").ValueKind==JsonValueKind.Null,"stale APU snapshot hidden");
 store.Reset();
 Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1))
     .GetProperty("engines").ValueKind==JsonValueKind.Null,"reset discards old snapshots");

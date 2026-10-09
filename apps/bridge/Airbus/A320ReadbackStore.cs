@@ -6,6 +6,9 @@ public sealed record A320EngineSnapshot(DateTimeOffset TimestampUtc,
     double N1Engine1,double N1Engine2,double N2Engine1,double N2Engine2,
     double FuelFlowPph1,double FuelFlowPph2);
 
+public sealed record A320AuxSnapshot(DateTimeOffset TimestampUtc,
+    double ApuRpmPercent,bool ApuGeneratorActive,double FuelTotalWeightPounds);
+
 public sealed record A320FcuSnapshot(DateTimeOffset TimestampUtc,
     double SelectedSpeedKnots,double SelectedMach,double SelectedHeadingDegrees,
     double SelectedAltitudeFeet,double SelectedVerticalSpeedFpm,
@@ -21,10 +24,12 @@ public sealed class A320ReadbackStore
 {
     private A320EngineSnapshot? _engines;
     private A320FcuSnapshot? _fcu;
+    private A320AuxSnapshot? _aux;
     public void Reset()
     {
         Interlocked.Exchange(ref _engines,null);
         Interlocked.Exchange(ref _fcu,null);
+        Interlocked.Exchange(ref _aux,null);
     }
 
     public void UpdateEngines(A320SimConnectEngineData data,DateTimeOffset at)
@@ -33,6 +38,14 @@ public sealed class A320ReadbackStore
         Interlocked.Exchange(ref _engines,new A320EngineSnapshot(at,
             data.N1Engine1,data.N1Engine2,data.N2Engine1,data.N2Engine2,
             data.FuelFlowPph1,data.FuelFlowPph2));
+    }
+
+    public void UpdateAux(A320SimConnectAuxData data,DateTimeOffset at)
+    {
+        if(!data.IsValid())return;
+        Interlocked.Exchange(ref _aux,new A320AuxSnapshot(at,
+            data.ApuRpmPercent,data.ApuGeneratorActive>0.5,
+            data.FuelTotalWeightPounds));
     }
 
     public void UpdateFcu(A320SimConnectFcuData data,DateTimeOffset at)
@@ -54,17 +67,21 @@ public sealed class A320ReadbackStore
         var supported=trusted&&profile.Id=="a320-asobo-candidate";
         var e=Volatile.Read(ref _engines);
         var f=Volatile.Read(ref _fcu);
+        var aux=Volatile.Read(ref _aux);
         double? Age(DateTimeOffset? timestamp)=>timestamp is { } seen
             ?Math.Max(0,(at-seen).TotalMilliseconds):null;
         var engineAge=Age(e?.TimestampUtc);
         var fcuAge=Age(f?.TimestampUtc);
+        var auxAge=Age(aux?.TimestampUtc);
         return new {
             connected=supported,aircraft= supported?title:null,profileId=profile.Id,
             verifiedAircraft=false,mode="read_only",fmaVerified=false,
             engines=supported&&engineAge is < 6000?e:null,
             fcu=supported&&fcuAge is < 6000?f:null,
+            aux=supported&&auxAge is < 6000?aux:null,
             enginesAgeMs=supported&&engineAge is < 6000?engineAge:null,
             fcuAgeMs=supported&&fcuAge is < 6000?fcuAge:null,
+            auxAgeMs=supported&&auxAge is < 6000?auxAge:null,
             warning="Obecné SimVars nejsou potvrzením Airbus FCU/FMA; ověřte hodnoty v MSFS 2020."
         };
     }

@@ -35,3 +35,14 @@ invalidní FPS/sloty a že addon nezdědí snapshoty Asobo.
 **K dosažení pilotního PASS je stále nutné skutečné MSFS 2020
 s původním Asobo A320neo**: zda všechny SimVars vracejí
 odpovídající hodnoty a ne pouze defaultní nuly.
+
+## A320-06 – ECAM Lite, read-only pomocná data
+
+Třetí samostatná 1Hz subscription čte `APU PCT RPM`
+(percent), `APU GENERATOR ACTIVE` (bool) a
+`FUEL TOTAL QUANTITY WEIGHT` (pounds).
+Samostatná validace, staleness limit 6 sekund, při chybě
+se `aux` vrací jako `null`, bez vlivu na FCU,
+oba motory nebo hlavní PFD. Zobrazení uvádí
+původní jednotky; nejde o potvrzení skutečného ECAM
+a nepřidává ovládání systémů Airbusu.

@@ -7,6 +7,10 @@ type Engines={
  timestampUtc:string;n1Engine1:number;n1Engine2:number;n2Engine1:number;n2Engine2:number;
  fuelFlowPph1:number;fuelFlowPph2:number
 };
+type Aux={
+ timestampUtc:string;apuRpmPercent:number;apuGeneratorActive:boolean;
+ fuelTotalWeightPounds:number
+};
 type Fcu={
  timestampUtc:string;selectedSpeedKnots:number;selectedMach:number;
  selectedHeadingDegrees:number;selectedAltitudeFeet:number;selectedVerticalSpeedFpm:number;
@@ -16,7 +20,8 @@ type Fcu={
 type Readback={
  connected:boolean;aircraft:string|null;profileId:string;
  verifiedAircraft:boolean;mode:string;fmaVerified:boolean;
- engines:Engines|null;fcu:Fcu|null;enginesAgeMs:number|null;fcuAgeMs:number|null;warning:string
+ engines:Engines|null;fcu:Fcu|null;aux:Aux|null;
+ enginesAgeMs:number|null;fcuAgeMs:number|null;auxAgeMs:number|null;warning:string
 };
 
 const fmt=(value:number|undefined,digits=0)=>
@@ -55,7 +60,7 @@ export default function A320Dashboard({telemetry,live}:{
    return()=>{closed=true;controller.abort();window.clearInterval(timer);};
  },[aircraft,live]);
 
- const e=status?.engines??null,f=status?.fcu??null;
+ const e=status?.engines??null,f=status?.fcu??null,aux=status?.aux??null;
  return <section className="a320-dashboard" aria-label="Diagnostika Airbus A320neo">
   <div className="a320-heading">
    <div>
@@ -106,6 +111,14 @@ export default function A320Dashboard({telemetry,live}:{
         <div><dt>Fuel flow</dt><dd>{fmt(index===1?e?.fuelFlowPph1:e?.fuelFlowPph2)} <small>lb/h</small></dd></div>
        </dl>
      </div>)}
+    </div>
+    <div className="a320-aux">
+      <h4>APU &amp; FOB · orientační</h4>
+      <p>APU RPM: <strong>{fmt(aux?.apuRpmPercent,1)} %</strong>
+        {' · '}APU GEN: <strong>{aux?(aux.apuGeneratorActive?'ON':'OFF'):'—'}</strong></p>
+      <p>Fuel on board: <strong>{fmt(aux?.fuelTotalWeightPounds)} lb</strong></p>
+      <p className="a320-hint">Zobrazené jednotky a stavy pocházejí z
+        obecných SimVars, nejsou potvrzený obsah ECAM.</p>
     </div>
    </article>
   </div>
