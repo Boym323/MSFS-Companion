@@ -13,6 +13,7 @@ using MsfsCompanion.Bridge.Traffic;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<TelemetryStore>();
+builder.Services.AddSingleton<AircraftIdentityGuard>();
 builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
 builder.Services.AddSingleton<RadioStore>();
@@ -101,6 +102,16 @@ app.MapGet("/api/status", (ITelemetrySource source, TelemetryHealth health) =>
     });
 });
 
+app.MapGet("/api/aircraft/identity", (AircraftIdentityGuard identity,
+    TelemetryStore store,ITelemetrySource source,TelemetryHealth health) =>
+{
+    var current=identity.Current;
+    var trusted=source.Mode=="simconnect"&&health.Snapshot(source.Mode).Connected
+        &&identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow);
+    return Results.Ok(new { trusted,title=trusted?current.Title:null,
+        changed=current.Changed,observedAtUtc=current.ObservedAtUtc });
+});
+
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
 
@@ -111,9 +122,11 @@ app.MapGet("/api/aircraft/systems", (AircraftSystemsStore systemsStore) =>
     Results.Ok(systemsStore.Status()));
 
 // C1: radio readback bez oprávnění k zápisu.
-app.MapGet("/api/aircraft/profile", (TelemetryStore store, TelemetryHealth health, ITelemetrySource source) =>
+app.MapGet("/api/aircraft/profile", (TelemetryStore store, TelemetryHealth health,
+    ITelemetrySource source, AircraftIdentityGuard identity) =>
 {
-    var connected = health.Snapshot(source.Mode).Connected;
+    var connected = health.Snapshot(source.Mode).Connected &&
+        (source.Mode!="simconnect" || identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow));
     var aircraft = connected ? store.Current.Aircraft : null;
     return Results.Ok(new { connected, aircraft, profile = connected ? AircraftProfileResolver.Resolve(aircraft) : null });
 });

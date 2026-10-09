@@ -1,4 +1,5 @@
 using MsfsCompanion.Bridge.Telemetry;
+using MsfsCompanion.Bridge.Aircraft;
 
 namespace MsfsCompanion.Bridge.Controls;
 
@@ -9,12 +10,18 @@ public static class ControlEndpoints
 {
     public static void MapCockpitControls(this WebApplication app)
     {
-        app.MapGet("/api/controls/status", (HttpContext http, ControlAccess access) =>
+        app.MapGet("/api/controls/status", (HttpContext http, ControlAccess access,
+            AircraftIdentityGuard identity,TelemetryStore store,ITelemetrySource telemetry,
+            TelemetryHealth health) =>
         {
             http.Response.Headers.CacheControl = "no-store";
             var token = http.Request.Headers["X-MSFS-Control-Token"].ToString();
-            return Results.Ok(new { enabled = access.Enabled, canControl = access.CanControl(token), paired = access.Authorized(token),
-                local = ControlAccess.IsLoopback(http) });
+            return Results.Ok(new { enabled = access.Enabled, canControl = access.CanControl(token),
+                paired = access.Authorized(token),local = ControlAccess.IsLoopback(http),
+                autopilotSupported=telemetry.Mode=="simconnect" &&
+                    health.Snapshot(telemetry.Mode).Connected &&
+                    identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow) &&
+                    AirbusCommandPolicy.CanUseGenericAutopilot(identity.Current.Title) });
         });
 
         app.MapGet("/api/controls/local", (HttpContext http, ControlAccess access) =>
@@ -43,7 +50,7 @@ public static class ControlEndpoints
 
         app.MapPost("/api/controls/command", async (HttpContext http, ControlAccess access,
             TelemetryHealth health, ITelemetrySource telemetry, NativeCockpitEventSender sender,
-            ControlCommand input) =>
+            AircraftIdentityGuard identity,TelemetryStore store,ControlCommand input) =>
         {
             if (!ControlAccess.SameOrigin(http)) return Results.StatusCode(403);
             var token = http.Request.Headers["X-MSFS-Control-Token"].ToString();
@@ -52,6 +59,10 @@ public static class ControlEndpoints
                 return Results.BadRequest(new { error = "Nepovolený příkaz nebo hodnota." });
             if (telemetry.Mode != "simconnect" || !health.Snapshot(telemetry.Mode).Connected)
                 return Results.Conflict(new { error = "MSFS 2020 není živě připojený." });
+            if (!identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow))
+                return Results.Conflict(new { error = "Identita letadla není potvrzená nebo se změnila." });
+            if (!AirbusCommandPolicy.MaySend(identity.Current.Title,input.Command))
+                return Results.Conflict(new { error = "Generické AP příkazy jsou pro Airbus zablokované do ověření FCU." });
             if (!access.PermitCommand(token)) return Results.StatusCode(429);
 
             try

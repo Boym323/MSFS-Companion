@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import './CockpitControls.css';
 
-type Access = { enabled: boolean; paired: boolean; canControl: boolean; local: boolean };
+type Access = { enabled: boolean; paired: boolean; canControl: boolean; local: boolean;
+  autopilotSupported?: boolean };
 type Local = { enabled: boolean; pairCode: string | null };
 type RadioValues = {
   com1ActiveMHz: number; com1StandbyMHz: number;
@@ -146,6 +147,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
   }
 
   const canSend = !!access?.canControl && live && !busy;
+  const canSendAutopilot=canSend&&access?.autopilotSupported===true;
   const selected = systems?.connected ? systems.systems : null;
   const rv = radio?.connected ? radio.radios : null;
   const ap = modes?.connected ? modes.modes : null;
@@ -220,6 +222,10 @@ export default function CockpitControls({ live }: { live: boolean }) {
     </section>
     <h2>C2 · Autopilot</h2>
     <section className="control-tile">
+      {live&&access?.autopilotSupported===false&&
+        <p role="status">Generické příkazy autopilota jsou pro Airbus A320neo
+        z bezpečnostních důvodů vypnuté. FCU lze nyní pouze sledovat;
+        ovládání bude dostupné až po ověření na konkrétním letadle.</p>}
       <p>Skutečný stav AP: <strong>{selected ? (selected.autopilotMaster ? 'ZAPNUTO' : 'VYPNUTO') : '—'}</strong></p>
       <p>Potvrzené režimy: HDG <strong>{ap ? (ap.heading ? 'ON' : 'OFF') : '—'}</strong>
         {' · '} NAV <strong>{ap ? (ap.nav ? 'ON' : 'OFF') : '—'}</strong>
@@ -229,7 +235,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
         {(['autopilot.on', 'autopilot.off', 'autopilot.hdg.on', 'autopilot.hdg.off',
           'autopilot.nav.on', 'autopilot.nav.off', 'autopilot.alt.on', 'autopilot.alt.off',
           'autopilot.vs.on', 'autopilot.vs.off'] as const).map((command, i) =>
-          <button key={command} type="button" disabled={!canSend}
+          <button key={command} type="button" disabled={!canSendAutopilot}
             onClick={() => void send(command)}>
             {['AP zapnout', 'AP vypnout', 'HDG ON', 'HDG OFF', 'NAV ON', 'NAV OFF',
               'ALT ON', 'ALT OFF', 'VS ON', 'VS OFF'][i]}
@@ -248,7 +254,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
             <input type="number" inputMode="numeric" min={field.min} max={field.max} step={field.step}
               value={field.value} onChange={e => field.set(e.target.value)} />
           </label>
-          <button type="button" disabled={!canSend || !field.value}
+          <button type="button" disabled={!canSendAutopilot || !field.value}
             onClick={() => void send(field.key, Number(field.value))}>Nastavit</button>
         </div>)}
       </div>
