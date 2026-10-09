@@ -24,3 +24,18 @@ geometrie, nikoliv kompletnost veřejných leteckých dat.
 
 Zdroje formátu: původní WinPilot OpenAir a specifikace SeeYou/OpenAir 2.1.
 Žádná nová služba ani software ve Windows nebyly instalovány.
+
+## C45 V2.1 – kontrola stáří zdroje (informativní)
+
+Současný server využívá veřejný soubor Aeroklubu s datem účinnosti
+**1. dubna 2026**. Prohlížeč nyní odděluje stáří souboru od stáří
+HTTP mezipaměti. Pokud je datový soubor starší než **56 dní**,
+nebo je poslední aktualizace mezipaměti neúspěšná, vrstvy se
+**samovolně nezapnou**: zobrazí se upozornění a vyžaduje se
+výslovné potvrzení pro použití v simulátoru. Neznámé či budoucí
+datum serverové vrstvy vede k odmítnutí.
+
+Prahových 56 dní je pouze opatrný UI indikátor, **nikoli záruka
+platnosti AIRAC**. Nevyhodnocujeme oficiální NOTAM, časovou aktivaci
+prostoru ani právní status. Soukromě importované soubory OpenAir
+nemají ověřený datum účinnosti – UI to výslovně uvádí.
