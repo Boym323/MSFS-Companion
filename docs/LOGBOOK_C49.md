@@ -78,3 +78,10 @@ i podvržený journal odkazující na již existující záznam.
 Test nerozpojuje napájení ani nepředstírá úspěšnou simulaci výpadku
 skutečného Windows; na reálné instalaci zůstává vhodná samostatná
 akceptační zkouška.
+
+Po uložení každého obnoveného těla letu i jeho metadat se provádí explicitní
+`Flush(true)` (diskový flush) **před odstraněním recovery journalu**.
+To omezuje riziko, že po výpadku napájení zůstane transakce označena jako
+úspěšná, přestože datové bloky ještě nebyly fyzicky zapsány. Záruky
+konkrétního úložiště se mohou lišit; reálný power-loss test je nadále
+samostatnou akceptační zkouškou.
