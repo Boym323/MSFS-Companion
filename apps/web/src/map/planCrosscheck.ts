@@ -37,11 +37,12 @@ export function comparePlan(points:ImportedWaypoint[],navigation:Navigation|null
   // A nearby geographic point can still be a different instance of the same identifier.
   const sameId=matchingIds.includes(index);
   if(minimum<=2){
-    return {state:'match',evidence:sameId?'position+ident':'position',
+    return {state:sameId?'match':'uncertain',
+      evidence:sameId?'position+ident':'position',
       importedIndex:index,separationNm:Math.round(minimum*100)/100,
       description:sameId
         ?`Identifikátor i poloha GPS bodu odpovídají bodu č. ${index+1} importované trasy (do 2 NM).`
-        :`Poloha GPS bodu odpovídá bodu č. ${index+1} do 2 NM; identifikátor není potvrzený.`};
+        :`GPS geometrie je blízko bodu č. ${index+1} do 2 NM; identifikátor není potvrzený a shodu aktivního legu nelze prohlásit.`};
   }
   // An identical identifier at an incompatible coordinate is evidence of
   // a mismatch, but never evidence of complete flight-plan corruption.
