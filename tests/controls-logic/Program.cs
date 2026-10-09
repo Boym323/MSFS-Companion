@@ -44,4 +44,8 @@ Reject("brakes.parking.set", 2);
 Reject("lights.landing.on", 1);
 Must(Resolve("flaps.increment").Name == "FLAPS_INCR", "flaps");
 Must(Resolve("trim.down").Name == "ELEV_TRIM_DN", "trim");
+Must(!AirbusCommandPolicy.MaySend("Asobo Airbus A320neo","autopilot.altitude.set"),"A320 AP write prohibited");
+Must(!AirbusCommandPolicy.MaySend("FlyByWire A32NX","autopilot.on"),"addon AP write prohibited");
+Must(AirbusCommandPolicy.MaySend("Airbus A320neo","radio.com1.swap"),"radio still allowed");
+Must(AirbusCommandPolicy.MaySend("Cessna 172","autopilot.hdg.on"),"other aircraft unchanged");
 Console.WriteLine("PASS: C1/C2 a C7 povolené události, XPDR BCD16 a limity.");
