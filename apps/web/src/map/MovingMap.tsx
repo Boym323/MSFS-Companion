@@ -57,7 +57,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       setAirspaces(parsed.regions);setShowAirspaces(true);
       setAirspaceMessage('Aeroklub ČR · platnost zdrojového souboru od '+
         payload.effectiveDate+' · '+parsed.regions.length+' polygonů, '+
-        parsed.skipped+' přeskočených (oblouky či neznámá geometrie). '+
+        parsed.skipped+' přeskočených (neplatná či složitá geometrie). '+
         (payload.stale?'Mezipaměť je zastaralá. ':'')+
         'Není ověřena aktuální aktivace prostorů ani NOTAM.');
     } catch (error) {setAirspaceMessage(error instanceof Error?error.message:'Nepodařilo se načíst letecké prostory.');}
@@ -315,7 +315,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         {airspaceMessage&&<p role="status">{airspaceMessage}</p>}
         <p>Podklady nejsou automaticky aktuální. Exporty ve formátu OpenAir lze získat
           například z <a href="https://openflightmaps.org/" target="_blank" rel="noreferrer">open flightmaps</a>.
-          Nezpracované obloukové hranice nejsou vykresleny.</p>
+          Podporované oblouky a kružnice se aproximují; neplatné tvary se vynechají.</p>
       </div>
       <div className="moving-map-ground-tools">
         <button type="button" disabled={!telemetry||groundLoading||zoom<13}
