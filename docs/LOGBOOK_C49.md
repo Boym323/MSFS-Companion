@@ -47,3 +47,24 @@ nezmění nastavení MSFS; probíhá pouze s lokální historií.
 Import neobnovuje přesně původní frekvenci raw záznamu (export
 používá již převzorkované API body), nahradí původní ID novým
 a **neobchází** běžnou pozdější retenční politiku recorderu.
+
+
+## Auditní oprava: obnova po tvrdém přerušení importu
+
+Před prvním zápisem obnovených letů vzniká na disku potvrzený
+`restore-<batch>.pending.json` journal se seznamem výhradně nově
+přidělených ID. Metadata obnovených letů obsahují náhodnou značku
+vlastnictví importu. Teprve po úplném zápisu všech dat a metadat
+se journal odstraní.
+
+Po restartu recorder před načtením historie odstraní pouze
+**nedokončenou** transakci. Nejprve ověří všechna existující metadata
+proti značce v journalu a až poté případně čistí. Poškozený journal
+nebo nesouhlasící vlastnictví celý cleanup **zastaví**, místo aby
+smazal nesouvisející lety. Stejná kontrola probíhá i před ruční
+obnovou. Regrese simulují stav po pádu po zápisu části importu
+i podvržený journal odkazující na již existující záznam.
+
+Test nerozpojuje napájení ani nepředstírá úspěšnou simulaci výpadku
+skutečného Windows; na reálné instalaci zůstává vhodná samostatná
+akceptační zkouška.
