@@ -60,7 +60,9 @@ internal static class RecoveryPackageCache
             try
             {
                 File.Copy(source,temporary,overwrite:true);
-                var sha=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(temporary)));
+                using var hashStream=File.OpenRead(temporary);
+                var sha=Convert.ToHexString(SHA256.HashData(hashStream));
+                hashStream.Close();
                 if(new FileInfo(temporary).Length!=bytes)return false;
                 File.Move(temporary,Package,overwrite:true);
                 var marker=new Candidate(1,version,sha,bytes,DateTimeOffset.UtcNow);
@@ -92,7 +94,8 @@ internal static class RecoveryPackageCache
                 item.SavedAtUtc>DateTimeOffset.UtcNow.AddMinutes(5)||
                 item.SavedAtUtc<DateTimeOffset.UtcNow.AddDays(-90)||
                 new FileInfo(Package).Length!=item.Bytes)return null;
-            var digest=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Package)));
+            using var hashStream=File.OpenRead(Package);
+            var digest=Convert.ToHexString(SHA256.HashData(hashStream));
             return string.Equals(digest,item.Sha256,StringComparison.OrdinalIgnoreCase)
                 ?Package:null;
         }
