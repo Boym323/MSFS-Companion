@@ -10,6 +10,8 @@ test('C50 maps common aircraft to explicit candidate layouts',()=>{
  ['pfd','map','avionics']);
  assert.deepEqual(recommendedAircraftLayout('XCub Floats')?.layout.visible,
  ['pfd','map','aircraft']);
+ assert.deepEqual(recommendedAircraftLayout('Airbus A320 Neo')?.layout.visible,
+ ['pfd','map','a320']);
  assert.deepEqual(recommendedAircraftLayout('Unknown plane')?.layout.visible,
  ['pfd','map']);
 });
@@ -19,6 +21,11 @@ test('C50 storage keys are bounded and per actual aircraft title',()=>{
  assert.notEqual(aircraftLayoutStorageKey('C172 A'),aircraftLayoutStorageKey('C172 B'));
  assert.equal(recommendedAircraftLayout('A\nB'),null);
 });
+test('A320 panel is a valid manually selected workspace item',()=>{
+ const normalized=normalizeWorkspace({columns:2,visible:['pfd','map','a320']});
+ assert.deepEqual(normalized.visible,['pfd','map','a320']);
+});
+
 test('C50 loaded layouts are normalized against enabled panel set',()=>{
  const bad=normalizeWorkspace({columns:4,visible:['junk','pfd','pfd','map','controls','g1000']});
  assert.equal(bad.columns,1);

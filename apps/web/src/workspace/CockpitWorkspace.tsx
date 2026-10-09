@@ -6,6 +6,7 @@ import AircraftDashboard from '../aircraft/AircraftDashboard';
 import CockpitControls from '../controls/CockpitControls';
 import G1000Remote from '../g1000/G1000Remote';
 import AdvancedAvionics from '../avionics/AdvancedAvionics';
+import A320Dashboard from '../a320/A320Dashboard';
 import './CockpitWorkspace.css';
 import { normalizeWorkspace, type PanelId, type Layout } from './layout';
 import { recommendedAircraftLayout, aircraftLayoutStorageKey } from './aircraftPresets';
@@ -14,6 +15,7 @@ const panels: { id: PanelId; name: string; path: string }[] = [
   { id:'pfd', name:'PFD', path:'/pfd' },
   { id:'map', name:'Mapa', path:'/map' },
   { id:'aircraft', name:'Systémy letadla', path:'/aircraft' },
+  { id:'a320', name:'Airbus A320 readback', path:'/a320' },
   { id:'controls', name:'Ovládání kokpitu', path:'/controls' },
   { id:'g1000', name:'Garmin G1000', path:'/g1000' },
   { id:'avionics', name:'Další avionika', path:'/avionics' },
@@ -89,6 +91,7 @@ export default function CockpitWorkspace({ telemetry, live }: {
     if (id === 'map') return <MovingMap telemetry={telemetry} />;
     if (id === 'aircraft') return <AircraftDashboard telemetry={telemetry} />;
     if (id === 'controls') return <CockpitControls live={live} />;
+    if (id === 'a320') return <A320Dashboard telemetry={telemetry} live={live} />;
     if (id === 'g1000') return <G1000Remote live={live} />;
     return <AdvancedAvionics live={live} />;
   }
