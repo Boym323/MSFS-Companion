@@ -1,1 +1,7 @@
 .flight-progress{display:grid;gap:16px;margin-bottom:38px}.flight-progress p{font-size:13px;line-height:1.6;color:#b3c8db}.flight-progress-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px}.flight-progress-grid article{display:grid;gap:8px;border:1px solid #3f5972;background:#14273e;padding:13px;border-radius:10px}.flight-progress-grid small{color:#a7c6dd}.flight-progress-grid strong{font-size:18px}
+.flight-progress-descent{padding:16px;background:#122b42;border:1px solid #3a5b76;border-radius:12px;display:grid;gap:14px}
+.flight-progress-descent h3{font-size:16px;margin:0}
+.flight-progress-descent-inputs{display:flex;flex-wrap:wrap;gap:14px}
+.flight-progress-descent-inputs label{display:grid;gap:6px;font-size:13px;color:#c9e0f1;min-width:180px}
+.flight-progress-descent-inputs input,.flight-progress-descent-inputs select{min-height:44px;padding:10px;border-radius:7px;border:1px solid #426281;background:#092034;color:#e7f5ff}
+.flight-progress-descent .flight-progress-grid{margin:0}
