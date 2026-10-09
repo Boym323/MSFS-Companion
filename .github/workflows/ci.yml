@@ -133,6 +133,9 @@ jobs:
       - name: C19 NOAA weather failure recovery
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/weather-logic/MsfsCompanion.WeatherCheck.csproj --configuration Release
+      - name: C49 Safe Flight Recorder restore transaction
+        if: needs.changes.outputs.all == 'true'
+        run: dotnet run --project tests/recordings/MsfsCompanion.RecordingRestoreCheck.csproj --configuration Release
       - name: C26 SimConnect traffic packet decoder
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/traffic/MsfsCompanion.TrafficCheck.csproj -c Release
