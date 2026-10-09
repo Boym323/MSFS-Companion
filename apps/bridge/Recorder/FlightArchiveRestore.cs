@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace MsfsCompanion.Bridge.Recorder;
 
@@ -10,6 +12,73 @@ public sealed record FlightRestoreResult(bool Success, string Message, int Impor
 
 public sealed partial class FlightRecorder
 {
+    private sealed record RestoreMarker(int Schema,string BatchId,string[] Ids);
+    private static readonly Regex ValidBatch = new(
+        @"\A[0-9a-f]{32}\z",RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // A pre-commit marker survives process termination. Only IDs belonging to
+    // this batch may be touched; existing flights must never be overwritten.
+    private string MarkerPath(string batch) =>
+        Path.Combine(_directory,"restore-"+batch+".pending.json");
+
+    public int RecoverInterruptedImports()
+    {
+        lock(_gate)
+        {
+            Directory.CreateDirectory(_directory);
+            return RecoverInterruptedImportsLocked();
+        }
+    }
+
+    private int RecoverInterruptedImportsLocked()
+    {
+        var recovered=0;
+        foreach(var path in Directory.EnumerateFiles(_directory,"restore-*.pending.json"))
+        {
+            var file=Path.GetFileName(path);
+            const string prefix="restore-";
+            const string suffix=".pending.json";
+            var batch=file[prefix.Length..^suffix.Length];
+            if(!ValidBatch.IsMatch(batch)||new FileInfo(path).Length>4096)
+                throw new IOException("Invalid C49 import recovery marker.");
+            RestoreMarker? marker;
+            try {marker=JsonSerializer.Deserialize<RestoreMarker>(
+                File.ReadAllText(path),JsonOptions);}
+            catch(JsonException ex){throw new IOException("Invalid C49 import journal.",ex);}
+            if(marker is not {Schema:1}||marker.BatchId!=batch||
+                marker.Ids is null||marker.Ids.Length is < 1 or > 30||
+                marker.Ids.Any(id=>!ValidId.IsMatch(id))||
+                marker.Ids.Distinct(StringComparer.Ordinal).Count()!=marker.Ids.Length)
+                throw new IOException("Invalid C49 import ownership journal.");
+            // Preflight the ENTIRE batch before deleting anything: malformed or
+            // unrelated metadata must fail closed without touching old flights.
+            foreach(var id in marker.Ids)
+            {
+                var meta=MetaPath(id);
+                if(!File.Exists(meta))continue;
+                try
+                {
+                    using var json=JsonDocument.Parse(File.ReadAllText(meta));
+                    if(!json.RootElement.TryGetProperty("restoreBatchId",out var owner)||
+                       owner.GetString()!=batch)
+                        throw new IOException("C49 marker does not own recorded flight.");
+                }
+                catch(JsonException ex){throw new IOException("Invalid C49 restored flight marker.",ex);}
+            }
+            foreach(var id in marker.Ids)
+            {
+                var meta=MetaPath(id);
+                var data=DataPath(id);
+                if(File.Exists(meta))File.Delete(meta);
+                if(File.Exists(data))File.Delete(data);
+            }
+            File.Delete(path);
+            recovered++;
+            logger.LogWarning("C49: removed incomplete restored flight batch {Batch}.",batch);
+        }
+        return recovered;
+    }
+
     private static bool ValidSample(FlightRecordedSample? sample) =>
         sample is not null
         && sample.TimestampUtc.Year is >= 2000 and <= 2100
@@ -68,6 +137,7 @@ public sealed partial class FlightRecorder
             try
             {
                 Directory.CreateDirectory(_directory);
+                RecoverInterruptedImportsLocked();
                 var existing = Directory.EnumerateFiles(_directory, "*.meta.json").ToArray();
                 if (existing.Length + archive.Flights.Count > MaxFlights)
                     return new(false, "Obnova překročí bezpečný limit 30 letů. Stávající záznamy nesmažu.", 0);
@@ -76,6 +146,7 @@ public sealed partial class FlightRecorder
                                 x.EndsWith(".jsonl",StringComparison.Ordinal))
                     .Sum(x => new FileInfo(x).Length);
 
+                var batch=Guid.NewGuid().ToString("N");
                 var staged = new List<(string Id, string Data, string Metadata)>();
                 long incomingBytes = 0;
                 foreach (var flight in archive.Flights)
@@ -93,7 +164,11 @@ public sealed partial class FlightRecorder
                         MaxAirspeedKnots=flight.Samples.Max(p=>p.AirspeedKnots),
                         MaxAltitudeFeet=flight.Samples.Max(p=>p.AltitudeFeet)
                     };
-                    var meta=JsonSerializer.Serialize(summary,JsonOptions);
+                    // Unknown metadata fields are ignored by legacy readers;
+                    // this ownership token makes crash recovery fail closed.
+                    var metaObject=JsonSerializer.SerializeToNode(summary,JsonOptions)!.AsObject();
+                    metaObject["restoreBatchId"]=batch;
+                    var meta=metaObject.ToJsonString();
                     incomingBytes += System.Text.Encoding.UTF8.GetByteCount(data) +
                         System.Text.Encoding.UTF8.GetByteCount(meta);
                     if (incomingBytes + existingBytes > MaxTotalBytes)
@@ -101,11 +176,22 @@ public sealed partial class FlightRecorder
                     staged.Add((id,data,meta));
                 }
 
-                // Commit each metadata file last. If any disk operation fails,
-                // remove *only files this import created*, never pre-existing data.
+                // Durable marker is written BEFORE the first flight file.
+                // After a hard power loss, startup rolls back the entire
+                // unconfirmed batch, including already visible metadata.
+                var markerPath=MarkerPath(batch);
                 var owned = new List<string>();
+                var markerCreated=false;
                 try
                 {
+                    using(var markerFile=new FileStream(markerPath,FileMode.CreateNew,
+                        FileAccess.Write,FileShare.None))
+                    {
+                        markerCreated=true;
+                        JsonSerializer.Serialize(markerFile,
+                            new RestoreMarker(1,batch,staged.Select(x=>x.Id).ToArray()),JsonOptions);
+                        markerFile.Flush(flushToDisk:true);
+                    }
                     foreach(var entry in staged)
                     {
                         var data=DataPath(entry.Id);
@@ -125,18 +211,30 @@ public sealed partial class FlightRecorder
                             buffered.Write(entry.Metadata);
                         }
                     }
+                    File.Delete(markerPath); // Commit: only complete batches become permanent.
                     logger.LogInformation("C49: restored {Count} archived flights; no existing flight replaced.",
                         staged.Count);
                     return new(true,"Lety byly obnoveny pod novými identifikátory.",staged.Count);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
+                    var cleanupSucceeded=true;
                     foreach(var file in owned)
                     {
-                        try {File.Delete(file);}catch(IOException){}catch(UnauthorizedAccessException){}
+                        try {File.Delete(file);}
+                        catch(Exception removeEx) when(removeEx is IOException or UnauthorizedAccessException)
+                        {cleanupSucceeded=false;}
                     }
-                    logger.LogWarning(ex,"C49 backup restore failed; transaction rolled back.");
-                    return new(false,"Zápis zálohy selhal; nově vytvořené soubory byly odstraněny.",0);
+                    if(markerCreated&&cleanupSucceeded)
+                    {
+                        try {File.Delete(markerPath);}
+                        catch(Exception removeEx) when(removeEx is IOException or UnauthorizedAccessException)
+                        {cleanupSucceeded=false;}
+                    }
+                    logger.LogWarning(ex,"C49 backup restore failed; cleanup complete: {Complete}.",cleanupSucceeded);
+                    return new(false,cleanupSucceeded
+                        ?"Zápis zálohy selhal; nově vytvořené soubory byly odstraněny."
+                        :"Zápis zálohy selhal; při dalším startu se dokončí vyčištění nedokončeného importu.",0);
                 }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
