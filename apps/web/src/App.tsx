@@ -3,6 +3,7 @@ import Pfd from './pfd/Pfd';
 import MovingMap from './map/MovingMap';
 import FlightHistory from './flights/FlightHistory';
 import AircraftDashboard from './aircraft/AircraftDashboard';
+import A320Dashboard from './a320/A320Dashboard';
 import PanelAktualizaci from './PanelAktualizaci';
 import CockpitControls from './controls/CockpitControls';
 import G1000Remote from './g1000/G1000Remote';
@@ -40,6 +41,7 @@ const panels = [
   { href: '/workspace', label: 'Moje panely' },
   { href: '/flights', label: 'Historie letů' },
   { href: '/aircraft', label: 'Letadlo' },
+  { href: '/a320', label: 'Airbus A320' },
   { href: '/capabilities', label: 'Profily' },
   { href: '/weather', label: 'Počasí' },
   { href: '/vatsim', label: 'VATSIM' },
@@ -67,6 +69,7 @@ const pageMeta = {
   '/weather': { eyebrow: 'AVIATION C15', heading: 'Letecké počasí', description: 'Aktuální METAR a TAF bez dalšího softwaru.' },
   '/capabilities': { eyebrow: 'AVIONIKA C13', heading: 'Dostupné ovládací prvky', description: 'Nativní inventura avioniky v aktuálním letadle.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
+  '/a320': {eyebrow:'ASOBO A320NEO',heading:'Airbus A320 – diagnostika',description:'Čtecí FCU, dvě turbíny a GPS. Není to ověřené dálkové ovládání.'},
   '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
   '/g1000': { eyebrow: 'AVIONIKA C3', heading: 'G1000 Remote', description: 'Ovladače PFD/MFD dostupné přes Input Events aktuálního letadla.' },
   '/avionics': { eyebrow: 'AVIONIKA C6', heading: 'Další typy avioniky', description: 'Ovládání G3X, G3000, GNS430 a GNS530 s ověřením dostupnosti.' },
@@ -99,6 +102,7 @@ export default function App() {
   const isWorkspace = pathname === '/workspace';
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
+  const isA320=pathname==='/a320';
   const isCapabilities = pathname === '/capabilities';
   const isWeather = pathname === '/weather';
   const isVatsim = pathname === '/vatsim';
@@ -182,7 +186,7 @@ export default function App() {
           </details>
         )}
 
-        {!isPilot && !isValidation && !isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
+        {!isPilot && !isValidation && !isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isA320 && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
         {!sourceIsLive && (
           <p className="telemetry-offline" role="status">
@@ -225,6 +229,9 @@ export default function App() {
           <AircraftCapabilities live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : isAircraft ? (
           <AircraftDashboard telemetry={validTelemetry} />
+        ) : isA320 ? (
+          <A320Dashboard telemetry={validTelemetry}
+            live={sourceIsLive&&sourceMode==='simconnect'} />
         ) : isControls ? (
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : isG1000 ? (
