@@ -47,6 +47,11 @@ export default function FlightHistory() {
   const [backupBusy,setBackupBusy]=useState(false);
   const [backupMessage,setBackupMessage]=useState('');
   const [backupPreview,setBackupPreview]=useState<ReturnType<typeof inspectLogbookArchive>|null>(null);
+  const [restoreFile,setRestoreFile]=useState<File|null>(null);
+  const [restoreConfirmed,setRestoreConfirmed]=useState(false);
+  const [restoring,setRestoring]=useState(false);
+  const [localRestore] = useState(()=>
+    ['localhost','127.0.0.1','::1'].includes(window.location.hostname));
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +139,8 @@ export default function FlightHistory() {
     finally{setBackupBusy(false);}
   }
   async function inspectBackup(file:File|null){
+    setRestoreFile(null);
+    setRestoreConfirmed(false);
     setBackupPreview(null);
     if(!file)return;
     if(file.size>ARCHIVE_LIMIT_BYTES){
@@ -142,8 +149,32 @@ export default function FlightHistory() {
     try{
       const preview=inspectLogbookArchive(await file.text());
       setBackupPreview(preview);
-      setBackupMessage('Formát zálohy prošel lokální kontrolou. Import do Windows bridge není zapnutý.');
+      setRestoreFile(file);
+      setBackupMessage('Formát prošel místní kontrolou. Zápis do recorderu lze výslovně potvrdit pouze ve Windows přes localhost.');
     }catch(e){setBackupMessage(e instanceof Error?e.message:'Neplatná záloha.');}
+  }
+  async function restoreBackup(){
+    if(!localRestore||!restoreConfirmed||!restoreFile||restoring||!backupPreview)return;
+    setRestoring(true);setBackupMessage('Ověřuji a zapisuji lety do lokálního Windows recorderu…');
+    try{
+      const response=await fetch('/api/flights/restore',{
+        method:'POST',headers:{'Content-Type':'application/json',
+          'X-MSFS-Companion-Action':'restore-flights'},
+        body:restoreFile,
+      });
+      const data=await response.json() as {success?:boolean;imported?:number;
+        message?:string;error?:string};
+      if(!response.ok||data.success!==true)
+        throw Error(data.message||data.error||'Recorder odmítl import.');
+      setBackupMessage('Obnoveno '+data.imported+
+        ' letů pod novými identifikátory. Existující lety nebyly přepsány.');
+      setRestoreFile(null);setRestoreConfirmed(false);setBackupPreview(null);
+      setSelected('');setDetail(null);
+      const refresh=await fetch('/api/flights',{cache:'no-store'});
+      if(refresh.ok){const list=await refresh.json() as FlightSummary[];
+        setFlights(list);setSelected(list[0]?.id||'');}
+    }catch(e){setBackupMessage(e instanceof Error?e.message:'Obnovení letů se nezdařilo.');}
+    finally{setRestoring(false);}
   }
   async function compare() {
     if (!compareId || compareId === selected || compareBusy) return;
@@ -198,9 +229,23 @@ export default function FlightHistory() {
           {' '}{backupPreview.mock} testovacích,
           {' '}{backupPreview.active} neukončených při zálohování.
           Datum exportu: {new Date(backupPreview.exportedAtUtc).toLocaleString('cs-CZ')}.</p>}
-        <p>Původní Windows záznamy se nijak nemění. Import do aktivní historie
-          zatím není podporovaný; limit archivů je 20 MB. Starší lety,
-          které již bridge automaticky promazal, exportovat nelze.</p>
+        {backupPreview && localRestore && <div className="flight-history-restore">
+          <label><input type="checkbox" checked={restoreConfirmed}
+            onChange={event=>setRestoreConfirmed(event.target.checked)}/>
+            Potvrzuji, že obnovuji pouze svou zálohu GPS letů. Během obnovy
+            nesmí právě probíhat zaznamenávání letu. Původní soubory nebudou přepsány.
+          </label>
+          <button type="button" disabled={!restoreConfirmed||restoring}
+            onClick={()=>void restoreBackup()}>
+            {restoring?'Obnovuji…':'Obnovit '+backupPreview.count+' letů ve Windows'}
+          </button>
+        </div>}
+        {!localRestore && <p>Obnova z archivu je dostupná jen z Windows počítače
+          na http://127.0.0.1:8765/flights. Na iPadu či jiném zařízení LAN
+          lze zálohu pouze exportovat a zkontrolovat.</p>}
+        <p>Obnova vyžaduje volné místo do limitu 30 letů/100 MiB;
+          při překročení se odmítne, nesmaže starší záznamy. Archiv má limit 20 MB.
+          Již promazané lety lze vrátit pouze z dříve vytvořené zálohy.</p>
       </section>
       <div className="flight-history-layout">
         <aside className="flight-history-list" aria-label="Zaznamenané lety">
