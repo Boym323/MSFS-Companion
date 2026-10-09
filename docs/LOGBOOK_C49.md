@@ -47,3 +47,14 @@ nezmění nastavení MSFS; probíhá pouze s lokální historií.
 Import neobnovuje přesně původní frekvenci raw záznamu (export
 používá již převzorkované API body), nahradí původní ID novým
 a **neobchází** běžnou pozdější retenční politiku recorderu.
+
+
+## Auditní zpevnění: stejné limity exportu a obnovy
+
+Místní kontrola JSON zálohy i webový export používají stejné základní
+limity jako serverový import: **1–4 000 vzorků na let**, ID recorderu,
+plně uzavřenou relaci, validní všechny hlavní číselné SimVars,
+odpovídající letadlo a přísně rostoucí časové značky.
+Chybný soubor se nezobrazuje jako obnovitelný. Nejedná se o archiv
+původních všech raw bodů: stávající API exportuje přibližně 4 000
+převzorkovaných bodů na let.
