@@ -40,7 +40,7 @@ test('C49 browser and recorder require at most 4000 samples per flight',()=>{
   assert.throws(()=>createLogbookArchive([archive],'2026-10-09T07:10:00Z'),/neplatné/);
   const payload=JSON.stringify({schema:'kokpit-flight-backup-v1',
     exportedAtUtc:'2026-10-09T07:10:00Z',flights:[archive]});
-  assert.throws(()=>inspectLogbookArchive(payload),/neplatné/);
+  assert.throws(()=>inspectLogbookArchive(payload),/neplatn/);
 });
 test('C49 validates mandatory SimConnect samples and monotonic timestamps',()=>{
   const missing=makeFlight();delete missing.samples[0].bankDegrees;
