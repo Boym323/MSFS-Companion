@@ -289,6 +289,12 @@ jobs:
           if ($mismatch.ExitCode -eq 0) {
             throw 'Installed-version guard accepted an incorrect version'
           }
+          $snapshot = Start-Process -FilePath $hostExe -ArgumentList @(
+            '--smoke-recovery-package', $env:APP_VERSION
+          ) -PassThru -Wait
+          if ($snapshot.ExitCode -ne 0) {
+            throw 'C42 full installed package was not capturable and SHA256-verifiable'
+          }
           Write-Host "Real Windows Setup install/version check passed: $env:APP_VERSION"
 
       - name: Upload Windows installer artifact
