@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import { buildValidationEvidence, type ValidationEvidence } from './validationEvidence';
+import { compareEvidence } from './compareEvidence';
 import './LiveValidation.css';
 
 type Scenario = {id:string; title:string; instructions:string};
@@ -25,6 +26,7 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
   const [checks,setChecks]=useState<Saved>(()=>load(key));
   const [capturing,setCapturing]=useState(false);
   const [evidence,setEvidence]=useState<{aircraft:string; snapshot:ValidationEvidence}|null>(null);
+  const [baseline,setBaseline]=useState<{aircraft:string; snapshot:ValidationEvidence}|null>(null);
   const [captureMessage,setCaptureMessage]=useState('');
   const captureSequence=useRef(0);
   useEffect(()=>{
@@ -32,13 +34,14 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
     setChecks(load(key));
     setCapturing(false);
     setEvidence(null);
+    setBaseline(null);
     setCaptureMessage('');
     return ()=>{captureSequence.current++;};
   },[key]);
   const update=(id:string,next:Assessment)=>{
     setChecks(old=>{const value={...old,[id]:next};try{localStorage.setItem(key,JSON.stringify(value));}catch{}return value;});
   };
-  async function captureEvidence(){
+  async function captureEvidence(asBaseline=false){
     if (!live || capturing) return;
     const sequence=++captureSequence.current;
     const controller=new AbortController();
@@ -54,9 +57,16 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
         }),
       );
       if(sequence!==captureSequence.current) return;
-      setEvidence({aircraft,snapshot:buildValidationEvidence(
-        status,systems,navigation,new Date().toISOString())});
-      setCaptureMessage('Technický snímek připraven k exportu. Výsledky scénářů stále potvrzuje pilot.');
+      const snapshot=buildValidationEvidence(status,systems,navigation,new Date().toISOString());
+      if (!snapshot.telemetry.live) throw Error('SimConnect není živý');
+      if(asBaseline){
+        setBaseline({aircraft,snapshot});
+        setEvidence(null);
+        setCaptureMessage('Výchozí stav zaznamenán. Nyní změňte zvolený přepínač v MSFS a zachyťte stav po změně.');
+      } else {
+        setEvidence({aircraft,snapshot});
+        setCaptureMessage('Technický snímek připraven. Rozdíly nejsou automatickým potvrzením účinku ovladače.');
+      }
     } catch {
       if(sequence===captureSequence.current){
         setEvidence(null);
@@ -67,10 +77,14 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
       if(sequence===captureSequence.current) setCapturing(false);
     }
   }
+  const comparison=baseline?.aircraft===aircraft && evidence?.aircraft===aircraft
+    ? compareEvidence(baseline.snapshot,evidence.snapshot) : null;
   function download(){
     const report={schema:1,exportedAtUtc:new Date().toISOString(),aircraft,liveAtExport:live,
       note:'Ruční pozorování, nikoli automatická certifikace.',
       evidence:evidence?.aircraft===aircraft?evidence.snapshot:null,
+      baseline:baseline?.aircraft===aircraft?baseline.snapshot:null,
+      comparison:comparison?.comparable?comparison:null,
       checks:scenarios.map(s=>({
         id:s.id,title:s.title,...(checks[s.id]||{result:'not-tested',note:''})}))};
     const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
@@ -94,12 +108,30 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
         placeholder="Verze MSFS, avionika, zjištěný výsledek..." /></label>
     </article>)}
     <div className="validation-actions">
-      <button type="button" onClick={()=>void captureEvidence()} disabled={!live||capturing}>
-        {capturing?'Načítám diagnostiku…':'Zachytit technická data'}
+      <button type="button" onClick={()=>void captureEvidence(true)} disabled={!live||capturing}>
+        {capturing?'Načítám diagnostiku…':'1. Zachytit výchozí stav'}
       </button>
+      <button type="button" onClick={()=>void captureEvidence(false)} disabled={!live||capturing}>
+        {capturing?'Načítám diagnostiku…':'2. Zachytit stav po změně'}
+      </button>
+      <button type="button" onClick={()=>{setBaseline(null);setEvidence(null);setCaptureMessage('');}}
+        disabled={!baseline&&!evidence}>Vymazat porovnání</button>
       <button type="button" onClick={download}>Exportovat výsledky validace JSON</button>
     </div>
     {captureMessage&&<p role="status">{captureMessage}</p>}
+    {comparison&&<section className="validation-comparison">
+      <h3>C41 · Porovnání před změnou a po změně</h3>
+      {!comparison.comparable?<p>Stavy nelze spolehlivě porovnat (offline, opačné pořadí nebo odstup delší než 15 minut).</p>
+        : comparison.changes.length ? <ul>
+          {comparison.changes.map(change=><li key={change.label}>
+            <strong>{change.label}</strong>:
+            {' '}{String(change.before)} → {String(change.after)} {change.unit}
+            {change.delta!==null?<> (rozdíl {change.delta>0?'+':''}{change.delta} {change.unit})</>:null}
+          </li>)}
+        </ul> : <p>Ve vybraných čerstvých údajích nebyla zaznamenána změna.
+          Nemusí to znamenat, že ovladač nefunguje.</p>}
+      <p>Číselné změny jsou pouze pozorování telemetrie. Ruční potvrzení účinku v kokpitu zůstává nutné.</p>
+    </section>}
     {evidence?.aircraft===aircraft&&<p>
       Technický snapshot: {evidence.snapshot.capturedAtUtc}
       {' · '}SimConnect {evidence.snapshot.telemetry.live?'připojen':'neověřen'}

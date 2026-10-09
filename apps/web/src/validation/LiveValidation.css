@@ -1,3 +1,9 @@
 .live-validation{display:grid;gap:12px}.live-validation article{background:#102039;border:1px solid #35506e;padding:16px;border-radius:12px;display:grid;gap:11px}.live-validation article h3{margin:0}.live-validation article p,.live-validation>p{color:#b8cbe1;line-height:1.5;font-size:13px}.live-validation label{display:grid;gap:7px;font-size:13px}.live-validation input,.live-validation select{min-width:0;background:#0b192c;color:#e8f2fc;border:1px solid #4d688a;padding:12px;border-radius:8px}.live-validation button{justify-self:start;background:#276184;color:#fff;border:1px solid #84c4e7;padding:12px;border-radius:9px;cursor:pointer}
 .validation-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
 .live-validation button:disabled{opacity:.45;cursor:not-allowed}
+
+.validation-comparison{border:1px solid #456786;background:#10263a;padding:15px;border-radius:12px}
+.validation-comparison h3{margin:0 0 10px}
+.validation-comparison ul{display:grid;gap:8px;margin:0;padding-left:20px}
+.validation-comparison li{line-height:1.5;font-size:13px}
+.validation-comparison p{line-height:1.6;font-size:13px;color:#b9cfe2}
