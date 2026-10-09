@@ -8,6 +8,13 @@ internal static class UpdatePolicy
     public static bool MayApply(bool updateDownloaded, bool exiting, bool alreadyApplying) =>
         updateDownloaded && !exiting && !alreadyApplying;
 
+    // If the user explicitly requested a recovery supervisor, do not degrade
+    // to an unprotected update when the previous package is missing or invalid.
+    internal static bool RecoveryRequirementMet(bool watchdogEnabled,
+        string? previousVersion, bool validMatchingPackage) =>
+        !watchdogEnabled || (!string.IsNullOrWhiteSpace(previousVersion)
+            && validMatchingPackage);
+
     public static bool SelfTest()
     {
         // An active MSFS session is deliberately not a blocking condition.
@@ -21,6 +28,11 @@ internal static class UpdatePolicy
 
         var result = cases.All(c =>
             MayApply(c.Downloaded, c.Exiting, c.AlreadyApplying) == c.Expected);
+        result &= RecoveryRequirementMet(false,null,false);
+        result &= RecoveryRequirementMet(false,"0.2.132",false);
+        result &= !RecoveryRequirementMet(true,null,true);
+        result &= !RecoveryRequirementMet(true,"0.2.132",false);
+        result &= RecoveryRequirementMet(true,"0.2.132",true);
         result &= HostSettings.DefaultFeedUrl == "https://github.com/Boym323/MSFS-Companion";
         result &= HostSettings.TryValidateFeed(HostSettings.DefaultFeedUrl, out _);
 
