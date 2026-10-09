@@ -34,6 +34,17 @@ skutečném Windows a odpovídající issue uzavřené.
 
 ## 2. MSFS 2020 – SimConnect a avionika, issues #20, #23, #24
 
+**Primární letadlo: Airbus A320.** Všechny základní letecké scénáře
+testovat přednostně podle
+[Airbus A320 acceptance matrix](ACCEPTANCE_A320.md): PFD/FMA,
+FCU, MCDU, ND, GPS, rádiová data, stav simulátoru a logbook.
+Testy G1000/G3000/XCub jsou doplňkové regresní scénáře
+ostatních profilů, nikoliv podmínka pro hlavní pilotní použití.
+Dokud není známá varianta A320 (Asobo/FBW/Fenix),
+nepovažovat custom FCU/MCDU Input Events za implementované.
+
+
+
 Každý scénář provést s běžícím MSFS 2020 a Kokpitem ve stejné LAN.
 Používat dostupné `/validation`, `/aircraft`, `/g1000`,
 `/map` a `/flights`. Pro potvrzení účinku Input Eventu **nestačí
@@ -41,9 +52,9 @@ stav HTTP 202 ani úspěšná enumerace**.
 
 | Letadlo / profil | Ověření |
 |---|---|
-| C172 / G1000 | FMS, HDG, NAV, Direct-To, MENU/CLR, 1–12 softkeys dle enumerace; fyzicky pozorovat změny avioniky |
-| TBM930 / G3000 | dostupnost správného profilu, aktivní GPS waypoint, režimy autopilota; nepodporované Input Events musí být disabled |
-| XCub Floats / G3X | AGL, stav na zemi a na vodě, motor, palivo, klapky; nevyvozovat existenci zatahovacího podvozku |
+| C172 / G1000 (volitelně) | FMS, HDG, NAV, Direct-To, MENU/CLR, 1–12 softkeys dle enumerace; fyzicky pozorovat změny avioniky |
+| TBM930 / G3000 (volitelně) | dostupnost správného profilu, aktivní GPS waypoint, režimy autopilota; nepodporované Input Events musí být disabled |
+| XCub Floats / G3X (volitelně) | AGL, stav na zemi a na vodě, motor, palivo, klapky; nevyvozovat existenci zatahovacího podvozku |
 | Letadlo s GNS430/530 | dostupnost profilu a skutečné přepínání navigace, bez domýšlení podpory |
 | Změna letadla za provozu | starý profil a příkazy se nesmějí použít bez nové enumerace |
 | Odpojení a návrat SimConnect | stale údaje a neautorizované příkazy se skryjí/zablokují; připojení se obnoví bez restartu MSFS |
