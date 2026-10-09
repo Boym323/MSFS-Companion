@@ -5,6 +5,8 @@ import FlightRouteMap from './FlightRouteMap';
 import FlightReplayCharts from './FlightReplayCharts';
 import { exportFlightCsv } from './performance';
 import { exportFlightGpx, exportFlightKml } from './logbookExport';
+import {createLogbookArchive,inspectLogbookArchive,ARCHIVE_LIMIT_BYTES,
+  type ArchivedFlight} from './logbookBackup';
 import { analyzeFlight } from './analysis';
 import './FlightHistory.css';
 
@@ -42,6 +44,9 @@ export default function FlightHistory() {
   const [compareId, setCompareId] = useState('');
   const [comparison, setComparison] = useState<FlightDetail | null>(null);
   const [compareBusy, setCompareBusy] = useState(false);
+  const [backupBusy,setBackupBusy]=useState(false);
+  const [backupMessage,setBackupMessage]=useState('');
+  const [backupPreview,setBackupPreview]=useState<ReturnType<typeof inspectLogbookArchive>|null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +101,50 @@ export default function FlightHistory() {
       window.setTimeout(()=>URL.revokeObjectURL(url),1000);
     } catch(e) {setError(e instanceof Error ? e.message : 'Export záznamu selhal.');}
   }
+  async function exportBackup(){
+    if(backupBusy||flights.length===0)return;
+    setBackupBusy(true);setBackupMessage('Zpracovávám dostupné lety z Windows bridge…');
+    setBackupPreview(null);
+    try{
+      if(flights.length>30)throw Error('Překročen počet letů dostupných pro jediný archiv.');
+      const records:ArchivedFlight[]=[];
+      for(const item of flights){
+        const controller=new AbortController();
+        const timer=window.setTimeout(()=>controller.abort(),10000);
+        try{
+          const response=await fetch('/api/flights/'+encodeURIComponent(item.id),
+            {cache:'no-store',signal:controller.signal});
+          if(!response.ok)throw Error('Nepodařilo se stáhnout let '+item.id);
+          const data=await response.json() as FlightDetail;
+          if(data.summary.id!==item.id||!Array.isArray(data.samples))
+            throw Error('Let '+item.id+' neodpovídá požadovanému záznamu.');
+          records.push({summary:data.summary,samples:data.samples});
+        }finally{window.clearTimeout(timer);}
+      }
+      const data=createLogbookArchive(records,new Date().toISOString());
+      const link=document.createElement('a');
+      const url=URL.createObjectURL(new Blob([data],{type:'application/json;charset=utf-8'}));
+      try{
+        link.href=url;link.download='kokpit-zaloha-letu-'+
+          new Date().toISOString().slice(0,10)+'.json';
+        document.body.append(link);link.click();link.remove();
+      }finally{window.setTimeout(()=>URL.revokeObjectURL(url),1000);}
+      setBackupMessage('Záloha '+records.length+' letů připravena ke stažení. Soubor obsahuje GPS polohy; uchovávejte jej soukromě.');
+    }catch(e){setBackupMessage(e instanceof Error?e.message:'Export zálohy selhal.');}
+    finally{setBackupBusy(false);}
+  }
+  async function inspectBackup(file:File|null){
+    setBackupPreview(null);
+    if(!file)return;
+    if(file.size>ARCHIVE_LIMIT_BYTES){
+      setBackupMessage('Soubor přesahuje limit 20 MB.');return;
+    }
+    try{
+      const preview=inspectLogbookArchive(await file.text());
+      setBackupPreview(preview);
+      setBackupMessage('Formát zálohy prošel lokální kontrolou. Import do Windows bridge není zapnutý.');
+    }catch(e){setBackupMessage(e instanceof Error?e.message:'Neplatná záloha.');}
+  }
   async function compare() {
     if (!compareId || compareId === selected || compareBusy) return;
     setCompareBusy(true);setComparison(null);
@@ -127,6 +176,32 @@ export default function FlightHistory() {
         <p>Bridge ukládá body letu na Windows PC automaticky, i když není otevřený web.</p>
       </div>
       {error && <p className="telemetry-offline" role="status">{error}</p>}
+      <section className="flight-history-backup">
+        <h3>C49 · Záloha letového deníku</h3>
+        <p>Exportujte všechny momentálně dostupné záznamy letů z Windows bridge do
+          jednoho místního JSON souboru. Archiv může obsahovat GPS souřadnice,
+          názvy letadel a časy letů. Neposílá se žádné externí službě.</p>
+        <div className="flight-history-backup-actions">
+          <button type="button" disabled={backupBusy||flights.length===0}
+            onClick={()=>void exportBackup()}>
+            {backupBusy?'Vytvářím zálohu…':'Zálohovat dostupné lety JSON'}
+          </button>
+          <label>Zkontrolovat existující zálohu (pouze lokální náhled)
+            <input type="file" accept=".json,application/json"
+              onChange={e=>{const file=e.currentTarget.files?.[0]??null;
+                void inspectBackup(file);e.currentTarget.value='';}}/>
+          </label>
+        </div>
+        {backupMessage&&<p role="status">{backupMessage}</p>}
+        {backupPreview&&<p>Ověřený formát: {backupPreview.count} letů,
+          {' '}{backupPreview.samples} vzorků,
+          {' '}{backupPreview.mock} testovacích,
+          {' '}{backupPreview.active} neukončených při zálohování.
+          Datum exportu: {new Date(backupPreview.exportedAtUtc).toLocaleString('cs-CZ')}.</p>}
+        <p>Původní Windows záznamy se nijak nemění. Import do aktivní historie
+          zatím není podporovaný; limit archivů je 20 MB. Starší lety,
+          které již bridge automaticky promazal, exportovat nelze.</p>
+      </section>
       <div className="flight-history-layout">
         <aside className="flight-history-list" aria-label="Zaznamenané lety">
           {flights.length === 0 && <p>Zatím nebyl zaznamenán žádný let.</p>}
