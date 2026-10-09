@@ -99,6 +99,8 @@ internal sealed class CompanionTrayContext : ApplicationContext
         menu.Items.Add(_updateStatus);
         menu.Items.Add(new ToolStripMenuItem("Zkontrolovat aktualizace", null, async (_, _) => await CheckUpdatesAsync(force: true)));
         menu.Items.Add(_automaticUpdates);
+        menu.Items.Add(new ToolStripMenuItem("Obnovit předchozí verzi (pokročilé)…", null,
+            (_, _) => RestorePreviousPackage()));
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Zkopírovat adresu MSFS Companion v LAN", null, (_, _) =>
@@ -497,6 +499,56 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _verifyingUpdate=false;
     }
 
+    private void RestorePreviousPackage()
+    {
+        if(_applyingUpdate||_checking||_verifyingUpdate||_exiting){
+            MessageBox.Show("Dokončete nejprve ověřování nebo aktualizaci.",
+                "MSFS Companion",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            return;
+        }
+        var package=RecoveryPackageCache.VerifiedPackage();
+        var updater=RecoveryPackageCache.LocalUpdater();
+        if(package is null||updater is null)
+        {
+            MessageBox.Show("Není dostupný integritně ověřený lokální balíček starší verze. " +
+                "Obnova tímto způsobem není možná; použijte ruční instalátor GitHub Releases.",
+                "MSFS Companion",MessageBoxButtons.OK,MessageBoxIcon.Warning);
+            return;
+        }
+        if(MessageBox.Show("Chcete obnovit poslední uložený balíček předchozí verze? "+
+            "Ověřil se jeho SHA-256, ale samotná instalace staré verze zatím nebyla "+
+            "validována při úmyslném pádu v MSFS. Aplikace Companion se restartuje, "+
+            "simulátor zůstane spuštěný. Automatické aktualizace se vypnou.",
+            "Obnova MSFS Companion",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)
+            return;
+        try
+        {
+            var process=new ProcessStartInfo(updater)
+            {
+                UseShellExecute=false,
+                WorkingDirectory=Path.GetDirectoryName(updater)!
+            };
+            process.ArgumentList.Add("apply");
+            process.ArgumentList.Add("--package");
+            process.ArgumentList.Add(package);
+            process.ArgumentList.Add("--waitPid");
+            process.ArgumentList.Add(Environment.ProcessId.ToString());
+            if(Process.Start(process) is null)throw new IOException("Updater did not start");
+            _settings.AutomaticUpdates=false;
+            _settings.Save();
+            _automaticUpdates.Checked=false;
+            EventLogFile.Write("C42: user invoked manually supervised offline recovery.");
+            _bridge.Stop();
+            ExitThread();
+        }
+        catch(Exception ex)
+        {
+            EventLogFile.Write("C42 manual recovery failed: "+ex.GetType().Name);
+            MessageBox.Show("Obnova se nespustila. Stávající verze zůstává zachována.",
+                "MSFS Companion",MessageBoxButtons.OK,MessageBoxIcon.Error);
+        }
+    }
+
     private void ApplyDownloadedUpdate()
     {
         if (!UpdatePolicy.MayApply(_pendingUpdate is not null, _exiting, _applyingUpdate)
@@ -507,6 +559,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
         // installed version is not a rollback-capable binary snapshot.
         var previousVersion = _updateManager.IsInstalled
             ? _updateManager.CurrentVersion?.ToString() : null;
+        // Optional recovery cache: failure never corrupts the update feed.
+        // A missing/full-package candidate is NOT advertised as restorable.
+        if(previousVersion is not null &&
+            !RecoveryPackageCache.TryCapture(previousVersion))
+            EventLogFile.Write("C42: no verified offline rollback package found.");
         if(!UpdateRecoveryJournal.TryArm(
             _pendingUpdate!.TargetFullRelease.Version.ToString(),previousVersion))
         {
