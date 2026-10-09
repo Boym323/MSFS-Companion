@@ -99,6 +99,32 @@ internal sealed class CompanionTrayContext : ApplicationContext
         menu.Items.Add(_updateStatus);
         menu.Items.Add(new ToolStripMenuItem("Zkontrolovat aktualizace", null, async (_, _) => await CheckUpdatesAsync(force: true)));
         menu.Items.Add(_automaticUpdates);
+        var recoveryWatchToggle=new ToolStripMenuItem("Automatický návrat při pádu aktualizace (experimentální)")
+        {
+            Checked=_settings.EnableRecoveryWatchdog,CheckOnClick=true
+        };
+        recoveryWatchToggle.CheckedChanged+=(_,_)=>
+        {
+            if(_applyingUpdate||_verifyingUpdate||_exiting)
+            {
+                recoveryWatchToggle.Checked=_settings.EnableRecoveryWatchdog;
+                return;
+            }
+            if(recoveryWatchToggle.Checked &&
+                MessageBox.Show("Tato funkce je experimentální a nebyla dosud ověřena na " +
+                    "úmyslně poškozené instalaci. Při neúspěšném startu nového hostitele " +
+                    "může automaticky instalovat předchozí uloženou verzi. " +
+                    "Aktivovat pouze pro testování na vlastním počítači?",
+                    "Experimentální obnova",MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning)!=DialogResult.Yes)
+            {
+                recoveryWatchToggle.Checked=false;
+                return;
+            }
+            _settings.EnableRecoveryWatchdog=recoveryWatchToggle.Checked;
+            _settings.Save();
+        };
+        menu.Items.Add(recoveryWatchToggle);
         menu.Items.Add(new ToolStripMenuItem("Obnovit předchozí verzi (pokročilé)…", null,
             (_, _) => RestorePreviousPackage()));
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
@@ -571,6 +597,13 @@ internal sealed class CompanionTrayContext : ApplicationContext
             AdminControl.WriteStatus("error","Aktualizaci nelze bezpečně zaznamenat.");
             EventLogFile.Write("C33: update blocked because journal cannot be armed.");
             return;
+        }
+        if(_settings.EnableRecoveryWatchdog&&previousVersion is not null)
+        {
+            if(RecoveryPackageCache.VerifiedPackage() is not null &&
+                !RecoveryPackageCache.TryStartSupervisor(
+                    _pendingUpdate!.TargetFullRelease.Version.ToString(),previousVersion))
+                EventLogFile.Write("C42: experimentální watchdog nebyl spuštěn; automatický návrat nelze garantovat.");
         }
         _applyingUpdate = true;
         try

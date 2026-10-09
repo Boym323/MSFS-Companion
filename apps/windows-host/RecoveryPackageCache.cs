@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace MsfsCompanion.WindowsHost;
@@ -110,6 +111,41 @@ internal static class RecoveryPackageCache
     {
         var root=InstallationRoot();
         return root is null?null:Path.Combine(root,"Update.exe");
+    }
+
+    internal static bool TryStartSupervisor(string target,string previous)
+    {
+        var root=InstallationRoot();
+        if(root is null||SafeVersion(target)is null||SafeVersion(previous)is null)
+            return false;
+        try
+        {
+            var bundled=Path.Combine(AppContext.BaseDirectory,"recovery-watch",
+                "MsfsCompanion.RecoveryWatch.exe");
+            if(!File.Exists(bundled)||VerifiedPackage() is null)return false;
+            Directory.CreateDirectory(BasePath);
+            var deployed=Path.Combine(BasePath,"RecoveryWatchdog.exe");
+            File.Copy(bundled,deployed,overwrite:true);
+            var start=new ProcessStartInfo(deployed)
+            {
+                UseShellExecute=false,
+                WorkingDirectory=BasePath,
+                CreateNoWindow=true
+            };
+            start.ArgumentList.Add("--watch");
+            start.ArgumentList.Add(target);
+            start.ArgumentList.Add(previous);
+            start.ArgumentList.Add(Environment.ProcessId.ToString());
+            start.ArgumentList.Add(Path.Combine(root,"Update.exe"));
+            using var process=Process.Start(start);
+            return process is not null;
+        }
+        catch(Exception ex) when(ex is IOException or UnauthorizedAccessException
+            or System.ComponentModel.Win32Exception)
+        {
+            EventLogFile.Write("C42 recovery supervisor could not start: "+ex.GetType().Name);
+            return false;
+        }
     }
 
     internal static bool SelfTest() =>

@@ -8,6 +8,8 @@ internal sealed class HostSettings
     public const string DefaultFeedUrl = "https://github.com/Boym323/MSFS-Companion";
     public string? UpdateFeedUrl { get; set; } = DefaultFeedUrl;
     public bool AutomaticUpdates { get; set; } = true;
+    // Deliberately opt-in until recovery of two real Windows versions is proven.
+    public bool EnableRecoveryWatchdog { get; set; } = false;
     public bool MdnsEnabled { get; set; } = true;
     public const string DefaultMdnsName = "kokpit";
     public string MdnsName { get; set; } = DefaultMdnsName;
