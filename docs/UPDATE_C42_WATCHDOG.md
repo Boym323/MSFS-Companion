@@ -41,3 +41,18 @@ záměrně **experimentální, opt-in a default OFF**.
 Není zde služba Windows, trvalý proces mimo upgrade ani
 pravidelné síťové požadavky. Hlídač se spustí jen na dobu
 konkrétní aktualizace a používá lokální soubory.
+
+
+## Auditní oprava: selhání požadované ochrany zastaví aktualizaci
+
+Pokud uživatel **výslovně zapne experimentální watchdog**, hostitel
+před aktualizací požaduje důvěryhodný balíček **přesně předchozí
+nainstalované verze**. Chybí-li verze, hashově ověřený balíček
+nebo se watchdog nespustí, aktualizace se **nespustí** a UI uvede důvod.
+Pokud již existuje update journal, pokusí se jej bezpečně zrušit
+ještě před spuštěním aktualizátoru.
+
+S vypnutým watchdogem zůstává původní chování: aktualizace
+může proběhnout bez dostupného rollbacku, avšak s update journalem
+a diagnostikou. Není to tvrzení, že automatická obnova byla ověřena
+na skutečném selhání dvou Windows verzí.
