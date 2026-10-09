@@ -45,7 +45,7 @@ public sealed class CzechAirspaceService : IDisposable
                 match.Groups[2].Value+"-"+match.Groups[3].Value;
             if(!DateTime.TryParseExact(candidate,"yyyy-MM-dd",
                 CultureInfo.InvariantCulture,DateTimeStyles.None,out var date)||
-                date.Year<2025||date>DateTime.UtcNow.AddYears(2)||
+                date.Year<2025||
                 date.Date>now.UtcDateTime.Date)continue;
             candidates.Add(("CZ_all_"+match.Groups[1].Value+"-"+
                 match.Groups[2].Value+"-"+match.Groups[3].Value+".txt",date));
@@ -89,6 +89,7 @@ public sealed class CzechAirspaceService : IDisposable
                 {
                     Uri target=Source;
                     string effective=EffectiveDate;
+                    var catalogVerified=false;
                     try
                     {
                         var listing=await ReadLimitedAsync(Index,150_000,cancellation);
@@ -97,6 +98,7 @@ public sealed class CzechAirspaceService : IDisposable
                         {
                             target=new Uri(Index,published.FileName);
                             effective=published.EffectiveDate;
+                            catalogVerified=true;
                         }
                     }
                     catch(Exception ex) when(!cancellation.IsCancellationRequested)
@@ -112,9 +114,10 @@ public sealed class CzechAirspaceService : IDisposable
                     _selectedSource=target;
                     _selectedEffectiveDate=effective;
                     _fetchedUtc = DateTimeOffset.UtcNow;
-                    // If index verification failed, expose the warning even if
-                    // the known historical file was downloaded successfully.
-                    if(_lastError is not null && !target.Equals(Source))_lastError=null;
+                    // Index failure must remain visible even if the known
+                    // historical file downloaded without error.
+                    _lastError=catalogVerified?null:
+                        "Nelze ověřit aktuální vydání v katalogu Aeroklubu.";
                 }
                 catch (Exception ex) when (!cancellation.IsCancellationRequested)
                 {
