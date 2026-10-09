@@ -25,6 +25,7 @@ class ControlsSmoke(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertFalse(state["enabled"])
         self.assertTrue(state["canControl"])  # výchozí důvěryhodná LAN bez párování
+        self.assertFalse(state["autopilotSupported"])  # mock cannot enable Airbus AP
         status, _ = request("POST", "/api/controls/command", {"command": "autopilot.on"})
         self.assertEqual(status, 409)  # mock nikdy nepoužívá SimConnect k zápisu
 
