@@ -3,6 +3,7 @@ using SimConnect.NET;
 using SimConnect.NET.SimVar;
 using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Aircraft;
+using MsfsCompanion.Bridge.Airbus;
 
 namespace MsfsCompanion.Bridge.Telemetry;
 
@@ -21,6 +22,7 @@ public sealed class SimConnectTelemetrySource(
     CockpitSystemsStore cockpitSystems,
     LandingStore landings,
     AircraftIdentityGuard identity,
+    A320ReadbackStore a320,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -40,6 +42,7 @@ public sealed class SimConnectTelemetrySource(
         {
             health.StartConnecting();
             identity.Reset();
+            a320.Reset();
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
@@ -63,6 +66,7 @@ public sealed class SimConnectTelemetrySource(
             }
 
             identity.Reset();
+            a320.Reset();
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
@@ -162,6 +166,11 @@ public sealed class SimConnectTelemetrySource(
         using var waypointIdSubscription = SubscribeWaypointId(client, stoppingToken);
         using var cockpitSystemsSubscription = SubscribeCockpitSystems(client, stoppingToken);
         using var landingSubscription = SubscribeLanding(client, stoppingToken);
+        // Dedicated 1Hz optional Airbus subscriptions. Never block main PFD.
+        using var a320EngineSubscription=AircraftProfileResolver.Resolve(aircraft).Id
+            =="a320-asobo-candidate" ? SubscribeA320Engines(client,stoppingToken):null;
+        using var a320FcuSubscription=AircraftProfileResolver.Resolve(aircraft).Id
+            =="a320-asobo-candidate" ? SubscribeA320Fcu(client,stoppingToken):null;
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -328,6 +337,42 @@ public sealed class SimConnectTelemetrySource(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Radio SimVars nejsou dostupné; PFD zůstává v provozu.");
+            return null;
+        }
+    }
+
+    private ISimVarSubscription? SubscribeA320Engines(SimConnectClient client,CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<A320SimConnectEngineData>(
+                SimConnectPeriod.Second,data=>
+                {
+                    if(identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
+                        a320.UpdateEngines(data,DateTimeOffset.UtcNow);
+                },cancellationToken:token);
+        }
+        catch(Exception ex)
+        {
+            logger.LogWarning(ex,"Airbus engine SimVars unavailable; base PFD stays live.");
+            return null;
+        }
+    }
+
+    private ISimVarSubscription? SubscribeA320Fcu(SimConnectClient client,CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<A320SimConnectFcuData>(
+                SimConnectPeriod.Second,data=>
+                {
+                    if(identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
+                        a320.UpdateFcu(data,DateTimeOffset.UtcNow);
+                },cancellationToken:token);
+        }
+        catch(Exception ex)
+        {
+            logger.LogWarning(ex,"Airbus FCU SimVars unavailable; base PFD stays live.");
             return null;
         }
     }
