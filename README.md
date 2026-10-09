@@ -274,3 +274,14 @@ Aktuální otevřené validační úkoly jsou [issue #19](https://github.com/Boy
 [#20](https://github.com/Boym323/MSFS-Companion/issues/20),
 [#23](https://github.com/Boym323/MSFS-Companion/issues/23)
 a [#24](https://github.com/Boym323/MSFS-Companion/issues/24).
+
+
+## Stabilizace a akceptační testy
+
+Po auditních opravách C42/C49 přibyl
+[akceptační protokol](docs/STABILIZATION_ACCEPTANCE.md) pro skutečné
+Windows rollback zkoušky, SimConnect letadla, GPS avioniku a archivaci.
+GitHub CI potvrzuje sestavení a simulované regresní scénáře, **ne však
+reálný let nebo destruktivní výpadek dvou nainstalovaných verzí**.
+Závislosti nyní kontroluje také
+[týdenní bezpečnostní audit](docs/DEPENDENCY_SECURITY.md).
