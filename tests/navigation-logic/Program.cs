@@ -38,6 +38,30 @@ store.Update(new SimConnectNavigationData
     NextLongitude = 0
 }, at);
 Assert(store.Current?.NextWaypoint is null, "zero coordinate suppressed");
+store.Update(new SimConnectNavigationData
+{
+    PlanActive=1,WaypointActive=1,WaypointCount=3,WaypointIndex=0,
+    NextLatitude=50.1,NextLongitude=14.3
+},at);
+store.UpdateName("VLM",at);
+var initial=System.Text.Json.JsonSerializer.SerializeToElement(store.Status(),
+    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+Assert(initial.GetProperty("navigation").GetProperty("nextWaypointId").GetString()=="VLM",
+    "initial GPS waypoint identifier");
+store.Update(new SimConnectNavigationData
+{
+    PlanActive=1,WaypointActive=1,WaypointCount=3,WaypointIndex=1,
+    NextLatitude=50.2,NextLongitude=14.4
+},at.AddSeconds(1));
+var switched=System.Text.Json.JsonSerializer.SerializeToElement(store.Status(),
+    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+Assert(switched.GetProperty("navigation").GetProperty("nextWaypointId").ValueKind==
+    System.Text.Json.JsonValueKind.Null,"changed GPS leg invalidates old waypoint ID");
+store.UpdateName("KOLIN",at.AddSeconds(1));
+var updated=System.Text.Json.JsonSerializer.SerializeToElement(store.Status(),
+    new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+Assert(updated.GetProperty("navigation").GetProperty("nextWaypointId").GetString()=="KOLIN",
+    "new ID must be explicitly received from MSFS");
 store.Reset();
 Assert(store.Current is null, "disconnect reset");
 Console.WriteLine("PASS: C4 navigace, waypoint invalidace, jednotky a reset");
