@@ -1,5 +1,6 @@
 using MsfsCompanion.Bridge.Recorder;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.Json;
 
 var root=Path.Combine(Path.GetTempPath(),"kokpit-recorder-restore-test-"+Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(root);
@@ -50,7 +51,38 @@ try
     Check(recorder.List().Count==1 &&
         File.ReadAllText(Path.Combine(root,stored[0].Id+".jsonl"))==before,
         "failed restores must never alter existing recordings");
-    Console.WriteLine("C49 restore PASS: atomic import, unique IDs, readback, rollback on invalid inputs and no deletion.");
+    // Simulate hard process termination after the import marker and one
+    // restored data + metadata pair were durably written.
+    var batch=Guid.NewGuid().ToString("N");
+    var incompleteId="20261009T070000-"+Guid.NewGuid().ToString("N")[..12];
+    var pending=Path.Combine(root,"restore-"+batch+".pending.json");
+    File.WriteAllText(pending,JsonSerializer.Serialize(new {
+        schema=1,batchId=batch,ids=new[]{incompleteId}}));
+    var incompleteData=Path.Combine(root,incompleteId+".jsonl");
+    var incompleteMeta=Path.Combine(root,incompleteId+".meta.json");
+    File.WriteAllText(incompleteData,JsonSerializer.Serialize(samples[0]));
+    File.WriteAllText(incompleteMeta,JsonSerializer.Serialize(new{
+        restoreBatchId=batch,id=incompleteId,aircraft="C172"}));
+    Check(recorder.RecoverInterruptedImports()==1,
+        "orphaned transaction journal was not recovered");
+    Check(!File.Exists(pending)&&!File.Exists(incompleteData)&&
+        !File.Exists(incompleteMeta),"incomplete restore was not fully cleaned");
+    Check(File.ReadAllText(Path.Combine(root,stored[0].Id+".jsonl"))==before,
+        "crash recovery altered the already committed flight");
+    // An untrusted marker referring to an unrelated existing flight MUST fail
+    // closed without deleting any of its files.
+    var tamperedBatch=Guid.NewGuid().ToString("N");
+    var tamperedPath=Path.Combine(root,"restore-"+tamperedBatch+".pending.json");
+    File.WriteAllText(tamperedPath,JsonSerializer.Serialize(new{
+        schema=1,batchId=tamperedBatch,ids=new[]{stored[0].Id}}));
+    var rejected=false;
+    try{recorder.RecoverInterruptedImports();}
+    catch(IOException){rejected=true;}
+    Check(rejected&&File.ReadAllText(Path.Combine(root,stored[0].Id+".jsonl"))==before,
+        "an untrusted marker deleted an unrelated flight");
+    File.Delete(tamperedPath);
+    Console.WriteLine("C49 restore PASS: atomic import, interrupted-batch recovery, "+
+        "ownership validation, readback and no deletion of existing flights.");
 }
 finally
 {
