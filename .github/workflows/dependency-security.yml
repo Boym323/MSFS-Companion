@@ -1,0 +1,65 @@
+name: Dependency security audit
+
+# Run independently from selective build CI. Dependency changes also get a
+# security gate; routine feature PRs are not delayed by repeated full audits.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 4 * * 1'
+  pull_request:
+    paths:
+      - 'apps/web/package.json'
+      - 'apps/web/package-lock.json'
+      - '**/*.csproj'
+      - '.github/workflows/dependency-security.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  npm:
+    name: npm locked dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Verify lockfile and dependency installation
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+      - name: Fail for high or critical advisories (including build dependencies)
+        working-directory: apps/web
+        run: npm audit --audit-level=high
+
+  nuget:
+    name: NuGet direct and transitive dependency audit
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Audit bridge packages
+        shell: pwsh
+        run: |
+          dotnet restore apps/bridge/MsfsCompanion.Bridge.csproj -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high "-p:WarningsAsErrors=NU1903%3BNU1904"
+          if ($LASTEXITCODE -ne 0) { throw 'Bridge package vulnerability audit failed' }
+      - name: Audit Windows host packages
+        shell: pwsh
+        run: |
+          dotnet restore apps/windows-host/MsfsCompanion.WindowsHost.csproj -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high "-p:WarningsAsErrors=NU1903%3BNU1904"
+          if ($LASTEXITCODE -ne 0) { throw 'Windows host package vulnerability audit failed' }
+      - name: Audit bundled recovery supervisor packages
+        shell: pwsh
+        run: |
+          dotnet restore apps/recovery-watch/MsfsCompanion.RecoveryWatch.csproj -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high "-p:WarningsAsErrors=NU1903%3BNU1904"
+          if ($LASTEXITCODE -ne 0) { throw 'Recovery supervisor package vulnerability audit failed' }
