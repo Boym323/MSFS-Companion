@@ -124,6 +124,13 @@ jobs:
             if ($html.StatusCode -ne 200 -or !$html.Content.Contains("MSFS Companion")) {
               throw 'Bundled React dashboard is unavailable'
             }
+            $a320Page = Invoke-WebRequest -Uri "http://127.0.0.1:8765/a320" -TimeoutSec 5
+            if ($a320Page.StatusCode -ne 200) { throw 'A320 dashboard route was not packaged' }
+            $airbus = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/aircraft/airbus/a320/status" -TimeoutSec 5
+            if ($airbus.connected -or $null -ne $airbus.engines -or
+                $null -ne $airbus.fcu -or $null -ne $airbus.aux) {
+              throw 'Asobo A320 endpoint fabricated telemetry while MSFS was offline'
+            }
             Start-Sleep -Milliseconds 1400
             $flights = @(Invoke-RestMethod "http://127.0.0.1:8765/api/flights" -TimeoutSec 5)
             if ($flights.Count -lt 1) { throw 'Recorder nevytvořil záznam mock letu' }
