@@ -9,29 +9,53 @@ export type FlightArchive={
  schema:'kokpit-flight-backup-v1';exportedAtUtc:string;flights:ArchivedFlight[];
 };
 export const ARCHIVE_LIMIT_BYTES=20_000_000;
-const date=(x:unknown)=>typeof x==='string' && x.length<=50
-  &&Number.isFinite(Date.parse(x));
+export const RESTORE_MAX_SAMPLES_PER_FLIGHT=4000;
+const minYear=Date.parse('2000-01-01T00:00:00Z');
+const maxYear=Date.parse('2101-01-01T00:00:00Z');
+const finiteRange=(value:unknown,min:number,max:number):value is number=>
+  typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;
+const epoch=(value:unknown):number|null=>{
+  if(typeof value!=='string'||value.length>50)return null;
+  const ms=Date.parse(value);
+  return Number.isFinite(ms)&&ms>=minYear&&ms<maxYear?ms:null;
+};
+const date=(x:unknown)=>epoch(x)!==null;
 const validSample=(v:unknown):v is TelemetrySnapshot=>{
  if(!v||typeof v!=='object'||Array.isArray(v))return false;
  const s=v as Partial<TelemetrySnapshot>;
- return date(s.timestampUtc)&&typeof s.aircraft==='string'&&s.aircraft.length<=200
-  &&typeof s.latitude==='number'&&Number.isFinite(s.latitude)&&Math.abs(s.latitude)<=90
-  &&typeof s.longitude==='number'&&Number.isFinite(s.longitude)&&Math.abs(s.longitude)<=180
-  &&typeof s.altitudeFeet==='number'&&Number.isFinite(s.altitudeFeet)
-  &&typeof s.airspeedKnots==='number'&&Number.isFinite(s.airspeedKnots);
+ return date(s.timestampUtc)&&typeof s.aircraft==='string'
+  &&s.aircraft.trim().length>0&&s.aircraft.length<=200
+  &&finiteRange(s.latitude,-90,90)&&finiteRange(s.longitude,-180,180)
+  &&finiteRange(s.altitudeFeet,-3000,100000)
+  &&finiteRange(s.airspeedKnots,0,1500)
+  &&finiteRange(s.verticalSpeedFeetPerMinute,-30000,30000)
+  &&typeof s.headingDegrees==='number'&&Number.isFinite(s.headingDegrees)
+  &&typeof s.pitchDegrees==='number'&&Number.isFinite(s.pitchDegrees)
+  &&typeof s.bankDegrees==='number'&&Number.isFinite(s.bankDegrees);
 };
 function validFlight(value:unknown):value is ArchivedFlight{
  if(!value||typeof value!=='object'||Array.isArray(value))return false;
  const f=value as Partial<ArchivedFlight>;
  const s=f.summary;
  return !!s&&typeof s==='object'&&!Array.isArray(s)
-  &&typeof s.id==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(s.id)
+  &&typeof s.id==='string'&&/^\d{8}T\d{6}-[0-9a-f]{12}$/.test(s.id)
   &&typeof s.aircraft==='string'&&s.aircraft.length<=200
   &&(s.mode==='simconnect'||s.mode==='mock')
   &&date(s.startedAtUtc)&&date(s.lastAtUtc)&&date(s.endedAtUtc) && s.active===false
-  &&Date.parse(s.startedAtUtc)<=Date.parse(s.lastAtUtc)
-  &&Date.parse(s.lastAtUtc)<=Date.parse(s.endedAtUtc!)
-  &&Array.isArray(f.samples)&&f.samples.length<=10000&&f.samples.every(validSample);
+  &&epoch(s.lastAtUtc)!>=epoch(s.startedAtUtc)!
+  &&epoch(s.lastAtUtc)!<=epoch(s.startedAtUtc)!+7*3600_000
+  &&epoch(s.endedAtUtc)!>=epoch(s.lastAtUtc)!
+  &&Array.isArray(f.samples)&&f.samples.length>=1
+  &&f.samples.length<=RESTORE_MAX_SAMPLES_PER_FLIGHT
+  &&f.samples.every(validSample)
+  &&f.samples.every((item,index)=>{
+    const sample=item as TelemetrySnapshot;
+    const timestamp=epoch(sample.timestampUtc)!;
+    return sample.aircraft===s.aircraft&&
+      timestamp>=epoch(s.startedAtUtc)!-60000 &&
+      timestamp<=epoch(s.lastAtUtc)!+60000 &&
+      (index===0||timestamp>epoch((f.samples![index-1] as TelemetrySnapshot).timestampUtc)!);
+  });
 }
 export function createLogbookArchive(flights:ArchivedFlight[],exportedAtUtc:string):string{
  if(flights.some(f=>f?.summary?.active===true))throw Error('Aktivní let nelze uložit do obnovitelné zálohy. Ukončete let a export zopakujte.');
