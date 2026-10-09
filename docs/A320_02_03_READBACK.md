@@ -20,7 +20,8 @@ vrací `connected`, `profileId`, `verifiedAircraft=false`,
   hrubé `AUTOPILOT SPEED/HEADING/ALTITUDE/VS SLOT INDEX`
   a master AP. **SLOT INDEX je zde pouze raw simulator reference**,
   nikoli potvrzený Airbus FMA, managed/selected ani AP1/AP2.
-- Neplatné snímky se odmítají, 6 s staré snímky se skrývají
+- Neplatné snímky se odmítají (včetně AP master mimo 0/1 a nesmyslného
+  úhlu HDG), 6 s staré snímky se skrývají
   jako `null`. FCU a motory mají nezávislé odběry,
   takže selhání jednoho nezastaví PFD ani druhý.
 - Při změně TITLE/odpojení se resetují všechny readbacky.

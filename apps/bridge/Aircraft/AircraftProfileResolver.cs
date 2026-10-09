@@ -47,7 +47,7 @@ public static class AircraftProfileResolver
 
     public static bool IsAirbusLike(string? title) =>
         title is {Length: > 0 and <= 256} &&
-        Regex.IsMatch(title,@"(airbus|a320|a32nx|flybywire|fenix)",
+        Regex.IsMatch(title,@"(airbus|a318|a319|a320|a321|a32nx|a330|a350|a380|flybywire|fenix|inibuilds?)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
             TimeSpan.FromMilliseconds(50));
 
