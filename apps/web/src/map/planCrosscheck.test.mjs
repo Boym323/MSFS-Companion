@@ -32,7 +32,7 @@ test('C44 detects identical ID with contradictory coordinates',()=>{
 });
 test('C44 location near waypoint with different ID does not assert ID agreement',()=>{
  const actual=comparePlan(points,nav({nextWaypointId:'OTHER'}));
- assert.equal(actual.state,'match');
+ assert.equal(actual.state,'uncertain');
  assert.equal(actual.evidence,'position');
 });
 test('C44 rejects mock/inactive GPS and invalid imported geometry',()=>{
