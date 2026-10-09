@@ -280,6 +280,12 @@ jobs:
           if (!(Test-Path $watchExe)) { throw 'Installed recovery supervisor is missing' }
           $watchCheck = Start-Process -FilePath $watchExe -ArgumentList '--self-test' -PassThru -Wait
           if ($watchCheck.ExitCode -ne 0) { throw 'Bundled independent watchdog self-test failed' }
+          $installedProbe = Start-Process -FilePath $watchExe -ArgumentList @(
+            '--check-installed-target', $env:APP_VERSION, $installDir
+          ) -PassThru -Wait
+          if ($installedProbe.ExitCode -ne 0) {
+            throw 'C42 watchdog could not recognize the genuinely installed target version'
+          }
           if (!(Test-Path $hostExe)) { throw 'Installed Windows host is missing' }
           $correct = Start-Process -FilePath $hostExe -ArgumentList @(
             '--verify-installed-version', $env:APP_VERSION
