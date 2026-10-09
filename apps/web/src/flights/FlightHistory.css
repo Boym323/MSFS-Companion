@@ -40,3 +40,12 @@
 .flight-player-speed{display:flex;align-items:center;gap:7px;font-size:12px;color:#bbd4e9}.flight-player-speed select{background:#132f48;color:#eff9ff;border:1px solid #496a86;border-radius:7px;min-height:38px;padding:6px}
 
 .flight-history-compare{border:1px solid #315170;border-radius:12px;padding:15px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:15px 0}.flight-history-compare>h3{flex-basis:100%;margin:0}.flight-history-compare>p{flex-basis:100%;color:#91b5d0;font-size:12px;margin:0}.flight-history-compare select{min-height:43px;border:1px solid #436a86;color:#fff;background:#18314b;border-radius:8px;padding:7px}.flight-history-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;flex-basis:100%}.flight-history-comparison article{background:#142940;border-radius:9px;padding:14px}.flight-history-comparison p{font-size:12px;color:#c5d6e5}.flight-history-export{display:flex;flex-wrap:wrap;gap:9px}@media(max-width:640px){.flight-history-comparison{grid-template-columns:1fr}}
+
+.flight-history-backup{padding:18px;margin:10px 0 20px;border:1px solid #40607c;background:#10253a;border-radius:13px;display:grid;gap:12px}
+.flight-history-backup h3{margin:0}
+.flight-history-backup p{color:#b7d0e7;font-size:13px;line-height:1.6;margin:0}
+.flight-history-backup-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.flight-history-backup-actions label{display:grid;gap:8px;color:#c7deef;font-size:12px}
+.flight-history-backup-actions input{max-width:100%;color:#d8edf7}
+.flight-history-backup-actions button{min-height:44px;padding:9px 12px;border-radius:8px;background:#275474;border:1px solid #6093b6;color:#f0f9ff;cursor:pointer}
+.flight-history-backup-actions button:disabled{opacity:.5;cursor:not-allowed}
