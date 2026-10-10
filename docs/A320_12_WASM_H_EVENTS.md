@@ -38,31 +38,42 @@ nepřerušuje 20Hz PFD a neodesílá příkaz znovu při timeoutu.
 Pokud modul není nainstalovaný, vrátí probe nedostupnost a všechny H-Event
 ovladače zůstávají zakázané. Stav dostupnosti vyprší po 90 sekundách.
 
-## Kompilace vyžaduje MSFS 2020 SDK
+## Automatické sestavení v GitHub Actions
 
-DŮLEŽITÉ: zdrojový soubor C++ není dosud zkompilovaný oficiálním MSFS 2020 SDK.
-Nejde tedy o hotové fyzické ovládání ani o součást nainstalovaného release.
+WASM se kompiluje skutečným oficiálním **MSFS 2020 SDK Core 0.24.5**,
+nikoliv náhradními hlavičkami. První úspěšný SDK build a vytvoření
+Community ZIP ověřuje workflow
+[`Asobo A320 WASM SDK build`](../../actions/workflows/a320-wasm.yml),
+např. [run 38056769638](../../actions/runs/38056769638).
 
-1. Na vývojovém Windows s MSFS 2020 SDK vytvořit nový projekt
-   typu MSFS WASM Module (platform toolset pro MSFS **2020**).
-2. Zaměnit obsah Module.cpp za apps/a320-wasm/KokpitA320Module.cpp,
-   přidat do SDK projektu hlavičky MSFS, SimConnect, Legacy/gauges.
-3. Sestavit KokpitA320Module.wasm a vyřešit případné SDK kompatibility.
-4. V kořeni repozitáře spustit:
-   python scripts/package-a320-wasm.py CESTA/KokpitA320Module.wasm build/a320
-5. Výslednou složku build/a320/kokpit-asobo-a320-v1 umístit do správného
-   Community adresáře až **po výslovném souhlasu** při vypnutém MSFS.
-   Samotný Windows host tím nepřidává nový samostatně běžící proces.
-6. Spustit simulátor, otevřít localhost /a320, provést WASM probe.
+Workflow na Windows 2022:
+1. stáhne a tiše nainstaluje původní MSFS 2020 SDK z oficiální adresy;
+2. sestaví `apps/a320-wasm/KokpitA320Module.vcxproj` pro platformu
+   `Release|MSFS` pomocí Visual Studio MSBuild a SDK toolsetu;
+3. ověří, že výsledný `kokpit-a320.wasm` má platnou WASM hlavičku;
+4. spustí `scripts/package-a320-wasm.py` a vytvoří instalační
+   `Kokpit-Asobo-A320-WASM-Community.zip`;
+5. uloží ZIP i rozbalený modul jako GitHub Actions artefakt
+   **Kokpit-Asobo-A320-WASM-Community** na 30 dní.
 
-MSFS Community balíček obsahuje soubory:
-- modules/kokpit-a320.wasm
-- manifest.json
-- layout.json
+**Jak nainstalovat modul do MSFS 2020:**
+Z úspěšného běhu GitHub Actions stáhnout artefakt, rozbalit ZIP
+a složku `kokpit-asobo-a320-v1` umístit do skutečného MSFS 2020
+`Community` adresáře při vypnutém simulátoru. Po startu MSFS otevřít
+`http://127.0.0.1:8765/a320` a spustit lokální kontrolu WASM.
+
+Součást balíčku: `modules/kokpit-a320.wasm`, `manifest.json`
+a `layout.json`. Build nepotřebuje MSFS spuštěný a nevydává
+žádné SDK knihovny. Vydání Windows hostu modul samo neinstaluje:
+přístup do složky Community se nemění bez souhlasu pilota.
+
+**Kompilace PASS neznamená živé potvrzení funkce H-events.**
+Přijetí H-event příkazu musí pilot dále ověřit na fyzickém FCU
+původního Asobo A320neo V1 v běžícím MSFS 2020.
 
 ## Akceptace, která stále chybí
 
-- [ ] WASM skutečně kompiluje pod oficiálním MSFS 2020 SDK
+- [x] WASM se sestavuje oficiálním MSFS 2020 SDK 0.24.5 v GitHub Actions
 - [ ] Module init vytváří ClientData command/response areas bez kolize
 - [ ] Ping module/bridge prokazatelně funguje na Windows v původním Asobo V1
 - [ ] Jednotlivé H-události mění příslušné FCU push/pull managed/selected
