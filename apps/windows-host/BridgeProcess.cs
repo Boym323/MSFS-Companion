@@ -9,6 +9,7 @@ internal sealed class BridgeProcess : IDisposable
     private readonly Func<bool> _mdnsEnabled;
     private readonly Func<string> _mdnsName;
     private string? _boundAddress;
+    public LanAccess.LanAddress? BoundLan { get; private set; }
 
     public BridgeProcess(Func<string> telemetryMode, Func<bool> mdnsEnabled, Func<string> mdnsName)
     {
@@ -36,7 +37,7 @@ internal sealed class BridgeProcess : IDisposable
 
     public void EnsureStarted()
     {
-        var lan = LanAccess.Find();
+        var lan = LanAccess.Find(_boundAddress);
         var currentLanAddress = lan?.Address.ToString();
         if (IsRunning && string.Equals(currentLanAddress, _boundAddress, StringComparison.Ordinal))
             return;
@@ -101,6 +102,7 @@ internal sealed class BridgeProcess : IDisposable
             _child.BeginOutputReadLine();
             _child.BeginErrorReadLine();
             _boundAddress = currentLanAddress;
+            BoundLan = lan;
             EventLogFile.Write($"Bridge started, PID {_child.Id}");
         }
         catch (Exception ex)
@@ -132,6 +134,7 @@ internal sealed class BridgeProcess : IDisposable
             _child.Dispose();
             _child = null;
             _boundAddress = null;
+            BoundLan = null;
         }
     }
 
