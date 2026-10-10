@@ -25,6 +25,16 @@ public sealed class A320ReadbackStore
     private A320EngineSnapshot? _engines;
     private A320FcuSnapshot? _fcu;
     private A320AuxSnapshot? _aux;
+    // A320 control commands require a fresh, valid 1Hz FCU snapshot.
+    // Never use a last-known or invalid reference to authorize writes.
+    public A320FcuSnapshot? FreshFcu(DateTimeOffset now)
+    {
+        var value = Volatile.Read(ref _fcu);
+        return value is not null &&
+            now >= value.TimestampUtc &&
+            now - value.TimestampUtc < TimeSpan.FromSeconds(3) ? value : null;
+    }
+
     public void Reset()
     {
         Interlocked.Exchange(ref _engines,null);
