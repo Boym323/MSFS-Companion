@@ -1,9 +1,10 @@
 import {useEffect,useState} from 'react';
 import {
- fcuDataFresh,fcuSpecs,formatFcuValue,nextFcuReference,orderedFcuFields,
- validateFcuReference,type FcuField,type FcuReference
+ fcuDataFresh,fcuSpecs,nextFcuReference,validateFcuReference,
+ type FcuField,type FcuReference
 } from './fcuUiModel';
 import './A320FcuCockpit.css';
+import A320FcuHardware from './A320FcuHardware';
 
 type ControlsStatus={
  armed:boolean;canArm:boolean;local:boolean;ready:boolean;readbackFresh:boolean;
@@ -15,23 +16,6 @@ type WasmStatus={
  lastError:string|null;note:string
 };
 type ReferenceDrafts=Partial<Record<FcuField,string>>;
-const managedFields=['speed','heading','altitude'] as const;
-const labelForMode={speed:'SPD',heading:'HDG',altitude:'ALT'} as const;
-
-function KnobIllustration(){
- return <span className="a320-ui-knob" aria-hidden="true">
-  <span className="a320-ui-knob-ring"><span className="a320-ui-knob-face">
-    <span className="a320-ui-knob-indicator"/></span></span>
- </span>;
-}
-
-function CapabilityButton({label,description}:{label:string;description:string}){
- return <button type="button" className="a320-ui-system-button" disabled
-  aria-label={label+' – '+description} title={description}>
-  <span>{label}</span><small>NEOVĚŘENO</small>
- </button>;
-}
-
 export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAgeMs}:{
  live:boolean;aircraft:string;readbackAircraft:string|null;
  fcu:FcuReference|null;fcuAgeMs:number|null
@@ -47,7 +31,6 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
  const fresh=fcuDataFresh(live,aircraft,readbackAircraft,fcuAgeMs,fcu);
  const canSet=fresh&&controls?.ready===true&&controls.aircraft===aircraft&&!busy;
  const canMode=canSet&&wasm?.ready===true;
- const visibleFields: FcuField[]=orderedFcuFields.map(x=>x==='speed'&&machMode?'mach':x);
 
  useEffect(()=>{
   setControls(null);setWasm(null);setDrafts({});setAccepted(false);
@@ -84,10 +67,22 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
   return()=>{stopped=true;window.clearInterval(interval);};
  },[live,aircraft,pollVersion]);
 
- const step=(field:FcuField,delta:-1|1)=>{
-  const current=Number(drafts[field]??(fcu?fcuSpecs[field].value(fcu):NaN));
-  const next=nextFcuReference(field,current,delta);
-  if(next!==null)setDrafts(p=>({...p,[field]:String(next)}));
+ const step=(field:FcuField,steps:number)=>{
+  if(!canSet||!Number.isInteger(steps)||Math.abs(steps)>10)return;
+  // Functional state ensures rapid wheel/touch nudges never overwrite
+  // each other with stale drafts captured by a prior React render.
+  setDrafts(previous=>{
+   const source=previous[field]??(fcu?String(fcuSpecs[field].value(fcu)):'');
+   let current=Number(source);
+   if(!source.trim()||!Number.isFinite(current))return previous;
+   const direction=steps<0?-1:1;
+   for(let count=0;count<Math.abs(steps);count++){
+    const next=nextFcuReference(field,current,direction);
+    if(next===null)return previous;
+    current=next;
+   }
+   return {...previous,[field]:String(current)};
+  });
  };
 
  const send=async(endpoint:string,body:object,kind:'reference'|'mode')=>{
@@ -124,7 +119,7 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
    {command:fcuSpecs[field].command,value},'reference');
  };
 
- const sendMode=(field:typeof managedFields[number],mode:'managed'|'selected')=>{
+ const sendMode=(field:'speed'|'heading'|'altitude',mode:'managed'|'selected')=>{
   if(!canMode)return;
   void send('/api/a320/wasm/command',
    {command:'a320.fcu.'+field+'.'+mode},'mode');
@@ -178,85 +173,12 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
    </div>
   </div>
 
-  <div className="a320-ui-main">
-   <div className="a320-ui-fcu-channels">
-    {visibleFields.map(field=>{
-     const spec=fcuSpecs[field];
-     const liveValue=fresh&&fcu?spec.value(fcu):null;
-     const draft=drafts[field];
-     const changed=draft!==undefined&&Number(draft)!==liveValue;
-     const editable=fresh&&!!controls?.ready&&!busy;
-     return <div className="a320-ui-channel" key={field}>
-      <div className="a320-ui-channel-top">
-       <span>{spec.label}</span>
-       {field==='speed'||field==='mach'
-        ?<button className="a320-ui-unit-toggle" type="button"
-          onClick={()=>setMachMode(x=>!x)} title="Přepnout zobrazení referenční rychlosti KT/MACH (nepřepíná režim simulátoru)">
-          {machMode?'MACH / SPD':'SPD / MACH'}</button>
-        :<small>{spec.unit}</small>}
-      </div>
-      <div className="a320-ui-display" aria-live="off">
-       <strong>{formatFcuValue(field,liveValue)}</strong>
-       <span>{spec.unit}</span>
-      </div>
-      <p className="a320-ui-readback-caption">{fresh?'OBECNÁ SIMVAR':'BEZ ČERSTVÉHO ČTENÍ'}</p>
-      <div className="a320-ui-rotary">
-       <button type="button" className="a320-ui-step"
-        disabled={!editable||nextFcuReference(field,Number(draft??liveValue),-1)===null}
-        onClick={()=>step(field,-1)}
-        aria-label={spec.label+' snížit referenci'}>−</button>
-       <KnobIllustration/>
-       <button type="button" className="a320-ui-step"
-        disabled={!editable||nextFcuReference(field,Number(draft??liveValue),1)===null}
-        onClick={()=>step(field,1)}
-        aria-label={spec.label+' zvýšit referenci'}>+</button>
-      </div>
-      <div className="a320-ui-set-row">
-       <input type="number" inputMode="decimal"
-        aria-label={spec.label+' požadovaná reference'}
-        min={spec.min} max={spec.max} step={spec.step}
-        disabled={!editable} value={draft??(liveValue===null?'':String(liveValue))}
-        onChange={e=>setDrafts(p=>({...p,[field]:e.target.value}))}/>
-       <button type="button" disabled={!canSet||!changed||
-          !validateFcuReference(field,Number(draft))}
-        onClick={()=>submit(field)} aria-label={'Odeslat '+spec.label+' referenci'}>
-        NASTAVIT
-       </button>
-      </div>
-      {managedFields.includes(field as typeof managedFields[number])&&field!=='mach'?
-       <div className="a320-ui-pushpull">
-        <button type="button" disabled={!canMode}
-         onClick={()=>sendMode(field as typeof managedFields[number],'managed')}
-         aria-label={labelForMode[field as typeof managedFields[number]]+' PUSH – požádat Managed'}>
-         <strong>PUSH</strong><span>MANAGED</span>
-        </button>
-        <button type="button" disabled={!canMode}
-         onClick={()=>sendMode(field as typeof managedFields[number],'selected')}
-         aria-label={labelForMode[field as typeof managedFields[number]]+' PULL – požádat Selected'}>
-         <strong>PULL</strong><span>SELECTED</span>
-        </button>
-       </div>:
-       <p className="a320-ui-no-mode">{field==='mach'?
-        'PUSH/PULL rychlosti je dostupné v režimu SPD.':
-        'PUSH/PULL V/S zatím nemá ověřený H-Event.'}</p>}
-     </div>;
-    })}
-   </div>
-   <div className="a320-ui-autopilot">
-    <div className="a320-ui-ap-master">
-     <span>AP MASTER · OBECNÁ SIMVAR</span>
-     <strong>{fresh&&fcu?(fcu.autopilotMaster?'ON':'OFF'):'---'}</strong>
-    </div>
-    <div className="a320-ui-ap-buttons">
-     {['AP1','AP2','A/THR','LOC','APPR','EXPED','METRIC ALT'].map(label=>
-      <CapabilityButton key={label} label={label}
-       description="Ovládání vyžaduje ověřený příkaz a zpětnou vazbu z původního Asobo A320neo V1"/>)}
-    </div>
-    <p className="a320-ui-limitation">AP1/AP2, A/THR a ostatní přepínače jsou zatím jen orientační.
-     Neodesílají žádný neověřený povel.</p>
-   </div>
-  </div>
-
+  <A320FcuHardware key={aircraft} fcu={fcu} fresh={fresh} busy={busy}
+   canSet={canSet} canMode={canMode} machMode={machMode} drafts={drafts}
+   onMachMode={()=>setMachMode(mode=>!mode)}
+   onStep={step} onDraft={(field,value)=>setDrafts(previous=>({
+    ...previous,[field]:value
+   }))} onSubmit={submit} onMode={sendMode}/>
   <div className="a320-ui-access">
    <div>
     <strong>{!live?'Čekám na MSFS 2020':
