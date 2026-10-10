@@ -96,6 +96,27 @@ public sealed class NavigationStore
     private static double? Heading(double degrees) =>
         double.IsFinite(degrees)?(degrees%360+360)%360:null;
 
+    /// <summary>
+    /// A fully typed, recent active navigation snapshot for aircraft-scoped
+    /// consumers (e.g. Airbus MCDU companion). The independent ID sample is
+    /// attached only to this specific leg and never carried after route change.
+    /// </summary>
+    public NavigationSnapshot? Fresh(DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            var snapshot=_current;
+            if(snapshot is null || now<snapshot.TimestampUtc ||
+               now-snapshot.TimestampUtc>=TimeSpan.FromSeconds(6))
+                return null;
+            var nameRecent=_nameAt>=snapshot.TimestampUtc.AddSeconds(-6)
+                && _nameAt<=now.AddSeconds(1);
+            return snapshot with {
+                NextWaypointId=snapshot.WaypointActive&&nameRecent?_nextId:null
+            };
+        }
+    }
+
     public object Status()
     {
         lock(_gate)
