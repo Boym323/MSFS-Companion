@@ -300,6 +300,7 @@ export default function A320FcuHardware({
     </div>
    </div>
   </div>
+  </div>
   <div className="a320-hw-support" role="note">
    <span>{viewMode==='fit'?'FCU je přizpůsobeno šířce; pro přesnější dotyk použij 1:1.':'⇆ FCU v měřítku 1:1 lze posouvat do stran.'}</span>
    <span>Táhni knob doleva/doprava pro návrh hodnoty; pro odeslání otevři webové ovládání.</span>
