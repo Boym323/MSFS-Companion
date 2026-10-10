@@ -16,7 +16,7 @@ public sealed class A320WasmEventSender : IDisposable
     private uint _lastProtocolStatus;
 
     public bool RecentlyAvailable =>
-        DateTimeOffset.UtcNow - _lastConfirmedUtc < TimeSpan.FromSeconds(15);
+        DateTimeOffset.UtcNow - _lastConfirmedUtc < TimeSpan.FromSeconds(90);
     public string? LastFailure => _lastFailure;
     public uint LastProtocolStatus => _lastProtocolStatus;
 
@@ -89,6 +89,11 @@ public sealed class A320WasmEventSender : IDisposable
         catch(OperationCanceledException) when(!cancellationToken.IsCancellationRequested)
         {
             throw new IOException("Kokpit A320 WASM module not detected (ack timeout).");
+        }
+        catch
+        {
+            _lastConfirmedUtc=default;
+            throw;
         }
         finally
         {
