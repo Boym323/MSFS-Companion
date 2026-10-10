@@ -62,12 +62,9 @@ void ReplyTo(DWORD sequence,DWORD status) {
 
 void CALLBACK Dispatch(SIMCONNECT_RECV* data,DWORD size,void*) {
     if(!data)return;
-    if(data->dwID==SIMCONNECT_RECV_ID_EVENT) {
-        auto* event=reinterpret_cast<SIMCONNECT_RECV_EVENT*>(data);
-        if(event->uEventID==kFrameEvent && sim)
-            SimConnect_CallDispatch(sim,Dispatch,nullptr);
-        return;
-    }
+    if(data->dwID==SIMCONNECT_RECV_ID_EVENT) return;
+    // SDK's initial CallDispatch registration remains active for WASM,
+    // as in the MobiFlight in-sim module. Never recursively dispatch.
     if(data->dwID!=SIMCONNECT_RECV_ID_CLIENT_DATA ||
        size<sizeof(SIMCONNECT_RECV_CLIENT_DATA)+kCommandSize-4)
         return;
