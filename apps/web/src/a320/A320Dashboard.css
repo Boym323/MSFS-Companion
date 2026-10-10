@@ -63,3 +63,9 @@
   border:1px solid #31435b;border-radius:8px;background:#14243a;padding:10px 12px;
   font-size:12px;color:#bccfdf}
 .a320-mode-list strong{color:#e5f6ff;font-variant-numeric:tabular-nums}
+
+.a320-native-module{margin-top:16px}
+.a320-h-event-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:15px 0}
+.a320-h-event-grid button{min-height:44px;border:1px solid #5b7996;
+  border-radius:9px;background:#204362;color:#edf5ff;padding:10px 12px;cursor:pointer;font:inherit}
+.a320-h-event-grid button:disabled{cursor:not-allowed;opacity:.43}
