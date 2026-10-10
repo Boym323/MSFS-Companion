@@ -16,6 +16,11 @@ public sealed record A320FcuSnapshot(DateTimeOffset TimestampUtc,
     int VerticalSpeedSlotIndex,bool AutopilotMaster,
     string Verification);
 
+public sealed record A320ModesSnapshot(DateTimeOffset TimestampUtc,
+    bool FlightDirector, bool AutoThrottleArmed, bool ManagedThrottleActive,
+    bool ApproachArmed, bool ApproachActive, bool GlideSlopeActive,
+    bool HeadingLock, bool NavLock);
+
 /// <summary>
 /// Separate immutable 1Hz snapshots. Unavailable/old values are never
 /// interpreted as engine off, autopilot off, or an Airbus FMA state.
@@ -25,6 +30,7 @@ public sealed class A320ReadbackStore
     private A320EngineSnapshot? _engines;
     private A320FcuSnapshot? _fcu;
     private A320AuxSnapshot? _aux;
+    private A320ModesSnapshot? _modes;
     // A320 control commands require a fresh, valid 1Hz FCU snapshot.
     // Never use a last-known or invalid reference to authorize writes.
     public A320FcuSnapshot? FreshFcu(DateTimeOffset now)
@@ -40,6 +46,7 @@ public sealed class A320ReadbackStore
         Interlocked.Exchange(ref _engines,null);
         Interlocked.Exchange(ref _fcu,null);
         Interlocked.Exchange(ref _aux,null);
+        Interlocked.Exchange(ref _modes,null);
     }
 
     public void UpdateEngines(A320SimConnectEngineData data,DateTimeOffset at)
@@ -56,6 +63,16 @@ public sealed class A320ReadbackStore
         Interlocked.Exchange(ref _aux,new A320AuxSnapshot(at,
             data.ApuRpmPercent,data.ApuGeneratorActive>0.5,
             data.FuelTotalWeightPounds));
+    }
+
+    public void UpdateModes(A320SimConnectModesData data,DateTimeOffset at)
+    {
+        if (!data.IsValid()) return;
+        Interlocked.Exchange(ref _modes,new A320ModesSnapshot(at,
+            data.FlightDirector>0.5,data.AutoThrottleArmed>0.5,
+            data.ManagedThrottleActive>0.5,data.ApproachArmed>0.5,
+            data.ApproachActive>0.5,data.GlideSlopeActive>0.5,
+            data.HeadingLock>0.5,data.NavLock>0.5));
     }
 
     public void UpdateFcu(A320SimConnectFcuData data,DateTimeOffset at)
@@ -78,20 +95,24 @@ public sealed class A320ReadbackStore
         var e=Volatile.Read(ref _engines);
         var f=Volatile.Read(ref _fcu);
         var aux=Volatile.Read(ref _aux);
+        var modes=Volatile.Read(ref _modes);
         double? Age(DateTimeOffset? timestamp)=>timestamp is { } seen
             ?Math.Max(0,(at-seen).TotalMilliseconds):null;
         var engineAge=Age(e?.TimestampUtc);
         var fcuAge=Age(f?.TimestampUtc);
         var auxAge=Age(aux?.TimestampUtc);
+        var modesAge=Age(modes?.TimestampUtc);
         return new {
             connected=supported,aircraft= supported?title:null,profileId=profile.Id,
             verifiedAircraft=false,mode="read_only",fmaVerified=false,
             engines=supported&&engineAge is < 6000?e:null,
             fcu=supported&&fcuAge is < 6000?f:null,
             aux=supported&&auxAge is < 6000?aux:null,
+            modes=supported&&modesAge is < 6000?modes:null,
             enginesAgeMs=supported&&engineAge is < 6000?engineAge:null,
             fcuAgeMs=supported&&fcuAge is < 6000?fcuAge:null,
             auxAgeMs=supported&&auxAge is < 6000?auxAge:null,
+            modesAgeMs=supported&&modesAge is < 6000?modesAge:null,
             warning="Obecné SimVars nejsou potvrzením Airbus FCU/FMA; ověřte hodnoty v MSFS 2020."
         };
     }
