@@ -335,9 +335,9 @@ public sealed class SimConnectTelemetrySource(
     {
         try
         {
-            return client.SimVars.Subscribe<string>("GPS WP NEXT ID", "string",
+            return client.SimVars.Subscribe<SimConnectNextWaypointIdData>(
                 SimConnectPeriod.Second,
-                name => navigationStore.UpdateName(name, DateTimeOffset.UtcNow),
+                value => navigationStore.UpdateName(value.Name, DateTimeOffset.UtcNow),
                 cancellationToken: token);
         }
         catch (Exception ex)
