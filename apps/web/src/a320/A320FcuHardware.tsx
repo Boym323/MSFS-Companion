@@ -289,5 +289,6 @@ export default function A320FcuHardware({
     Potvrzení WASM neprokazuje změnu režimu Airbus FMA.
    </p>
   </div>
+  </details>
  </div>;
 }
