@@ -123,6 +123,9 @@ foreach(var (name,value) in new (string,double)[] {
 Check(!A320FcuCommandPolicy.TryResolve(null,out _),"null command denied");
 
 Check(store.FreshFcu(at.AddSeconds(1)) is null,"reset must remove FCU before writes");
+// Restore the intentionally invalid VS slot from the earlier negative test.
+fcu.VerticalSpeedSlotIndex=1;
+Check(fcu.IsValid(),"fresh control reference sample must be valid");
 store.UpdateFcu(fcu,at);
 Check(store.FreshFcu(at.AddMilliseconds(500)) is not null,"fresh FCU");
 Check(store.FreshFcu(at.AddSeconds(4)) is null,"expired FCU blocks controls");
