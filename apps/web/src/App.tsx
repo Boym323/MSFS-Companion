@@ -45,7 +45,7 @@ const pageMeta = {
   '/weather': { eyebrow: 'AVIATION C15', heading: 'Letecké počasí', description: 'Aktuální METAR a TAF bez dalšího softwaru.' },
   '/capabilities': { eyebrow: 'AVIONIKA C13', heading: 'Dostupné ovládací prvky', description: 'Nativní inventura avioniky v aktuálním letadle.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
-  '/a320': {eyebrow:'ASOBO A320NEO',heading:'Airbus A320 – diagnostika',description:'Čtecí FCU, dvě turbíny a GPS. Není to ověřené dálkové ovládání.'},
+  '/a320': {eyebrow:'LETADLO · ASOBO',heading:'Airbus A320neo',description:'FCU, navigace, systémy a MCDU na samostatných pracovních plochách. Ovládání jen s ověřeným povolením.'},
   '/controls': { eyebrow: 'KOKPIT C1–C2', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
   '/g1000': { eyebrow: 'AVIONIKA C3', heading: 'G1000 Remote', description: 'Ovladače PFD/MFD dostupné přes Input Events aktuálního letadla.' },
   '/avionics': { eyebrow: 'AVIONIKA C6', heading: 'Další typy avioniky', description: 'Ovládání G3X, G3000, GNS430 a GNS530 s ověřením dostupnosti.' },
