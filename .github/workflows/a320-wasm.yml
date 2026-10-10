@@ -84,7 +84,7 @@ jobs:
             Write-Host 'Looking for installed WASM toolset directories:'
             Get-ChildItem 'C:\' -Directory | Where-Object { $_.Name -like '*MSFS*' } |
               ForEach-Object { Write-Host $_.FullName }
-            throw "WASM toolset missing below $sdkRoot: SDK installation layout changed"
+            throw "WASM toolset missing below ${sdkRoot}: SDK installation layout changed"
           }
           if (!$sdkRoot.EndsWith('\')) { $sdkRoot += '\' }
           $env:MSFS_SDK = $sdkRoot
