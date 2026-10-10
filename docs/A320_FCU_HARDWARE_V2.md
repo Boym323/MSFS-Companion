@@ -1,5 +1,9 @@
 # A320 FCU – fyzicky věrná podoba webového panelu (V2)
 
+> **Aktualizace V3 (PR #114):** webové FCU je přepracováno podle [fotografie skutečného panelu FAA](https://www.faa.gov/sites/faa.gov/files/images/lessons_learned/VT-EPN/Flight_Directors.jpg). V původní V2 byly nesprávně dva centrální režimové voliče a viditelná webová tlačítka +/− kolem knobů. V3 používá jediný centrální momentový přepínač, správnější fyzické pozice čtyř knobů a AP1/AP2/A/THR, menší společný displej a šedý místo modrošedého povrchu. Webový editor a PUSH/PULL jsou nyní pod rozbalitelnou servisní částí; lze je otevřít, ale nepatří na fyzický panel. Knob lze na webu táhnout horizontálně nebo ovládat šipkami/myší; navrhovaná hodnota se nikdy neodešle bez potvrzení NASTAVIT.
+>
+> **Rozsah věrnosti:** předloha je skutečný A320 FCU, zatím bez pixel-by-pixel srovnání s původním Asobo A320neo V1 přímo ve hře. Přesnost živých FMA režimů a ovládání tlačítek AP1/AP2/LOC/APPR/EXPED/METRIC ALT stále není ověřena. Zakázané ovladače zůstávají vizuálně fyzické, nikoli funkční. Při absenci čerstvých SimVars jsou numerické hodnoty nepřístupné.
+
 ## Referenční uspořádání
 
 Cílem je co nejvěrnější *webová rekonstrukce* klasické FCU původního
@@ -28,11 +32,11 @@ o kopii konkrétních bitmap či chráněných výrobních podkladů.
 
 Originální geometrie se **nepřekládá do mobilních karet**.
 FCU zůstává vodorovný fyzický celek s vodorovným posuvem při
-šířce pod 1050 CSS px. Pod ním je oddělený webový ovládací
+šířce pod 1200 CSS px. Pod ním je oddělený **rozbalitelný** webový ovládací
 panel se čtyřmi poli pro zadání referencí a s
 PUSH/PULL pro tři povolené WASM akce.
 
-Kliknutí nebo dotyk knoflíku, stejně jako +/- a kolečko myši,
+Tažení knoflíku doleva/doprava, stejně jako kolečko myši nebo klávesové šipky,
 mění pouze návrh referenční hodnoty. Letadlo dostane povel až
 po klepnutí na **NASTAVIT**. Přepínač SPD/MACH mění pouze
 zobrazený referenční údaj na webu. Webový volič 100/1000
@@ -66,6 +70,6 @@ v simulátoru.
 - [x] Vlastní sedmisegmentové SVG zobrazovače; žádné externí fonty.
 - [x] Původní chráněné příkazy zůstávají beze změny.
 - [x] Úzké obrazovky používají vodorovné posouvání celé repliky.
-- [ ] Snímky z reálného iPadu a vizuální porovnání s letadlem.
+- [ ] Snímky V3 z reálného iPadu a vizuální porovnání se skutečným letadlem / původním Asobo A320neo.
 - [ ] Živé ověření změn FCU/FMA po WASM H-events v MSFS 2020.
 - [ ] Samostatná ověřená integrace AP1/AP2 a všech ostatních tlačítek.
