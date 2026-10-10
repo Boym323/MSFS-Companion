@@ -69,3 +69,14 @@
 .a320-h-event-grid button{min-height:44px;border:1px solid #5b7996;
   border-radius:9px;background:#204362;color:#edf5ff;padding:10px 12px;cursor:pointer;font:inherit}
 .a320-h-event-grid button:disabled{cursor:not-allowed;opacity:.43}
+
+/* Technical content stays available but does not interrupt the pilot flow. */
+.a320-diagnostics{margin-top:16px;border:1px solid #315069;border-radius:11px;background:#12263a}
+.a320-diagnostics>summary{padding:16px 19px;font-size:14px;font-weight:700;cursor:pointer;
+ color:#e2f1fb;min-height:52px;list-style-position:inside}
+.a320-diagnostics>summary span{color:#94adc1;font-weight:400;font-size:12px;margin-left:9px}
+.a320-diagnostic-content{display:grid;gap:16px;padding:0 14px 14px}
+.a320-diagnostic-content .a320-section{margin-top:0}
+.a320-diagnostic-content .a320-section.a320-nav{margin-top:0}
+@media(max-width:460px){.a320-diagnostic-content{padding:0 8px 8px}
+ .a320-diagnostics>summary{padding:13px}.a320-diagnostics>summary span{display:block;margin:5px 0 0}}

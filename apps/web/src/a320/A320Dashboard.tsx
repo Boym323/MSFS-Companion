@@ -4,6 +4,7 @@ import {useFlightNavigation,FlightNavigationPanel} from '../map/FlightNavigation
 import {compareA320FcuEvidence,type FcuEvidence} from './fcuEvidence';
 import A320FcuControlPanel from './A320FcuControlPanel';
 import A320HEventsPanel from './A320HEventsPanel';
+import A320FcuCockpit from './A320FcuCockpit';
 import './A320Dashboard.css';
 
 type Engines={
@@ -43,6 +44,7 @@ export default function A320Dashboard({telemetry,live}:{
  const [error,setError]=useState('');
  const [baseline,setBaseline]=useState<FcuEvidence|null>(null);
  const [after,setAfter]=useState<FcuEvidence|null>(null);
+ const [showDiagnostics,setShowDiagnostics]=useState(false);
  const navigation=useFlightNavigation(live);
  const aircraft=telemetry?.aircraft??'';
  useEffect(()=>{setBaseline(null);setAfter(null);},[aircraft,live]);
@@ -97,22 +99,29 @@ export default function A320Dashboard({telemetry,live}:{
    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
 
- return <section className="a320-dashboard" aria-label="Diagnostika Airbus A320neo">
+ return <section className="a320-dashboard" aria-label="Airbus A320neo – webový FCU panel">
   <div className="a320-heading">
    <div>
-    <p className="a320-eyebrow">A320-04 · ASOBO A320NEO</p>
-    <h2>Airbus flight deck</h2>
-    <p>Oddělená čtecí diagnostika Airbusu. Kokpit neodesílá žádné
-       neověřené příkazy FCU/MCDU.</p>
+    <p className="a320-eyebrow">ASOBO A320NEO V1 · KOKPIT</p>
+    <h2>Airbus FCU · dotykové řízení</h2>
+    <p>Živá referenční data a zabezpečené ovládání Airbus FCU.
+       Neověřené funkce zůstávají zamčené; diagnostika je níže.</p>
    </div>
    <span className="a320-status" role="status">
-    {status?'Čtecí zdroj aktivní · neověřeno na A320':
+    {status?'Referenční SimConnect data · Airbus FMA neověřeno':
       live?'Čekám na identitu a diagnostiku A320':'MSFS offline'}
    </span>
   </div>
   {error&&<p className="a320-alert" role="status">{error}</p>}
   {!status&&live&&<p className="a320-alert">Zobrazí se pouze rozpoznaný kandidát
     původního Asobo A320neo. Žádné údaje nepřebírám z jiných letadel.</p>}
+  <A320FcuCockpit live={live} aircraft={aircraft}
+    readbackAircraft={status?.aircraft??null} fcu={f}
+    fcuAgeMs={status?.fcuAgeMs??null}/>
+  <details className="a320-diagnostics" onToggle={event=>
+    setShowDiagnostics(event.currentTarget.open)}>
+    <summary>Diagnostika a pokročilé informace <span>Referenční hodnoty, motory, logy a testy</span></summary>
+    {showDiagnostics&&<div className="a320-diagnostic-content">
   <div className="a320-sections">
    <article className="a320-section">
     <h3>FCU · reference ze SimConnectu</h3>
@@ -211,6 +220,8 @@ export default function A320Dashboard({telemetry,live}:{
       úplný obsah MCDU, SID/STAR či správně potvrzený aktivní leg.
       <a href="/map"> Otevřít mapu</a>.</p>
   </section>
+    </div>}
+  </details>
   <p className="a320-footer">Typ: {status?.aircraft??'—'} ·
     FCU {f?Math.round(status?.fcuAgeMs??0)+' ms':'nedostupné'} ·
     ENG {e?Math.round(status?.enginesAgeMs??0)+' ms':'nedostupné'}.
