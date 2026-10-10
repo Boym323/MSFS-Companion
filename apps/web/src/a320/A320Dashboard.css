@@ -30,3 +30,29 @@
 .a320-footer{font-size:12px;color:#a7bbd1;line-height:1.6;margin-top:17px}
 @media(max-width:980px){.a320-sections{grid-template-columns:1fr}}
 @media(max-width:460px){.a320-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.a320-section{padding:13px}.a320-engines{gap:8px}.a320-engines>div{padding:9px}}
+
+.a320-control-panel{margin-top:16px}
+.a320-fcu-control-status{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  align-items:center;padding:12px 14px;border:1px solid #446382;
+  border-radius:10px;background:#142942;margin-bottom:15px}
+.a320-fcu-control-status span{font-size:12px;color:#b2c7d9}
+.a320-fcu-ack{display:flex;align-items:flex-start;gap:9px;font-size:13px;
+  line-height:1.55;color:#e2effe;margin:12px 0}
+.a320-fcu-ack input{accent-color:#7dbdef;min-height:17px;min-width:17px;margin-top:2px}
+.a320-fcu-arm,.a320-fcu-action button{font:inherit;cursor:pointer;color:#f4f8ff;
+  background:#1c5377;border:1px solid #537f9d;border-radius:8px;padding:10px 13px;
+  min-height:44px}
+.a320-fcu-arm:disabled,.a320-fcu-action button:disabled{opacity:.48;cursor:not-allowed}
+.a320-fcu-action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));
+  gap:12px;margin:16px 0}
+.a320-fcu-action{display:grid;gap:8px;border:1px solid #31435b;border-radius:10px;
+  background:#14243a;padding:13px;min-width:0}
+.a320-fcu-action label{font-size:12px;color:#e9f2fd;font-weight:700}
+.a320-fcu-action label span{color:#a6bdcf;font-weight:400}
+.a320-fcu-action-row{display:flex;gap:7px;min-width:0}
+.a320-fcu-action input{width:100%;min-width:0;border:1px solid #57718b;
+  background:#0c1b2c;color:#fff;border-radius:8px;padding:9px;
+  font:inherit;font-variant-numeric:tabular-nums}
+.a320-fcu-action button{padding:8px;font-size:12px}
+@media(max-width:460px){.a320-fcu-action-grid{grid-template-columns:1fr 1fr;
+  gap:8px}.a320-fcu-action{padding:9px}.a320-fcu-action-row{flex-wrap:wrap}}
