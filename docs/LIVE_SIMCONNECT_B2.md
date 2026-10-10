@@ -124,6 +124,9 @@ Proto obě cesty nyní používají `SimConnectAircraftTitleData`:
 strukturovaný `String256` s `[SimConnect("TITLE", "", ...)]`.
 Tato cesta posílá do nativního SDK skutečně prázdnou jednotku
 a neprochází skalárním validátorem argumentu `unit`.
+Stejný problém měla textová SimVar `GPS WP NEXT ID` pro navigaci:
+nyní také používá samostatný strukturovaný `String256` s prázdnou
+nativní jednotkou.
 
 Bridge a MSFS mají v horním panelu oddělené stavy. Po aktualizaci
 Windows instalace spusťte MSFS 2020, načtěte let a ověřte
