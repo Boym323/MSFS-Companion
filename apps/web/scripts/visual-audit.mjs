@@ -95,6 +95,8 @@ try{
     assert.equal(await actual.getAttribute('aria-pressed'),'true');
     await fullscreen.click();
     assert.equal(await page.locator('.a320-hw-viewer.is-fullscreen').count(),1);
+    assert.equal(await fit.getAttribute('aria-pressed'),'true',
+     device.name+': fullscreen opens with the complete instrument fitted');
     if(device.name==='ipad-landscape'||device.name==='phone'){
      const zoomFile=device.name+'--a320-fcu-fullscreen.png';
      await page.screenshot({path:new URL(zoomFile,out).pathname,animations:'disabled'});
