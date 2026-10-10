@@ -8,6 +8,8 @@ on:
       - "apps/recovery-watch/**"
       - "apps/bridge/**"
       - "apps/web/**"
+      - "apps/a320-wasm/**"
+      - "scripts/package-a320-wasm.py"
       - ".github/workflows/windows-installer.yml"
   # Packaging test only for critical updater changes; no PR release is published.
   pull_request:
@@ -95,6 +97,87 @@ jobs:
           $appIcon = [System.Drawing.Icon]::ExtractAssociatedIcon((Resolve-Path staging/app/MsfsCompanion.WindowsHost.exe).Path)
           if ($null -eq $appIcon) { throw 'Windows executable is missing its icon' }
           $appIcon.Dispose()
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download official MSFS 2020 SDK Core 0.24.5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://sdk.flightsimulator.com/files/installers/0.24.5/MSFS_SDK_Core_Installer_0.24.5.msi'
+          $installer = Join-Path $env:RUNNER_TEMP 'msfs-2020-sdk.msi'
+          Invoke-WebRequest -Uri $url -OutFile $installer -MaximumRedirection 4
+          if (!(Test-Path $installer) -or (Get-Item $installer).Length -lt 1048576) {
+            throw 'Official SDK download missing or unexpectedly small.'
+          }
+          Write-Host "Downloaded SDK Core: $([math]::Round((Get-Item $installer).Length/1MB,1)) MiB"
+
+      - name: Install SDK platform toolset
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $env:RUNNER_TEMP 'msfs-2020-sdk.msi'
+          $log = Join-Path $env:RUNNER_TEMP 'msfs-sdk-install.log'
+          $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList @(
+            '/i', ('"' + $installer + '"'), '/qn', '/norestart', '/L*v',
+            ('"' + $log + '"')
+          ) -Wait -PassThru
+          if ($process.ExitCode -notin @(0,3010)) {
+            if (Test-Path $log) { Get-Content $log -Tail 65 }
+            throw "Official MSFS SDK install failed with exit $($process.ExitCode)"
+          }
+          Write-Host "Official MSFS 2020 SDK installed (exit $($process.ExitCode))"
+
+      - name: Build with actual MSFS platform toolset (not mocks)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          if (!(Test-Path $vswhere)) { throw 'vswhere.exe missing on Windows runner' }
+          $vsPath = & $vswhere -latest -products '*' -property installationPath
+          if (!$vsPath) { throw 'Visual Studio installation not found' }
+          $msbuild = Join-Path $vsPath 'MSBuild/Current/Bin/MSBuild.exe'
+          if (!(Test-Path $msbuild)) { throw "MSBuild missing: $msbuild" }
+          # MSFS 2020 MSI registers the platform, but fresh CI runners do
+          # not always inherit the SDK root in the parent shell.
+          $sdkRoot = $env:MSFS_SDK
+          if (!$sdkRoot -or !(Test-Path (Join-Path $sdkRoot 'WASM/vs/2022/Microsoft.Cpp.MSFS.Common.props'))) {
+            $sdkRoot = 'C:\MSFS SDK'
+          }
+          if (!(Test-Path (Join-Path $sdkRoot 'WASM/vs/2022/Microsoft.Cpp.MSFS.Common.props'))) {
+            Write-Host 'Looking for installed WASM toolset directories:'
+            Get-ChildItem 'C:\' -Directory | Where-Object { $_.Name -like '*MSFS*' } |
+              ForEach-Object { Write-Host $_.FullName }
+            throw "WASM toolset missing below ${sdkRoot}: SDK installation layout changed"
+          }
+          if (!$sdkRoot.EndsWith('\')) { $sdkRoot += '\' }
+          $env:MSFS_SDK = $sdkRoot
+          Write-Host "SDK root = $sdkRoot"
+          & $msbuild apps/a320-wasm/KokpitA320Module.vcxproj /m /v:minimal /p:Configuration=Release /p:Platform=MSFS "/p:ToolsetRoot=$sdkRoot"
+          if ($LASTEXITCODE -ne 0) { throw "MSFS SDK WASM compile failed ($LASTEXITCODE)" }
+          $wasm = 'apps/a320-wasm/build/Release/kokpit-a320.wasm'
+          if (!(Test-Path $wasm)) { throw "No actual SDK-generated WASM at $wasm" }
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $wasm).Path)
+          if ($bytes.Length -lt 4096 -or $bytes[0] -ne 0 -or $bytes[1] -ne 97 -or
+              $bytes[2] -ne 115 -or $bytes[3] -ne 109) {
+            throw 'Compiler did not produce a valid-sized WebAssembly binary.'
+          }
+          Write-Host "MSFS2020 WASM built: $($bytes.Length) bytes"
+
+      - name: Bundle verified A320 WASM Community package inside Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python scripts/package-a320-wasm.py apps/a320-wasm/build/Release/kokpit-a320.wasm staging/app/a320-module
+          if ($LASTEXITCODE -ne 0) { throw 'WASM package script failed' }
+          $folder = 'staging/app/a320-module/kokpit-asobo-a320-v1'
+          if (!(Test-Path "$folder/manifest.json") -or !(Test-Path "$folder/layout.json") -or
+              !(Test-Path "$folder/modules/kokpit-a320.wasm")) { throw 'Bundled WASM module incomplete' }
+          $size = (Get-Item "$folder/modules/kokpit-a320.wasm").Length
+          if ($size -lt 4096) { throw 'Bundled WASM module unexpectedly small' }
+          Write-Host "Kokpit includes Community WASM module ($size bytes)."
 
       - name: Smoke test packaged HTTP API and React dashboard
         shell: pwsh
@@ -267,6 +350,16 @@ jobs:
             }
           }
 
+      - name: Check bundled A320 module and opt-in default
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $folder = 'staging/app/a320-module/kokpit-asobo-a320-v1'
+          if (!(Test-Path "$folder/modules/kokpit-a320.wasm")) { throw 'Bundled MSFS module missing' }
+          $module = Get-Content "$folder/manifest.json" -Raw | ConvertFrom-Json
+          if ($module.title -ne 'Kokpit Asobo A320neo H-Event Module') { throw 'Unexpected WASM module identity' }
+          Write-Host 'WASM Community package present in Windows staging.'
+
       - name: Smoke test actual silent Velopack installation and version
         shell: pwsh
         run: |
@@ -294,6 +387,9 @@ jobs:
             throw 'C42 watchdog could not recognize the genuinely installed target version'
           }
           if (!(Test-Path $hostExe)) { throw 'Installed Windows host is missing' }
+          $installedWasm = Join-Path $installDir 'current/a320-module/kokpit-asobo-a320-v1/modules/kokpit-a320.wasm'
+          if (!(Test-Path $installedWasm)) { throw 'WASM module missing from real Velopack installation' }
+
           $correct = Start-Process -FilePath $hostExe -ArgumentList @(
             '--verify-installed-version', $env:APP_VERSION
           ) -PassThru -Wait

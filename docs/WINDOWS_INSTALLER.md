@@ -24,6 +24,20 @@ Windows hostitel poskytuje web pouze na `localhost` a privátní IPv4
 adrese vybraného aktivního Ethernet/Wi-Fi adaptéru. Nepoužívá
 `0.0.0.0`, Tailscale, přístupový token ani veřejné síťové rozhraní.
 
+## Asobo A320neo V1 – doplňkový WASM modul
+
+Windows instalátor obsahuje i zkompilovaný modul pro původní Asobo
+A320neo v MSFS 2020. Složka Community se však **bez vašeho souhlasu
+nemění**. Pro první instalaci ukončete MSFS, otevřete nabídku Kokpitu
+u hodin a zvolte **Modul původního Asobo A320neo → Nainstalovat / aktualizovat modul…**.
+Kokpit dohledá cestu k Community, případně ji vyberete ručně.
+Po potvrzení se modul nainstaluje a bude se dále aktualizovat
+spolu s Kokpitem, vždy jen po ukončení MSFS.
+
+Instalace není ovládání Airbusu ověřené ve hře; H-eventy je
+nutné vyzkoušet na skutečném původním A320neo V1.
+[Podrobnosti a bezpečnost aktualizací](A320_13_MANAGED_INSTALL.md).
+
 ## Jednorázové povolení ve Windows Firewallu
 
 Jestliže adresa funguje na Windows PC, ale Mac se nepřipojí,

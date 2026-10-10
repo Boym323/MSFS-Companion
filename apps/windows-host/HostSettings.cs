@@ -8,6 +8,10 @@ internal sealed class HostSettings
     public const string DefaultFeedUrl = "https://github.com/Boym323/MSFS-Companion";
     public string? UpdateFeedUrl { get; set; } = DefaultFeedUrl;
     public bool AutomaticUpdates { get; set; } = true;
+    // One-time explicit consent from local Windows tray. Not enabled by updates.
+    public bool A320ModuleAutoUpdates { get; set; } = false;
+    public string? A320CommunityPath { get; set; }
+
     // Deliberately opt-in until recovery of two real Windows versions is proven.
     public bool EnableRecoveryWatchdog { get; set; } = false;
     public bool MdnsEnabled { get; set; } = true;
