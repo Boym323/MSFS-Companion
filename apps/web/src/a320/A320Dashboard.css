@@ -108,7 +108,7 @@
 }
 
 /* UI-REF-9: get into the active instrument quickly on portrait tablets/phones. */
-@media(max-width:760px){
+@media(max-width:820px){
  .a320-heading{gap:7px;margin-bottom:5px;align-items:center}
  .a320-heading h2{font-size:20px;line-height:1.2;margin:0}
  .a320-heading .a320-eyebrow,.a320-heading p:not(.a320-eyebrow){display:none}
