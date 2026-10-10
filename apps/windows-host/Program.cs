@@ -12,7 +12,7 @@ internal static class Program
         // run without the updater's packaging hooks or process exit logic.
         if (args.Contains("--self-test"))
         {
-            return UpdatePolicy.SelfTest() && LanAccess.SelfTest() && CompanionMdnsPublisher.SelfTest() && UpdateRecoveryJournal.SelfTest() && RecoveryPackageCache.SelfTest() ? 0 : 1;
+            return UpdatePolicy.SelfTest() && LanAccess.SelfTest() && CompanionMdnsPublisher.SelfTest() && UpdateRecoveryJournal.SelfTest() && RecoveryPackageCache.SelfTest() && A320ModuleInstaller.SelfTest() ? 0 : 1;
         }
 
         // Velopack initialization is required before locating installed
