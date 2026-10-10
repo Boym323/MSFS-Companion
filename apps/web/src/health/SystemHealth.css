@@ -1,1 +1,13 @@
 .system-health{display:grid;gap:15px;margin-bottom:45px}.system-health p{font-size:13px;color:#b3c8de;line-height:1.6}.system-health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.system-health-grid article{display:grid;gap:8px;border:1px solid #385371;border-radius:12px;background:#11263b;padding:15px}.system-health-grid article p{margin:0}.system-health-grid span{font-size:12px;color:#bde0ef;overflow-wrap:anywhere}.system-health-grid [data-health-state=warning]{color:#f3c27e}.system-health-grid [data-health-state=ok]{color:#a0ddba}.system-health-export{justify-self:start;border:1px solid #456987;background:#153f5b;color:white;border-radius:8px;padding:12px;min-height:44px;cursor:pointer}
+.host-log-panel{display:grid;gap:12px;padding:16px;border:1px solid #385371;border-radius:12px;background:#10263a;min-width:0}
+.host-log-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.host-log-heading h3{font-size:16px;margin:0 0 5px;color:#f1f7ff}
+.host-log-heading p{margin:0;max-width:710px}
+.host-log-panel button{border:1px solid #456987;background:#153f5b;color:white;border-radius:8px;padding:9px 12px;min-height:40px;cursor:pointer}
+.host-log-panel button:disabled{opacity:.5;cursor:not-allowed}
+.host-log-toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.host-log-toolbar label{display:flex;align-items:center;gap:7px;color:#c6d9e9;font-size:13px}
+.host-log-toolbar input{accent-color:#51c7e8}
+.host-log-panel .host-log-meta{font-size:12px;color:#a9c8df;margin:0}
+.host-log-panel .host-log-message{color:#f3c27e;margin:0}
+.host-log-lines{border:1px solid #34506b;background:#081725;color:#d0e7f3;border-radius:9px;padding:13px;margin:0;min-width:0;max-height:425px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.6;text-align:left;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}

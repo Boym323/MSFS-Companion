@@ -35,11 +35,14 @@ public sealed class SimTrafficMonitor(
             }
             try{await MonitorSessionAsync(stop);}
             catch(OperationCanceledException) when(stop.IsCancellationRequested){break;}
-            catch(Exception ex) when(ex is IOException or ExternalException or DllNotFoundException
-                or EntryPointNotFoundException or BadImageFormatException)
+            // This is an optional second SimConnect reader. An unexpected
+            // failure (e.g. native marshalling or invalid data) must never escape
+            // the BackgroundService and stop the entire ASP.NET bridge host.
+            catch(Exception ex)
             {
                 state.Error();
-                logger.LogDebug(ex,"MSFS SimObjectType provoz není dostupný.");
+                logger.LogWarning(ex,
+                    "Doplňkový čteč okolního provozu selhal; základní PFD zůstává v provozu.");
             }
             if(!stop.IsCancellationRequested)
                 await Task.Delay(TimeSpan.FromSeconds(10),stop);

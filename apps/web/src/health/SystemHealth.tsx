@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import WindowsHostLogPanel from './WindowsHostLogPanel';
 import './SystemHealth.css';
 type Indicator = {id:string;label:string;state:string;detail:string};
 type Cache = { available?:boolean; loaded?:boolean; stale?:boolean;
@@ -7,7 +8,8 @@ type Cache = { available?:boolean; loaded?:boolean; stale?:boolean;
 type Health = {generatedAt:string;indicators:Indicator[];
   sample:{mode:string;connected:boolean;connectionState:string;sampleRateHz:number;
     incomingRateHz:number;framesSkipped:number;publicationLagMs:number|null;
-    samplesPublished:number;lastError:string|null;sampleAgeMs:number|null};
+    samplesPublished:number;connectionAttempts:number;
+    lastError:string|null;sampleAgeMs:number|null};
   aviation:Cache;weather:Cache;vatsim:Cache;
   radio:{connected?:boolean};navigation:{connected?:boolean}};
 const label=(v:boolean|undefined)=>v===true?'Aktivní':v===false?'Nedostupné':'Neověřeno';
@@ -73,9 +75,16 @@ export default function SystemHealth(){
         <article><strong>GPS navigace</strong><span>{label(health.navigation.connected)}</span>
           <p>Stav posledního čtení z bridge.</p></article>
       </div>
+      <div className="health-connection-diagnostics">
+        <strong>Diagnostika spojení MSFS</strong>
+        <p>Stav: {health.sample.connectionState} · Počet navázání SimConnect: {health.sample.connectionAttempts}
+          {' · '}Stáří telemetrie: {health.sample.sampleAgeMs===null?'—':`${Math.round(health.sample.sampleAgeMs)} ms`}</p>
+        {health.sample.lastError && <p role="status">Poslední chyba: {health.sample.lastError}</p>}
+      </div>
       <button type="button" className="system-health-export" onClick={exportReport}>
         Exportovat anonymizovanou diagnostiku JSON
       </button>
     </>}
+    <WindowsHostLogPanel />
   </section>;
 }

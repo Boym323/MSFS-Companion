@@ -57,29 +57,42 @@ export function useTelemetry() {
       if (disposed) return;
       setConnection('connecting');
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
-      socket.onopen = () => { failures = 0; if (!disposed) setConnection('connected'); };
-      socket.onmessage = (event: MessageEvent<string>) => {
+      const current = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      socket = current;
+      current.onopen = () => {
+        if (disposed || socket !== current) return;
+        failures = 0;
+        setConnection('connected');
+      };
+      current.onmessage = (event: MessageEvent<string>) => {
+        if (disposed || socket !== current) return;
         try {
           const parsed: unknown = JSON.parse(event.data);
-          if (!disposed && isValid(parsed)) setTelemetry(parsed);
+          if (isValid(parsed)) setTelemetry(parsed);
         } catch {
           // Poškozený rámec se ignoruje, další vzorek spojení obnoví.
         }
       };
-      socket.onerror = () => socket?.close();
-      socket.onclose = () => {
-        if (disposed) return;
+      // Never let events from an old socket close a newer connection.
+      current.onerror = () => current.close();
+      current.onclose = () => {
+        if (disposed || socket !== current) return;
+        socket = undefined;
         setConnection('disconnected');
         setTelemetry(null);
-        retry = window.setTimeout(connect, reconnectDelay(failures++));
+        retry = window.setTimeout(() => {
+          retry = undefined;
+          connect();
+        }, reconnectDelay(failures++));
       };
     };
     connect();
     return () => {
       disposed = true;
-      if (retry) clearTimeout(retry);
-      socket?.close();
+      if (retry !== undefined) window.clearTimeout(retry);
+      const current = socket;
+      socket = undefined;
+      current?.close();
     };
   }, []);
 

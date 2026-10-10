@@ -15,10 +15,31 @@ internal static class LanAccess
         public string DashboardUrl => $"http://{Address}:8765/admin";
     }
 
-    public static LanAddress? Find()
+    // Prefer the already-bound interface even if Windows enumeration order
+    // changes. Otherwise the periodic host health tick can kill a live bridge.
+    internal static LanAddress? Select(IEnumerable<LanAddress> candidates, string? preferred)
+    {
+        var addresses = candidates.ToList();
+        return addresses.FirstOrDefault(x =>
+                   string.Equals(x.Address.ToString(), preferred, StringComparison.Ordinal))
+               ?? addresses.FirstOrDefault();
+    }
+
+    internal static bool SelfTest()
+    {
+        var a = new LanAddress(IPAddress.Parse("192.168.1.7"), IPAddress.Parse("255.255.255.0"));
+        var b = new LanAddress(IPAddress.Parse("10.0.1.9"), IPAddress.Parse("255.255.255.0"));
+        return Equals(Select([a,b], b.Address.ToString()), b)
+            && Equals(Select([b,a], b.Address.ToString()), b)
+            && Equals(Select([a,b], "192.168.9.9"), a)
+            && Select([], "192.168.1.7") is null;
+    }
+
+    public static LanAddress? Find(string? preferred = null)
     {
         try
         {
+            var candidates = new List<LanAddress>();
             foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (adapter.OperationalStatus != OperationalStatus.Up
@@ -31,9 +52,10 @@ internal static class LanAccess
                         || item.IPv4Mask is null || !IsPrivate(item.Address))
                         continue;
 
-                    return new LanAddress(item.Address, item.IPv4Mask);
+                    candidates.Add(new LanAddress(item.Address, item.IPv4Mask));
                 }
             }
+            return Select(candidates, preferred);
         }
         catch (NetworkInformationException ex)
         {
