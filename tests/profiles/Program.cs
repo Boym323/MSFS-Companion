@@ -23,6 +23,13 @@ Check(titleAttr?.Name=="TITLE" && titleAttr.Unit=="" &&
     "TITLE must use native String256 definition with empty SimConnect unit");
 Check(Marshal.SizeOf<SimConnectAircraftTitleData>()==256,
     "TITLE payload must match native 256-byte ANSI struct");
+var wpField=typeof(SimConnectNextWaypointIdData).GetField(nameof(SimConnectNextWaypointIdData.Name));
+var wpAttr=wpField?.GetCustomAttributes(typeof(SimConnectAttribute),false)
+    .OfType<SimConnectAttribute>().SingleOrDefault();
+Check(wpAttr?.Name=="GPS WP NEXT ID" && wpAttr.Unit=="" &&
+      wpAttr.DataType==SimConnectDataType.String256 &&
+      Marshal.SizeOf<SimConnectNextWaypointIdData>()==256,
+    "GPS WP NEXT ID must use native String256 with empty SimConnect unit");
 Check(AircraftProfileResolver.IsAirbusLike("A320neo"),"airbus identification");
 Check(AircraftProfileResolver.IsAirbusLike("iniBuilds A321neo"),"A321 addon must be Airbus-protected");
 Check(AircraftProfileResolver.IsAirbusLike("Airbus A350-900"),"other Airbus family AP policy");
