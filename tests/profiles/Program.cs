@@ -29,6 +29,31 @@ identity.Reset();
 Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(5)),"reset blocks control");
 identity.Begin("Airbus A320neo",at);
 Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(11)),"stale identity cannot control");
+// Regression: after 10s of missing TITLE callbacks, PFD must remain alive
+// while command authorization expires. Only a real TITLE change reconnects.
+Check(!identity.RequiresReconnect,"stale identity alone must not restart SimConnect");
+identity.Observe("Airbus A320neo",at.AddSeconds(12));
+Check(identity.Trusted("Airbus A320neo",at.AddSeconds(13)),
+    "matching TITLE heartbeat restores trust");
+identity.Observe("",at.AddSeconds(14));
+Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(14)),
+    "blank TITLE immediately blocks controls");
+Check(!identity.RequiresReconnect,"missing TITLE must not restart live PFD");
+identity.Observe("Airbus A320neo",at.AddSeconds(15));
+Check(identity.Trusted("Airbus A320neo",at.AddSeconds(15)),
+    "matching TITLE recovers after transient blank sample");
+identity.MarkUnavailable();
+Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(16)),
+    "failed TITLE subscription must revoke controls");
+identity.Observe("Cessna 172",at.AddSeconds(17));
+Check(identity.RequiresReconnect,"genuine aircraft switch must reconnect");
+identity.Reset();
+identity.Begin(null,at);
+Check(!identity.Trusted("Letadlo MSFS (SimConnect)",at.AddSeconds(1)),
+    "display-only placeholder is never a trusted aircraft identity");
+identity.Observe("Airbus A320neo",at.AddSeconds(2));
+Check(!identity.RequiresReconnect && identity.Trusted("Airbus A320neo",at.AddSeconds(2)),
+    "late initial TITLE must establish identity without a reconnect");
 Check(AircraftProfileResolver.Resolve("RandomAircraft").Id == "generic", "fallback");
 Check(!AircraftProfileResolver.Resolve("Cessna 172").Verified, "not verified");
 Console.WriteLine("PASS: aircraft profiles and generic fallback.");
