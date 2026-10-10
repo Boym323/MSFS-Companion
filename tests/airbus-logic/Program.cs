@@ -1,4 +1,5 @@
 using MsfsCompanion.Bridge.Airbus;
+using MsfsCompanion.Bridge.Navigation;
 using System.Text.Json;
 
 static void Check(bool ok,string message)
@@ -191,5 +192,50 @@ Check(!A320WasmProtocol.Valid(new A320WasmProtocol.Reply {
 Check(!A320WasmProtocol.Valid(new A320WasmProtocol.Reply {
     Magic=0,Version=1,Sequence=42,Status=1
 },42),"foreign packet denied");
+
+// A320-UI-4: read-only MCDU capabilities are independent from the FCU
+// H-event channel and never invent a simulator-side FMC screen.
+var mcduNav=new NavigationSnapshot(
+    at,FlightPlanActive:true,WaypointActive:true,
+    WaypointCount:7,WaypointIndex:2,NextWaypointId:"BERDI",
+    NextWaypoint:new NavigationPoint(49.5,17.2),PreviousWaypoint:null,
+    DistanceNauticalMiles:24.5,EteSeconds:510,
+    DesiredTrackDegrees:280,CrossTrackNauticalMiles:.1,
+    TotalFlightPlanNauticalMiles:245,GroundTrackDegrees:279);
+var mcdu=A320McduReadback.Describe("Airbus A320 Neo",true,mcduNav,
+    at.AddSeconds(1));
+Check(mcdu.Connected && mcdu.Gps?.NextWaypointId=="BERDI",
+    "candidate MCDU companion may read a generic active GPS leg");
+Check(mcdu.GpsAgeMs is >=0 and <6000,
+    "GPS age must be explicit and bounded");
+Check(!mcdu.McduScreenAvailable && !mcdu.McduKeysAvailable &&
+    !mcdu.McduFlightPlanVerified && mcdu.KeyActions.Length==0,
+    "no unverified Airbus MCDU content or key events");
+Check(A320McduReadback.Describe("FlyByWire A32NX",true,mcduNav,
+    at.AddSeconds(1)).Gps is null,
+    "third-party Airbus must never inherit the Asobo MCDU reference");
+Check(A320McduReadback.Describe("Airbus A320 Neo",false,mcduNav,
+    at.AddSeconds(1)).Gps is null,
+    "no GPS leak after the aircraft identity is untrusted");
+Check(A320McduReadback.Describe("Airbus A320 Neo",true,mcduNav,
+    at.AddSeconds(6)).Gps is null,
+    "stale GPS cannot appear as active MCDU data");
+Check(A320McduReadback.Describe("Airbus A320 Neo",true,mcduNav,
+    at.AddSeconds(-1)).Gps is null,
+    "future timestamp must be rejected");
+var mcduStore=new NavigationStore();
+Check(mcduStore.Fresh(at) is null,"uninitialized GPS store must not supply FMC data");
+mcduStore.UpdateName("BERDI",at);
+mcduStore.Update(new SimConnectNavigationData{
+    PlanActive=1,WaypointActive=1,WaypointCount=7,WaypointIndex=2,
+    NextLatitude=49.5,NextLongitude=17.2,PreviousValid=0,
+    DistanceMeters=5000,EteSeconds=300,DesiredTrackDegrees=280,
+    CrossTrackMeters=10,TotalDistanceMeters=120000,GroundTrackDegrees=278
+},at);
+Check(mcduStore.Fresh(at.AddSeconds(1))?.NextWaypointId=="BERDI",
+    "typed GPS snapshot retains only same-leg waypoint name");
+mcduStore.Reset();
+Check(mcduStore.Fresh(at.AddSeconds(1)) is null,
+    "GPS identity reset clears typed MCDU candidate readback");
 
 Console.WriteLine("A320 readback PASS: FCU slots, independent N1/N2, stale and identity guard");
