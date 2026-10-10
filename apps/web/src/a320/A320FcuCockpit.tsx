@@ -5,6 +5,8 @@ import {
 } from './fcuUiModel';
 import './A320FcuCockpit.css';
 import A320FcuHardware from './A320FcuHardware';
+import {wasmHeartbeatLabel,wasmHeartbeatError,wasmHeartbeatTime,
+ type WasmHeartbeatStatus} from './wasmHeartbeatPresentation';
 
 type ControlsStatus={
  armed:boolean;canArm:boolean;local:boolean;ready:boolean;readbackFresh:boolean;
@@ -13,6 +15,9 @@ type ControlsStatus={
 };
 type WasmStatus={
  moduleReady:boolean;ready:boolean;armed:boolean;fcuFresh:boolean;local:boolean;
+ state:WasmHeartbeatStatus;autoProbe:boolean;probeIntervalSeconds:number;
+ lastAckUtc:string|null;lastProbeUtc:string|null;
+ lastProtocolStatus:number|null;moduleProtocolVersion:number;
  lastError:string|null;note:string
 };
 type ReferenceDrafts=Partial<Record<FcuField,string>>;
@@ -168,7 +173,9 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
    <div className="a320-ui-flags" aria-live="polite">
     <span className={live?'is-on':''}>MSFS {live?'ONLINE':'OFFLINE'}</span>
     <span className={fresh?'is-on':''}>FCU {fresh?'ŽIVÁ DATA':'NEDOSTUPNÉ'}</span>
-    <span className={wasm?.moduleReady?'is-on':''}>WASM {wasm?.moduleReady?'OK':'NEOVĚŘENO'}</span>
+    <span className={wasm?.moduleReady?'is-on':''}>
+     WASM {wasmHeartbeatLabel(wasm?.state,wasm?.moduleReady===true)}
+    </span>
     <span className={canSet?'is-on':''}>OVLÁDÁNÍ {canSet?'AKTIVNÍ':'ZAMČENO'}</span>
    </div>
   </div>
@@ -196,6 +203,24 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
       className="a320-ui-access-button">Zamknout ovládání</button>}
    </div>
   </div>
+  <details className="a320-ui-wasm-details">
+   <summary>Diagnostika WASM · {wasmHeartbeatLabel(wasm?.state,wasm?.moduleReady===true)}
+    <small>{wasm?.autoProbe?'Automatická kontrola každých '+wasm.probeIntervalSeconds+' s':
+     'Čekám na stav bridge'}</small>
+   </summary>
+   <dl>
+    <div><dt>Stav spojení</dt><dd>{wasmHeartbeatLabel(wasm?.state,wasm?.moduleReady===true)}</dd></div>
+    <div><dt>Poslední bezpečný ping</dt><dd>{wasmHeartbeatTime(wasm?.lastProbeUtc)}</dd></div>
+    <div><dt>Poslední úspěšná odpověď</dt><dd>{wasmHeartbeatTime(wasm?.lastAckUtc)}</dd></div>
+    <div><dt>Verze očekávaného protokolu</dt><dd>
+     {wasm?.moduleProtocolVersion??'—'} (neověřuje nainstalovaný balíček)</dd></div>
+    <div><dt>Odpověď protokolu</dt><dd>{wasm?.lastProtocolStatus??'—'}</dd></div>
+    <div><dt>Poslední chyba</dt><dd>{wasmHeartbeatError(wasm?.lastError)}</dd></div>
+   </dl>
+   <p>WASM OK znamená platné potvrzení pingu pro aktuální připojení MSFS a A320.
+    Nepotvrzuje polohu ani režim FCU. Instalaci balíčku na disku samotný ping nezjišťuje.
+    Po změně letadla nebo restartu MSFS je potřeba nové potvrzení.</p>
+  </details>
   {controls?.local&&!controls.armed&&
    <div className="a320-ui-consent">
     <label><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/>
