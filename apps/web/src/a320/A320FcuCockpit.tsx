@@ -69,16 +69,20 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
 
  const step=(field:FcuField,steps:number)=>{
   if(!canSet||!Number.isInteger(steps)||Math.abs(steps)>10)return;
-  const source=drafts[field]??(fcu?String(fcuSpecs[field].value(fcu)):'');
-  let current=Number(source);
-  if(!source.trim()||!Number.isFinite(current))return;
-  const direction=steps<0?-1:1;
-  for(let count=0;count<Math.abs(steps);count++){
-   const next=nextFcuReference(field,current,direction);
-   if(next===null)return;
-   current=next;
-  }
-  setDrafts(p=>({...p,[field]:String(current)}));
+  // Functional state ensures rapid wheel/touch nudges never overwrite
+  // each other with stale drafts captured by a prior React render.
+  setDrafts(previous=>{
+   const source=previous[field]??(fcu?String(fcuSpecs[field].value(fcu)):'');
+   let current=Number(source);
+   if(!source.trim()||!Number.isFinite(current))return previous;
+   const direction=steps<0?-1:1;
+   for(let count=0;count<Math.abs(steps);count++){
+    const next=nextFcuReference(field,current,direction);
+    if(next===null)return previous;
+    current=next;
+   }
+   return {...previous,[field]:String(current)};
+  });
  };
 
  const send=async(endpoint:string,body:object,kind:'reference'|'mode')=>{
