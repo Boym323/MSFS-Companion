@@ -221,6 +221,7 @@ app.MapPost("/api/flights/restore", async (HttpContext context,
 // Správa aktualizací je dostupná pouze ve Windows hostiteli a v LAN.
 // POST vyžaduje kontrolu původu požadavku, nikoli uživatelský klíč.
 app.MapAdminUpdates();
+app.MapWindowsHostLog();
 
 // Read-only telemetry stream. Cockpit commands require a separately
 // authenticated, allow-listed API and are deliberately not exposed yet.
