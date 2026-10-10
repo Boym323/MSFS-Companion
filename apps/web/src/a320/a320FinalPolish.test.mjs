@@ -26,3 +26,7 @@ test('A320 diagnostics no longer claims testing is further down a long page',()=
  assert.doesNotMatch(dash,/diagnostika je níže/);
  assert.match(dash,/Number\.isFinite\(status\.fcuAgeMs\)/);
 });
+
+test('navigation diagnostics keeps the GPS reader when its own tab is open',()=>{
+ assert.match(dash,/activeTab==='nd'\|\|activeTab==='diagnostics'/);
+});
