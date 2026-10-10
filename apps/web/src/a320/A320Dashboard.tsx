@@ -61,7 +61,7 @@ export default function A320Dashboard({telemetry,live}:{
  }
  const aircraft=telemetry?.aircraft??'';
  // Reset the GPS reader whenever trusted A320 identity is absent or changes.
- const navigation=useFlightNavigation(activeTab==='nd'&&live&&!!status?.connected&&status.aircraft===aircraft);
+ const navigation=useFlightNavigation((activeTab==='nd'||activeTab==='diagnostics')&&live&&!!status?.connected&&status.aircraft===aircraft);
  useEffect(()=>{setBaseline(null);setAfter(null);},[aircraft,live]);
  useEffect(()=>{
    if(!live||!aircraft){setStatus(null);return;}
