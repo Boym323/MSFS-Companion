@@ -25,7 +25,7 @@ struct SIMCONNECT_RECV_EVENT:SIMCONNECT_RECV{
 struct SIMCONNECT_RECV_CLIENT_DATA:SIMCONNECT_RECV{
     DWORD dwRequestID,dwObjectID,dwDefineID,dwFlags,dwentryNumber,dwoutof,dwDefineCount,dwData;
 };
-static_assert(offsetof(SIMCONNECT_RECV_CLIENT_DATA,dwData)==40,"ABI stub data offset");
+static_assert(sizeof(SIMCONNECT_RECV_CLIENT_DATA)==44,"ABI stub packet size");
 using SimDispatch=void (*)(SIMCONNECT_RECV*,DWORD,void*);
 HRESULT SimConnect_Open(HANDLE*,const char*,HWND,DWORD,HANDLE,DWORD);
 HRESULT SimConnect_Close(HANDLE);
