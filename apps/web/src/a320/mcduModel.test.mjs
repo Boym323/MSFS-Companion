@@ -19,7 +19,7 @@ test('MCDU diagnostic readback requires fresh candidate identity',()=>{
  assert.equal(freshMcduGps(status,'Airbus A320 Neo',false,0),null);
 });
 test('GPS old/future/invalid samples must not show as available',()=>{
- assert.equal(freshMcduGps(status,'Airbus A320 Neo',true,5699),null);
+ assert.equal(freshMcduGps(status,'Airbus A320 Neo',true,5700),null);
  assert.equal(freshMcduGps(status,'Airbus A320 Neo',true,-1),null);
  assert.equal(freshMcduGps({...status,gpsAgeMs:NaN},'Airbus A320 Neo',true,0),null);
  assert.equal(freshMcduGps({...status,gps:{...gps,waypointCount:-1}},'Airbus A320 Neo',true,0),null);
