@@ -101,7 +101,16 @@ internal static class EventLogFile
             lock (Gate)
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(PathOnDisk)!);
-                File.AppendAllText(PathOnDisk, $"[{DateTimeOffset.Now:O}] {text}{Environment.NewLine}");
+                var path = PathOnDisk;
+                var entry = $"[{DateTimeOffset.Now:O}] {text}{Environment.NewLine}";
+                const long maximumLogBytes = 4 * 1024 * 1024;
+                // One bounded archive prevents an indefinitely growing log
+                // and avoids rewriting a large file on every entry.
+                if (File.Exists(path) &&
+                    new FileInfo(path).Length + System.Text.Encoding.UTF8.GetByteCount(entry)
+                        > maximumLogBytes)
+                    File.Move(path, path + ".old", overwrite: true);
+                File.AppendAllText(path, entry);
             }
         }
         catch
