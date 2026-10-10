@@ -238,4 +238,56 @@ mcduStore.Reset();
 Check(mcduStore.Fresh(at.AddSeconds(1)) is null,
     "GPS identity reset clears typed MCDU candidate readback");
 
+// Heartbeat never uses the command gate or flight control operations:
+var hb = new A320WasmHeartbeatState();
+hb.Observe(false,false,7,null);
+Check(hb.Read(at).State=="waiting_sim" && !hb.Read(at).ModuleReady,
+    "offline must show waiting rather than WASM installed");
+hb.Observe(true,false,7,"Airbus A320 Neo");
+Check(hb.Read(at).State=="waiting_aircraft",
+    "unknown aircraft must never trigger a trusted WASM ping");
+hb.Observe(true,true,7,"Airbus A320 Neo");
+Check(hb.Read(at).State=="checking","new A320 session should check automatically");
+var firstProbe=hb.Begin(at);
+Check(firstProbe is not null,"first silent probe is allowed");
+Check(hb.Begin(at) is null,"parallel heartbeat probes must be bounded");
+hb.Finish(firstProbe!.Value,true,1,null,at.AddMilliseconds(100));
+Check(hb.Verified(7,"Airbus A320 Neo",at.AddSeconds(1)),
+    "safe ACK verifies only the current aircraft generation");
+Check(hb.Read(at.AddSeconds(1)).State=="connected",
+    "verified WASM should stay OK without pressing probe");
+Check(hb.Read(at.AddSeconds(46)).ModuleReady==false &&
+    !hb.Verified(7,"Airbus A320 Neo",at.AddSeconds(46)),
+    "WASM proof expires if automatic heartbeat stops");
+hb.Observe(true,true,8,"Airbus A320 Neo");
+Check(!hb.Verified(8,"Airbus A320 Neo",at.AddSeconds(1)),
+    "simulator restart invalidates previous ACK despite matching TITLE");
+Check(!hb.Verified(7,"Airbus A320 Neo",at.AddSeconds(1)),
+    "old connection generation must be rejected");
+var staleProbe=hb.Begin(at.AddSeconds(2));
+hb.Observe(false,false,8,null);
+hb.Observe(true,true,9,"Airbus A320 Neo");
+hb.Finish(staleProbe!.Value,true,1,null,at.AddSeconds(3));
+Check(!hb.Read(at.AddSeconds(3)).ModuleReady,
+    "late ACK from old generation must never confirm new simulator");
+var unsuccessful=hb.Begin(at.AddSeconds(4));
+hb.Finish(unsuccessful!.Value,false,null,"ack_timeout",at.AddSeconds(5));
+Check(hb.Read(at.AddSeconds(5)).State=="unavailable" &&
+    hb.Read(at.AddSeconds(5)).LastError=="ack_timeout",
+    "failed ping reports unavailable rather than unverified");
+var recovery=hb.Begin(at.AddSeconds(6));
+hb.Finish(recovery!.Value,true,1,null,at.AddSeconds(7));
+Check(hb.Read(at.AddSeconds(8)).State=="connected" &&
+    hb.Read(at.AddSeconds(8)).LastError is null,
+    "automatic retry recovers after module becomes responsive");
+hb.Observe(true,false,9,"Airbus A320 Neo");
+Check(!hb.Read(at.AddSeconds(8)).ModuleReady,
+    "temporary TITLE trust loss immediately revokes an ACK");
+hb.Observe(true,true,9,"Airbus A320 Neo");
+Check(!hb.Read(at.AddSeconds(8)).ModuleReady,
+    "re-qualifying the same TITLE still requires fresh ACK");
+hb.Observe(true,true,9,"Boeing 737");
+Check(!hb.Verified(9,"Airbus A320 Neo",at.AddSeconds(9)),
+    "a different aircraft cannot reuse the previous WASM proof");
+
 Console.WriteLine("A320 readback PASS: FCU slots, independent N1/N2, stale and identity guard");

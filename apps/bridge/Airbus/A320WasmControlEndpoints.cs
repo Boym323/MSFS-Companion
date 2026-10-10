@@ -23,7 +23,7 @@ public static class A320WasmControlEndpoints
             identity.Trusted(telemetry.Current.Aircraft,DateTimeOffset.UtcNow) &&
             AircraftProfileResolver.Resolve(identity.Current.Title).Id=="a320-asobo-candidate";
 
-        app.MapGet("/api/a320/wasm/status",(HttpContext ctx,A320WasmEventSender sender,
+        app.MapGet("/api/a320/wasm/status",(HttpContext ctx,A320WasmHeartbeatService heartbeat,
             A320FcuControlGate gate,AircraftIdentityGuard identity,
             ITelemetrySource source,TelemetryHealth health,
             TelemetryStore telemetry,A320ReadbackStore readbacks)=>
@@ -33,20 +33,28 @@ public static class A320WasmControlEndpoints
             var trusted=Live(source,health)&&Trusted(identity,telemetry);
             var armed=trusted&&gate.Armed(identity.Generation,identity.Current.Title,now);
             var fresh=trusted&&readbacks.FreshFcu(now) is not null;
-            var module=sender.RecentlyAvailable;
+            var proof=heartbeat.Status();
+            var module=trusted&&proof.ModuleReady;
             return Results.Ok(new {
                 moduleReady=module,ready=module&&armed&&fresh,
-                armed,fcuFresh=fresh,local=ControlAccess.IsLoopback(ctx),
+                state=proof.State,armed,fcuFresh=fresh,
+                local=ControlAccess.IsLoopback(ctx),
+                autoProbe=true,
+                probeIntervalSeconds=A320WasmHeartbeatService.IntervalSeconds,
+                lastAckUtc=proof.LastAckUtc,
+                lastProbeUtc=proof.LastProbeUtc,
+                lastProtocolStatus=proof.LastProtocolStatus,
                 actions=A320WasmProtocol.AvailableActions,
                 moduleProtocolVersion=A320WasmProtocol.Version,
-                lastError=sender.LastFailure,
-                note="WASM ack znamená přijetí konkrétní H události, nikoli potvrzený managed/selected nebo stav FCU/FMA."
+                lastError=proof.LastError,
+                note="WASM OK potvrzuje jen aktuální ACK bezpečného pingu. Neprokazuje fyzický managed/selected režim FCU/FMA."
             });
         });
 
         app.MapPost("/api/a320/wasm/probe",async(HttpContext ctx,
-            A320WasmEventSender sender,ITelemetrySource source,
-            TelemetryHealth health)=>
+            A320WasmHeartbeatService heartbeat,ITelemetrySource source,
+            TelemetryHealth health,AircraftIdentityGuard identity,
+            TelemetryStore telemetry)=>
         {
             ctx.Response.Headers.CacheControl="no-store";
             // A deliberate diagnostic action on the simulator PC only.
@@ -55,14 +63,24 @@ public static class A320WasmControlEndpoints
                 return Results.StatusCode(403);
             if(!Live(source,health))
                 return Results.Conflict(new {error="MSFS 2020 není živě připojen."});
-            var ready=await sender.ProbeAsync(ctx.RequestAborted);
-            return Results.Ok(new {moduleReady=ready,
-                note=ready?"Kokpit WASM module odpověděl na bezpečný ping.":
-                    "Modul není načtený nebo nereaguje. Zkontrolujte instalaci modulu do Community."});
+            if(!Trusted(identity,telemetry))
+                return Results.Conflict(new {error="Čekám na ověřený původní Asobo A320neo V1."});
+            var result=await heartbeat.ProbeNowAsync(ctx.RequestAborted);
+            return Results.Ok(new {
+                moduleReady=result.ModuleReady,
+                state=result.State,lastAckUtc=result.LastAckUtc,
+                lastError=result.LastError,
+                note=result.ModuleReady
+                    ?"Kokpit WASM modul odpověděl na bezpečný ping."
+                    :result.State=="checking"
+                        ?"Automatické ověřování WASM právě probíhá."
+                        :"WASM modul nepotvrdil ping. Zkontrolujte Community, restart MSFS a diagnostiku."
+            });
         });
 
         app.MapPost("/api/a320/wasm/command",async(HttpContext ctx,
             HEventRequest input,A320WasmEventSender sender,
+            A320WasmHeartbeatService heartbeat,
             ControlAccess access,A320FcuControlGate gate,
             AircraftIdentityGuard identity,ITelemetrySource source,
             TelemetryHealth health,TelemetryStore telemetry,
@@ -82,8 +100,8 @@ public static class A320WasmControlEndpoints
             if(readbacks.FreshFcu(now) is null ||
                !gate.Armed(generation,title,now))
                 return Results.Conflict(new {error="FCU reference nejsou čerstvé nebo testovací ovládání není aktivováno na Windows."});
-            if(!sender.RecentlyAvailable)
-                return Results.Conflict(new {error="H-Event modul není ověřen. Nejprve na Windows proveďte test spojení s WASM."});
+            if(!heartbeat.Verified(generation,title,now))
+                return Results.Conflict(new {error="Pro toto připojení dosud nemáme platné potvrzení WASM. Probíhá automatické ověření."});
             if(!access.PermitCommand(token))return Results.StatusCode(429);
             try
             {

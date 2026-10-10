@@ -45,3 +45,22 @@
 @media(prefers-reduced-motion:reduce){
  .a320-ui-shell *{animation:none!important;transition:none!important}
 }
+
+/* Diagnostic information is outside the original FCU hardware fascia. */
+.a320-ui-wasm-details{margin:9px 0 0;background:#142536;
+ border:1px solid #3d5c71;border-radius:6px;min-width:0}
+.a320-ui-wasm-details>summary{cursor:pointer;display:flex;justify-content:space-between;
+ flex-wrap:wrap;align-items:center;gap:10px;min-height:44px;padding:12px 14px;
+ font-size:12px;font-weight:700;color:#d8e6f1}
+.a320-ui-wasm-details>summary small{font-size:11px;font-weight:400;color:#a9bdcc}
+.a320-ui-wasm-details>summary:focus-visible{outline:2px solid #89cdfa;outline-offset:3px}
+.a320-ui-wasm-details dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:7px;padding:0 13px 8px;margin:0}
+.a320-ui-wasm-details dl>div{padding:9px;background:#0e1e2d;border:1px solid #36516a;
+ display:grid;gap:5px;min-width:0}
+.a320-ui-wasm-details dt{font-size:10px;color:#9db5c8}
+.a320-ui-wasm-details dd{font-size:12px;color:#e1eef6;margin:0;
+ overflow-wrap:anywhere}
+.a320-ui-wasm-details>p{font-size:11px;line-height:1.6;
+ padding:0 13px 12px;margin:0;color:#a7bace}
+@media(max-width:500px){.a320-ui-wasm-details dl{grid-template-columns:1fr}}

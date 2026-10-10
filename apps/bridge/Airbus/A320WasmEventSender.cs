@@ -27,7 +27,11 @@ public sealed class A320WasmEventSender : IDisposable
             or DllNotFoundException or EntryPointNotFoundException
             or PlatformNotSupportedException)
         {
-            _lastFailure=ex.GetType().Name;
+            // Stable diagnostic codes, not an arbitrary native exception string.
+            _lastFailure=ex is IOException && (
+                ex.Message.Contains("timeout",StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("acknowledge",StringComparison.OrdinalIgnoreCase))
+                ? "ack_timeout" : ex.GetType().Name;
             return false;
         }
     }
