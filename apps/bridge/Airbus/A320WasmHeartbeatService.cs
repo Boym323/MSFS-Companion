@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using MsfsCompanion.Bridge.Aircraft;
 using MsfsCompanion.Bridge.Telemetry;
 
@@ -84,12 +83,12 @@ public sealed class A320WasmHeartbeatService : BackgroundService
             error="cancelled";
             throw;
         }
-        catch(Exception ex) when(ex is IOException or COMException or
-            DllNotFoundException or EntryPointNotFoundException or
-            PlatformNotSupportedException)
+        catch(Exception ex) when(!cancellationToken.IsCancellationRequested)
         {
+            // A failed optional probe must not terminate the entire bridge.
+            // Log at debug level to avoid 15-second warning-log storms.
             error=ex.GetType().Name;
-            _logger.LogWarning(ex,"A320 WASM heartbeat could not complete.");
+            _logger.LogDebug(ex,"A320 WASM optional heartbeat could not complete.");
         }
         finally
         {
