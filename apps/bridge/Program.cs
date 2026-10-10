@@ -152,6 +152,8 @@ app.MapGet("/api/cockpit/systems", (CockpitSystemsStore systems) => Results.Ok(s
 app.MapCockpitControls();
 app.MapA320FcuControls();
 app.MapA320WasmControls();
+// A320-UI-4: safe, read-only MCDU capabilities and current generic GPS leg.
+app.MapA320Mcdu();
 app.MapG1000();
 app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
