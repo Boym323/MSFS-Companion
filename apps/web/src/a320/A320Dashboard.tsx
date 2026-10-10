@@ -8,6 +8,7 @@ import A320SystemsPanel from './A320SystemsPanel';
 import A320McduPanel from './A320McduPanel';
 import {A320_TABS,selectedA320Tab,a320PanelUrl,type A320Tab} from './a320Tabs';
 import './A320Dashboard.css';
+import './A320Experience.css';
 
 type Engines={
  timestampUtc:string;n1Engine1:number;n1Engine2:number;n2Engine1:number;n2Engine2:number;

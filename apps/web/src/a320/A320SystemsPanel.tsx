@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import {aircraftSystemLabel,cockpitSystemsFresh,latestValue,systemNumber,
  type CockpitSystemsResponse,type CockpitSystemFlags} from './systemsReadback';
 import './A320SystemsPanel.css';
+import A320SectionHeader from './A320SectionHeader';
 
 type EngineData={timestampUtc:string;n1Engine1:number;n1Engine2:number;
  n2Engine1:number;n2Engine2:number;fuelFlowPph1:number;fuelFlowPph2:number};
@@ -77,13 +78,12 @@ export default function A320SystemsPanel({live,aircraft,identified,view='both',
   {label:'STROBE',key:'strobe'}, {label:'PITOT HEAT',key:'pitot'}
  ];
  return <section className="a320-sys-root" aria-label="Airbus Overhead a ECAM referenční systémový přehled">
-  <div className="a320-sys-heading">
-   <div><span>ŽIVÁ DATA · SIMCONNECT</span><h3>{view==='overhead'?'Overhead · systémový přehled':
-     view==='ecam'?'ECAM · motory a palivo':'Overhead a ECAM'}</h3></div>
-   <span role="status" className={trusted?'is-online':'a320-sys-muted'}>
-    {trusted?'A320 identita rozpoznána':'A320 není rozpoznán'}
-   </span>
-  </div>
+  <A320SectionHeader
+   title={view==='overhead'?'Overhead · systémový přehled':
+    view==='ecam'?'ECAM · motory a palivo':'Overhead a ECAM'}
+   eyebrow="SYSTÉMY LETADLA"
+   status={trusted?'Živá data SimConnect · referenční stavy':
+    'Čekám na ověřený A320 · údaje nejsou dostupné'}/>
   <div className={'a320-sys-columns'+(view==='both'?'':' a320-sys-columns--single')}>
    {view!=='ecam'&&<section className="a320-sys-overhead">
     <header><span>OVERHEAD</span><strong>LIGHTS / AIR DATA</strong></header>

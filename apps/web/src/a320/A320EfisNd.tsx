@@ -3,6 +3,7 @@ import type {TelemetrySnapshot} from '../telemetry/types';
 import type {Navigation} from '../map/FlightNavigation';
 import {headingLabel,ND_RANGES,validSample,waypointOnNd,type NdRange,type NdMode} from './ndLocalModel';
 import './A320EfisNd.css';
+import A320SectionHeader from './A320SectionHeader';
 
 const format=(value:number|null|undefined,decimals=0)=>value===null||
  value===undefined||!Number.isFinite(value)?'—':value.toFixed(decimals);
@@ -102,11 +103,8 @@ export default function A320EfisNd({telemetry,navigation,live,identified}:{
  // No aircraft identity -> no GPS overlay from another aircraft.
  const valid=live&&identified&&!!telemetry&&validSample(telemetry.timestampUtc,clock);
  return <section className="a320-efis-nd" aria-label="A320 EFIS a lokální navigační displej">
-  <div className="a320-efis-header">
-   <div><p className="a320-efis-eyebrow">A320-UI-2 · NAVIGATION</p>
-    <h3>EFIS · navigační displej</h3></div>
-   <span className="a320-efis-source">GPS/SimConnect · webový náhled</span>
-  </div>
+  <A320SectionHeader title="EFIS · navigační displej"
+   eyebrow="NAVIGACE" status="GPS / SimConnect · režimy pouze ve webovém náhledu" />
   <div className="a320-efis-layout">
    <div className="a320-efis-controls">
     <div className="a320-efis-control-section">
