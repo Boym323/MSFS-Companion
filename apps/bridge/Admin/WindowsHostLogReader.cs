@@ -62,6 +62,9 @@ public static class WindowsHostLogReader
         try
         {
             text = Regex.Replace(text,
+                @"(?i)\b(Authorization\s*[:=]\s*Bearer\s+)[^\s&;,]+",
+                "$1[SKRYTO]", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+            text = Regex.Replace(text,
                 @"(?i)\b(Bearer\s+)[A-Za-z0-9._~+/\-=]+",
                 "$1[SKRYTO]", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
             text = Regex.Replace(text,
