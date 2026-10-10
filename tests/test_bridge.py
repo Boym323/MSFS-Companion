@@ -154,6 +154,11 @@ class BridgeSmokeTests(unittest.TestCase):
                 urllib.request.urlopen(request, timeout=3)
             self.assertEqual(error.exception.code, 404)
 
+    def test_windows_host_log_is_unavailable_without_installed_host(self):
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            get_json("/api/health/windows-host-log?lines=5000")
+        self.assertEqual(failure.exception.code, 404)
+
     def test_a320_readback_never_fabricates_values_in_mock(self):
         identity = get_json("/api/aircraft/identity")
         self.assertFalse(identity["trusted"])
