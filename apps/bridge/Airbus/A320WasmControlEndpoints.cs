@@ -99,7 +99,7 @@ public static class A320WasmControlEndpoints
                         status="module_ack_unverified_aircraft",command=input.Command,
                         note="WASM modul přijal pevně povolenou H-událost. Pro potvrzení změny FCU je nutné ověření v MSFS."})
                     : Results.Problem(statusCode:503,
-                        detail=result==2?"WASM nedokázal provést událost.":"WASM odmítl nepodporovaný kód.");
+                        detail:result==2?"WASM nedokázal provést událost.":"WASM odmítl nepodporovaný kód.");
             }
             catch(OperationCanceledException) when(ctx.RequestAborted.IsCancellationRequested)
             {
@@ -110,7 +110,7 @@ public static class A320WasmControlEndpoints
             {
                 app.Logger.LogWarning(ex,"A320 WASM command unavailable.");
                 return Results.Problem(statusCode:503,
-                    detail="MSFS 2020 H-Event modul neodpověděl. Žádné opakované příkazy neposíláme.");
+                    detail:"MSFS 2020 H-Event modul neodpověděl. Žádné opakované příkazy neposíláme.");
             }
         });
     }
