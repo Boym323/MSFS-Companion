@@ -8,6 +8,7 @@ import A320FcuCockpit from './A320FcuCockpit';
 import A320EfisNd from './A320EfisNd';
 import A320SystemsPanel from './A320SystemsPanel';
 import A320McduPanel from './A320McduPanel';
+import {A320_TABS,selectedA320Tab,a320PanelUrl,type A320Tab} from './a320Tabs';
 import './A320Dashboard.css';
 
 type Engines={
@@ -47,10 +48,21 @@ export default function A320Dashboard({telemetry,live}:{
  const [error,setError]=useState('');
  const [baseline,setBaseline]=useState<FcuEvidence|null>(null);
  const [after,setAfter]=useState<FcuEvidence|null>(null);
- const [showDiagnostics,setShowDiagnostics]=useState(false);
+ const [activeTab,setActiveTab]=useState<A320Tab>(()=>
+   selectedA320Tab(window.location.search));
+ useEffect(()=>{
+   const sync=()=>setActiveTab(selectedA320Tab(window.location.search));
+   window.addEventListener('popstate',sync);
+   return()=>window.removeEventListener('popstate',sync);
+ },[]);
+ function selectTab(tab:A320Tab){
+   if(tab===activeTab)return;
+   window.history.pushState(null,'',a320PanelUrl(tab,window.location.search));
+   setActiveTab(tab);
+ }
  const aircraft=telemetry?.aircraft??'';
  // Reset the GPS reader whenever trusted A320 identity is absent or changes.
- const navigation=useFlightNavigation(live&&!!status?.connected&&status.aircraft===aircraft);
+ const navigation=useFlightNavigation(activeTab==='nd'&&live&&!!status?.connected&&status.aircraft===aircraft);
  useEffect(()=>{setBaseline(null);setAfter(null);},[aircraft,live]);
  useEffect(()=>{
    if(!live||!aircraft){setStatus(null);return;}
@@ -119,23 +131,42 @@ export default function A320Dashboard({telemetry,live}:{
   {error&&<p className="a320-alert" role="status">{error}</p>}
   {!status&&live&&<p className="a320-alert">Zobrazí se pouze rozpoznaný kandidát
     původního Asobo A320neo. Žádné údaje nepřebírám z jiných letadel.</p>}
-  <A320FcuCockpit live={live} aircraft={aircraft}
+  <nav className="a320-instrument-tabs" aria-label="Přístroje Airbus A320">
+   {A320_TABS.map(tab=><a key={tab.id} href={a320PanelUrl(tab.id,window.location.search)}
+      aria-current={activeTab===tab.id?'page':undefined}
+      className={activeTab===tab.id?'is-active':undefined}
+      title={tab.description}
+      onClick={event=>{if(event.button!==0||event.metaKey||event.ctrlKey||
+        event.altKey||event.shiftKey)return;event.preventDefault();selectTab(tab.id);}}>
+      {tab.label}
+   </a>)}
+  </nav>
+  <div className="a320-tab-summary">
+   <strong>{A320_TABS.find(tab=>tab.id===activeTab)?.description}</strong>
+   <span>ASOBO A320NEO V1 · {status?.aircraft??'čekám na letadlo'}</span>
+  </div>
+  <div className="a320-instrument-stage" id={'a320-panel-'+activeTab}>
+   {activeTab==='fcu'&&<A320FcuCockpit live={live} aircraft={aircraft}
     readbackAircraft={status?.aircraft??null} fcu={f}
-    fcuAgeMs={status?.fcuAgeMs??null}/>
-  <A320EfisNd live={live} telemetry={telemetry}
-   identified={!!status?.connected&&status.aircraft===aircraft}
-   navigation={navigation}/>
-  <A320SystemsPanel live={live} aircraft={aircraft}
-   identified={!!status?.connected&&status.aircraft===aircraft}
-   engines={e} enginesAgeMs={status?.enginesAgeMs??null}
-   aux={aux} auxAgeMs={status?.auxAgeMs??null}
-   modes={modes} modesAgeMs={status?.modesAgeMs??null}/>
-  <A320McduPanel key={aircraft||'none'} live={live} aircraft={aircraft}
-   identified={!!status?.connected&&status.aircraft===aircraft}/>
-  <details className="a320-diagnostics" onToggle={event=>
-    setShowDiagnostics(event.currentTarget.open)}>
-    <summary>Diagnostika a pokročilé informace <span>Referenční hodnoty, motory, logy a testy</span></summary>
-    {showDiagnostics&&<div className="a320-diagnostic-content">
+    fcuAgeMs={status?.fcuAgeMs??null}/>}
+   {activeTab==='nd'&&<A320EfisNd live={live} telemetry={telemetry}
+    identified={!!status?.connected&&status.aircraft===aircraft}
+    navigation={navigation}/>}
+   {(activeTab==='overhead'||activeTab==='ecam')&&
+    <A320SystemsPanel live={live} aircraft={aircraft}
+     view={activeTab}
+     identified={!!status?.connected&&status.aircraft===aircraft}
+     engines={e} enginesAgeMs={status?.enginesAgeMs??null}
+     aux={aux} auxAgeMs={status?.auxAgeMs??null}
+     modes={modes} modesAgeMs={status?.modesAgeMs??null}/>}
+   {activeTab==='mcdu'&&<A320McduPanel key={aircraft||'none'} live={live} aircraft={aircraft}
+    identified={!!status?.connected&&status.aircraft===aircraft}/>}
+   {activeTab==='diagnostics'&&<section className="a320-diagnostics" aria-label="Technická diagnostika Airbusu">
+    <div className="a320-diagnostic-intro">
+     <h3>Diagnostika a ověřování A320</h3>
+     <p>Referenční SimVars, důkazy z MSFS a servisní ovládání; mimo hlavní pilotní přístroje.</p>
+    </div>
+    <div className="a320-diagnostic-content">
   <div className="a320-sections">
    <article className="a320-section">
     <h3>FCU · reference ze SimConnectu</h3>
@@ -234,8 +265,9 @@ export default function A320Dashboard({telemetry,live}:{
       úplný obsah MCDU, SID/STAR či správně potvrzený aktivní leg.
       <a href="/map"> Otevřít mapu</a>.</p>
   </section>
-    </div>}
-  </details>
+    </div>
+   </section>}
+  </div>
   <p className="a320-footer">Typ: {status?.aircraft??'—'} ·
     FCU {f?Math.round(status?.fcuAgeMs??0)+' ms':'nedostupné'} ·
     ENG {e?Math.round(status?.enginesAgeMs??0)+' ms':'nedostupné'}.
