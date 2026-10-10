@@ -1,0 +1,16 @@
+.a320-module-header{display:flex;align-items:flex-start;
+ justify-content:space-between;flex-wrap:wrap;gap:12px 20px;
+ padding-bottom:15px;margin-bottom:16px;border-bottom:1px solid var(--kokpit-border,#35536a)}
+.a320-module-header-copy{min-width:0}
+.a320-module-eyebrow{display:block;font-size:11px;font-weight:700;
+ color:var(--kokpit-accent,#8ec4e5);letter-spacing:.09em}
+.a320-module-header h3{font-size:clamp(17px,2vw,21px);font-weight:700;
+ letter-spacing:-.015em;margin:4px 0 0}
+.a320-module-source{margin:0;padding:8px 12px;max-width:45ch;
+ border-radius:6px;border:1px solid var(--kokpit-border,#35536a);
+ background:var(--kokpit-surface-raised,#192c40);
+ color:var(--kokpit-text-muted,#b3c9d8);font-size:12px;line-height:1.5}
+@media(max-width:600px){
+ .a320-module-header{gap:8px;margin-bottom:12px}
+ .a320-module-source{max-width:100%;font-size:12px}
+}
