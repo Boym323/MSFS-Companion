@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import type {TelemetrySnapshot} from '../telemetry/types';
 import {useFlightNavigation,FlightNavigationPanel} from '../map/FlightNavigation';
 import {compareA320FcuEvidence,type FcuEvidence} from './fcuEvidence';
+import A320FcuControlPanel from './A320FcuControlPanel';
 import './A320Dashboard.css';
 
 type Engines={
@@ -174,6 +175,7 @@ export default function A320Dashboard({telemetry,live}:{
     dálkového ovládání. Pro pilotní PASS porovnejte displej FCU/FMA.
     Export neobsahuje GPS stopu ani přístupové tokeny.</p>
   </section>
+  <A320FcuControlPanel live={live} aircraft={aircraft} />
   <section className="a320-section a320-nav">
    <FlightNavigationPanel navigation={status?navigation:null}/>
    <p className="a320-hint">Zobrazení je pouze read-only GPS readback, nikoli
