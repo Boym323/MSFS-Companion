@@ -191,9 +191,11 @@ public sealed class SimConnectTelemetrySource(
         ISimVarSubscription? a320EngineSubscription=null;
         ISimVarSubscription? a320FcuSubscription=null;
         ISimVarSubscription? a320AuxSubscription=null;
+        ISimVarSubscription? a320ModesSubscription=null;
         var nextEngineRetryAt=DateTimeOffset.MinValue;
         var nextFcuRetryAt=DateTimeOffset.MinValue;
         var nextAuxRetryAt=DateTimeOffset.MinValue;
+        var nextModesRetryAt=DateTimeOffset.MinValue;
         void EnsureAirbusSubscriptions(DateTimeOffset now)
         {
             var title=identity.Current.Title;
@@ -222,6 +224,13 @@ public sealed class SimConnectTelemetrySource(
                 a320AuxSubscription=null;
                 nextAuxRetryAt=now.AddSeconds(5);
             }
+            if (a320ModesSubscription?.Completion.IsCompleted==true)
+            {
+                logger.LogWarning("A320 mode subscription ended; restarting only this reader.");
+                a320ModesSubscription.Dispose();
+                a320ModesSubscription=null;
+                nextModesRetryAt=now.AddSeconds(5);
+            }
             if (a320EngineSubscription is null && now>=nextEngineRetryAt)
             {
                 a320EngineSubscription=SubscribeA320Engines(client,stoppingToken);
@@ -236,6 +245,11 @@ public sealed class SimConnectTelemetrySource(
             {
                 a320AuxSubscription=SubscribeA320Aux(client,stoppingToken);
                 nextAuxRetryAt=now.AddSeconds(5);
+            }
+            if (a320ModesSubscription is null && now>=nextModesRetryAt)
+            {
+                a320ModesSubscription=SubscribeA320Modes(client,stoppingToken);
+                nextModesRetryAt=now.AddSeconds(5);
             }
         }
 
@@ -305,6 +319,7 @@ public sealed class SimConnectTelemetrySource(
             a320EngineSubscription?.Dispose();
             a320FcuSubscription?.Dispose();
             a320AuxSubscription?.Dispose();
+            a320ModesSubscription?.Dispose();
         }
     }
 
@@ -468,6 +483,24 @@ public sealed class SimConnectTelemetrySource(
         catch(Exception ex)
         {
             logger.LogWarning(ex,"A320 optional APU/fuel SimVars unavailable.");
+            return null;
+        }
+    }
+
+    private ISimVarSubscription? SubscribeA320Modes(SimConnectClient client,CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<A320SimConnectModesData>(
+                SimConnectPeriod.Second,data=>
+                {
+                    if (identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
+                        a320.UpdateModes(data,DateTimeOffset.UtcNow);
+                },cancellationToken:token);
+        }
+        catch(Exception ex)
+        {
+            logger.LogWarning(ex,"A320 optional AP mode SimVars unavailable; base PFD unaffected.");
             return null;
         }
     }
