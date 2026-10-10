@@ -75,6 +75,28 @@ store.Reset();
 Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1))
     .GetProperty("engines").ValueKind==JsonValueKind.Null,"reset discards old snapshots");
 
+var modeData = new A320SimConnectModesData {
+    FlightDirector=1,AutoThrottleArmed=1,ManagedThrottleActive=0,
+    ApproachArmed=1,ApproachActive=0,GlideSlopeActive=0,
+    HeadingLock=0,NavLock=1
+};
+Check(modeData.IsValid(),"valid generic AP mode flags");
+store.UpdateModes(modeData,at);
+var modeStatus=Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1));
+Check(modeStatus.GetProperty("modes").GetProperty("flightDirector").GetBoolean(),
+    "FD readback");
+Check(!modeStatus.GetProperty("modes").GetProperty("approachActive").GetBoolean(),
+    "AP approach not guessed");
+modeData.FlightDirector=2;
+Check(!modeData.IsValid(),"invalid FD value rejected");
+store.UpdateModes(modeData,at.AddSeconds(2));
+Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(7))
+    .GetProperty("modes").ValueKind==JsonValueKind.Null,
+    "stale AP modes hidden");
+Check(Inspect(store,"FlyByWire A32NX",true,at.AddSeconds(1))
+    .GetProperty("modes").ValueKind==JsonValueKind.Null,
+    "addon AP modes blocked");
+
 var commandTable = new (string Name,double Value,string Event,uint Data)[] {
     ("a320.fcu.speed.set",250,"AP_SPD_VAR_SET",250),
     ("a320.fcu.mach.set",0.78,"AP_MACH_VAR_SET",78),
