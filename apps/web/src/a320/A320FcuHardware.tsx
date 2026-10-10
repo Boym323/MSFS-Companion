@@ -243,7 +243,7 @@ export default function A320FcuHardware({
      <button type="button" aria-pressed={viewMode==='fit'} onClick={()=>setViewMode('fit')}>Přizpůsobit</button>
      <button type="button" aria-pressed={viewMode==='actual'} onClick={()=>setViewMode('actual')}>1:1</button>
     </div>
-    <button ref={fullscreenButtonRef} type="button" onClick={()=>setFullscreen(value=>!value)}>
+    <button ref={fullscreenButtonRef} type="button" onClick={()=>{if(!fullscreen)setViewMode('fit');setFullscreen(value=>!value);}}>
      {fullscreen?'Zavřít celé zobrazení':'Celá obrazovka'}</button>
    </div>
    <div className="a320-hw-scroll" ref={viewportRef} role="region" tabIndex={0}
