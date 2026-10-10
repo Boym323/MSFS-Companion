@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<TelemetryStore>();
 builder.Services.AddSingleton<AircraftIdentityGuard>();
 builder.Services.AddSingleton<A320ReadbackStore>();
+builder.Services.AddSingleton<A320FcuControlGate>();
 builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
 builder.Services.AddSingleton<RadioStore>();
@@ -148,6 +149,7 @@ app.MapGet("/api/cockpit/systems", (CockpitSystemsStore systems) => Results.Ok(s
 
 // Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
 app.MapCockpitControls();
+app.MapA320FcuControls();
 app.MapG1000();
 app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
