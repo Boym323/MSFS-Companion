@@ -1,0 +1,65 @@
+/* Kokpit Airbus experience: common responsive canvas, NOT the aircraft FCU fascia. */
+.a320-instrument-stage>section:not(.a320-diagnostics){
+ background:var(--kokpit-surface,#101d30);
+ border-color:var(--kokpit-border,#35536a);
+ border-radius:var(--kokpit-radius,9px);
+ padding:clamp(12px,2vw,22px);
+ margin-top:10px;
+ color:var(--kokpit-text,#e6f1f8);
+ min-width:0;
+}
+.a320-instrument-stage .a320-efis-layout,
+.a320-instrument-stage .a320-sys-columns,
+.a320-instrument-stage .a320-mcdu-layout{gap:16px}
+.a320-instrument-stage .a320-mcdu-keyboard-details{
+ border:1px solid var(--kokpit-border,#35536a);
+ border-radius:7px;overflow:hidden;background:var(--kokpit-surface-raised,#192c40);
+ margin-top:17px;color:var(--kokpit-text-muted,#b3c9d8)
+}
+.a320-mcdu-keyboard-details>summary{
+ min-height:44px;padding:12px;display:flex;align-items:center;
+ cursor:pointer;font-size:13px;font-weight:700
+}
+.a320-mcdu-keyboard-details>p{font-size:12px;line-height:1.6;margin:0;padding:0 12px 12px}
+.a320-mcdu-keyboard-details .a320-mcdu-keypad{padding:0 10px 12px}
+.a320-instrument-stage .a320-efis-disclaimer,
+.a320-instrument-stage .a320-mcdu-warning,
+.a320-instrument-stage .a320-sys-note,
+.a320-instrument-stage .a320-sys-footer{font-size:12px;line-height:1.6}
+.a320-instrument-stage .a320-efis-control-section h4,
+.a320-instrument-stage .a320-sys-value dt{font-size:12px}
+.a320-instrument-stage .a320-efis-control-section p{font-size:12px}
+.a320-instrument-stage button:not(:disabled),
+.a320-instrument-stage a{touch-action:manipulation}
+.a320-instrument-stage button:focus-visible,
+.a320-instrument-stage a:focus-visible,
+.a320-instrument-tabs a:focus-visible{
+ outline:3px solid #aadfff;outline-offset:3px
+}
+@media(max-width:1050px){
+ .a320-instrument-stage .a320-efis-layout,
+ .a320-instrument-stage .a320-sys-columns,
+ .a320-instrument-stage .a320-mcdu-layout{
+  grid-template-columns:minmax(0,1fr)
+ }
+}
+@media(max-width:600px){
+ .a320-instrument-stage>section:not(.a320-diagnostics){padding:11px}
+ .a320-instrument-stage .a320-efis-controls{order:2}
+ .a320-instrument-stage .a320-nd-view{order:1}
+ .a320-instrument-stage .a320-sys-flag-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+ .a320-instrument-stage .a320-mcdu-pages button,
+ .a320-instrument-stage .a320-efis-toggle-row button,
+ .a320-instrument-stage .a320-efis-range-row button{min-height:44px}
+ .a320-instrument-stage .a320-nd-view,
+ .a320-instrument-stage .a320-mcdu-unit{max-width:100%}
+}
+@media(max-width:390px){
+ .a320-instrument-stage .a320-mcdu-unit{
+  grid-template-columns:21px minmax(0,1fr) 21px
+ }
+ .a320-instrument-stage .a320-mcdu-display{min-width:0;padding-inline:8px}
+ .a320-instrument-stage .a320-sys-flag-grid{gap:7px}
+}
