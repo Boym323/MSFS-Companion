@@ -86,7 +86,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _mdns.Stop();
             _bridge.Stop();
             _bridge.EnsureStarted();
-            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, _bridge.BoundLan ?? LanAccess.Find(), _bridge.IsRunning);
         };
         menu.Items.Add(mdnsToggle);
         menu.Items.Add(new ToolStripMenuItem("Změnit mDNS název…", null, (_, _) =>
@@ -131,7 +131,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Zkopírovat adresu MSFS Companion v LAN", null, (_, _) =>
         {
-            var lan = LanAccess.Find();
+            var lan = _bridge.BoundLan ?? LanAccess.Find();
             if (lan is null)
             {
                 MessageBox.Show("Nebyla nalezena privátní IPv4 adresa Wi-Fi nebo Ethernetu. " +
@@ -176,7 +176,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         }
         _verifyingUpdate = pendingJournal is not null;
         if (_verifyingUpdate) _ = VerifyUpdatedHostAsync();
-        _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+        _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, _bridge.BoundLan ?? LanAccess.Find(), _bridge.IsRunning);
 
         _webRequestTimer = new System.Windows.Forms.Timer { Interval = 1800 };
         _webRequestTimer.Tick += async (_, _) =>
@@ -193,7 +193,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
         _healthTimer.Tick += (_, _) =>
         {
             _bridge.EnsureStarted();
-            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, _bridge.BoundLan ?? LanAccess.Find(), _bridge.IsRunning);
         };
         _healthTimer.Start();
 
@@ -267,7 +267,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             _mdns.Stop();
             _bridge.Stop();
             _bridge.EnsureStarted();
-            _mdns.Refresh(true, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+            _mdns.Refresh(true, _settings.MdnsName, _bridge.BoundLan ?? LanAccess.Find(), _bridge.IsRunning);
         }
         EventLogFile.Write($"mDNS hostname changed to {_settings.MdnsHostName}");
         return true;
@@ -649,7 +649,7 @@ internal sealed class CompanionTrayContext : ApplicationContext
             EventLogFile.Write($"Update apply failure: {ex}");
             _icon.Visible = true;
             _bridge.EnsureStarted();
-            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, LanAccess.Find(), _bridge.IsRunning);
+            _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, _bridge.BoundLan ?? LanAccess.Find(), _bridge.IsRunning);
             _healthTimer.Start();
             _updateStatus.Text = "Instalace aktualizace se nezdařila";
             _applyingUpdate = false;
