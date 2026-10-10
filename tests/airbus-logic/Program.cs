@@ -74,4 +74,86 @@ Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(7))
 store.Reset();
 Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1))
     .GetProperty("engines").ValueKind==JsonValueKind.Null,"reset discards old snapshots");
+
+var modeData = new A320SimConnectModesData {
+    FlightDirector=1,AutoThrottleArmed=1,ManagedThrottleActive=0,
+    ApproachArmed=1,ApproachActive=0,GlideSlopeActive=0,
+    HeadingLock=0,NavLock=1
+};
+Check(modeData.IsValid(),"valid generic AP mode flags");
+store.UpdateModes(modeData,at);
+var modeStatus=Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(1));
+Check(modeStatus.GetProperty("modes").GetProperty("flightDirector").GetBoolean(),
+    "FD readback");
+Check(!modeStatus.GetProperty("modes").GetProperty("approachActive").GetBoolean(),
+    "AP approach not guessed");
+modeData.FlightDirector=2;
+Check(!modeData.IsValid(),"invalid FD value rejected");
+store.UpdateModes(modeData,at.AddSeconds(2));
+Check(Inspect(store,"Airbus A320 Neo",true,at.AddSeconds(7))
+    .GetProperty("modes").ValueKind==JsonValueKind.Null,
+    "stale AP modes hidden");
+Check(Inspect(store,"FlyByWire A32NX",true,at.AddSeconds(1))
+    .GetProperty("modes").ValueKind==JsonValueKind.Null,
+    "addon AP modes blocked");
+
+var commandTable = new (string Name,double Value,string Event,uint Data)[] {
+    ("a320.fcu.speed.set",250,"AP_SPD_VAR_SET",250),
+    ("a320.fcu.mach.set",0.78,"AP_MACH_VAR_SET",78),
+    ("a320.fcu.heading.set",270,"HEADING_BUG_SET",270),
+    ("a320.fcu.altitude.set",36000,"AP_ALT_VAR_SET_ENGLISH",36000),
+    ("a320.fcu.vs.set",-700,"AP_VS_VAR_SET_ENGLISH",unchecked((uint)-700))
+};
+foreach(var (name,value,eventName,data) in commandTable)
+{
+    Check(A320FcuCommandPolicy.TryResolve(
+        new A320FcuCommandPolicy.Selection(name,value),out var command) &&
+        command!.Name==eventName && command.Data==data,"command "+name);
+}
+foreach(var (name,value) in new (string,double)[] {
+    ("a320.fcu.speed.set",10),("a320.fcu.speed.set",250.1),
+    ("a320.fcu.mach.set",0.783),("a320.fcu.mach.set",double.NaN),
+    ("a320.fcu.heading.set",360),("a320.fcu.altitude.set",1051),
+    ("a320.fcu.vs.set",6100),("a320.fcu.ap1.on",1),
+    ("autopilot.on",1),("a320.fcu.mode.managed",1)
+})
+    Check(!A320FcuCommandPolicy.TryResolve(
+        new A320FcuCommandPolicy.Selection(name,value),out _),
+        "deny unsupported or invalid "+name);
+Check(!A320FcuCommandPolicy.TryResolve(null,out _),"null command denied");
+
+Check(store.FreshFcu(at.AddSeconds(1)) is null,"reset must remove FCU before writes");
+// Restore the intentionally invalid VS slot from the earlier negative test.
+fcu.VerticalSpeedSlotIndex=1;
+Check(fcu.IsValid(),"fresh control reference sample must be valid");
+store.UpdateFcu(fcu,at);
+Check(store.FreshFcu(at.AddMilliseconds(500)) is not null,"fresh FCU");
+Check(store.FreshFcu(at.AddSeconds(4)) is null,"expired FCU blocks controls");
+
+var gate = new A320FcuControlGate();
+var generation=100L;
+var title="Airbus A320 Neo";
+Check(!gate.Armed(generation,title,at),"default denied");
+gate.Arm(generation,title,at);
+Check(gate.Armed(generation,title,at.AddMinutes(1)),"pilot opt-in");
+Check(!gate.Armed(generation+1,title,at.AddMinutes(1)),"reconnect revokes permission");
+Check(!gate.Armed(generation,"FlyByWire A32NX",at.AddMinutes(1)),"new aircraft denied");
+Check(!gate.Armed(generation,title,at.AddMinutes(31)),"opt-in expires");
+gate.Arm(generation,title,at);
+var selection=new A320FcuCommandPolicy.Selection("a320.fcu.heading.set",270);
+gate.Sent(selection,generation,title,at.AddSeconds(1),at);
+var pending=JsonSerializer.SerializeToElement(gate.Evidence(generation,title,
+    at.AddSeconds(2),null));
+Check(pending.GetProperty("state").GetString()=="pending","pending is not success");
+store.UpdateFcu(fcu,at.AddSeconds(3));
+var observed=JsonSerializer.SerializeToElement(gate.Evidence(generation,title,
+    at.AddSeconds(4),store.FreshFcu(at.AddSeconds(4))));
+Check(observed.GetProperty("state").GetString()=="simvar_observed",
+    "fresh matching SimVar is evidence not FCU proof");
+var expired=JsonSerializer.SerializeToElement(gate.Evidence(generation,title,
+    at.AddSeconds(10),null));
+Check(expired.GetProperty("state").GetString()=="unconfirmed","unconfirmed timeout");
+gate.Disarm();
+Check(!gate.Armed(generation,title,at.AddSeconds(5)),"pilot revocation");
+
 Console.WriteLine("A320 readback PASS: FCU slots, independent N1/N2, stale and identity guard");

@@ -159,6 +159,26 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/health/windows-host-log?lines=5000")
         self.assertEqual(failure.exception.code, 404)
 
+    def test_a320_control_is_never_enabled_in_mock(self):
+        status = get_json("/api/a320/controls/status")
+        self.assertFalse(status["armed"])
+        self.assertFalse(status["ready"])
+        self.assertFalse(status["canArm"])
+        self.assertFalse(status["readbackFresh"])
+        request = urllib.request.Request(
+            BASE + "/api/a320/controls/command", data=b'{"command":"a320.fcu.heading.set","value":270}',
+            headers={"Content-Type":"application/json","Origin":BASE}, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            urllib.request.urlopen(request,timeout=3)
+        self.assertEqual(failure.exception.code,409)
+        arm = urllib.request.Request(
+            BASE + "/api/a320/controls/arm", data=b'{"enabled":true}',
+            headers={"Content-Type":"application/json","Origin":BASE,
+                     "X-MSFS-Companion-Action":"a320-fcu-arm"}, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as failure:
+            urllib.request.urlopen(arm,timeout=3)
+        self.assertEqual(failure.exception.code,409)
+
     def test_a320_readback_never_fabricates_values_in_mock(self):
         identity = get_json("/api/aircraft/identity")
         self.assertFalse(identity["trusted"])

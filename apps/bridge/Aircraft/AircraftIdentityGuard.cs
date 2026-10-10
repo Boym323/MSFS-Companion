@@ -12,6 +12,9 @@ public sealed class AircraftIdentityGuard
 {
     private AircraftIdentitySnapshot _state = new(null,null,false,false);
     public AircraftIdentitySnapshot Current => Volatile.Read(ref _state);
+    private long _generation;
+    /// <summary>Changes on each connection; never trust arm permission across reconnect.</summary>
+    public long Generation => Interlocked.Read(ref _generation);
 
     private static string? Clean(string? title)
     {
@@ -20,8 +23,12 @@ public sealed class AircraftIdentityGuard
                !value.Any(char.IsControl) ? value:null;
     }
 
-    public void Reset() => Interlocked.Exchange(ref _state,
-        new AircraftIdentitySnapshot(null,null,false,false));
+    public void Reset()
+    {
+        Interlocked.Increment(ref _generation);
+        Interlocked.Exchange(ref _state,
+            new AircraftIdentitySnapshot(null,null,false,false));
+    }
 
     public void Begin(string? title,DateTimeOffset at)
     {

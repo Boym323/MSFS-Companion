@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import type {TelemetrySnapshot} from '../telemetry/types';
 import {useFlightNavigation,FlightNavigationPanel} from '../map/FlightNavigation';
 import {compareA320FcuEvidence,type FcuEvidence} from './fcuEvidence';
+import A320FcuControlPanel from './A320FcuControlPanel';
 import './A320Dashboard.css';
 
 type Engines={
@@ -12,6 +13,11 @@ type Aux={
  timestampUtc:string;apuRpmPercent:number;apuGeneratorActive:boolean;
  fuelTotalWeightPounds:number
 };
+type Modes={
+ timestampUtc:string;flightDirector:boolean;autoThrottleArmed:boolean;
+ managedThrottleActive:boolean;approachArmed:boolean;approachActive:boolean;
+ glideSlopeActive:boolean;headingLock:boolean;navLock:boolean
+};
 type Fcu={
  timestampUtc:string;selectedSpeedKnots:number;selectedMach:number;
  selectedHeadingDegrees:number;selectedAltitudeFeet:number;selectedVerticalSpeedFpm:number;
@@ -21,8 +27,9 @@ type Fcu={
 type Readback={
  connected:boolean;aircraft:string|null;profileId:string;
  verifiedAircraft:boolean;mode:string;fmaVerified:boolean;
- engines:Engines|null;fcu:Fcu|null;aux:Aux|null;
- enginesAgeMs:number|null;fcuAgeMs:number|null;auxAgeMs:number|null;warning:string
+ engines:Engines|null;fcu:Fcu|null;aux:Aux|null;modes:Modes|null;
+ enginesAgeMs:number|null;fcuAgeMs:number|null;auxAgeMs:number|null;
+ modesAgeMs:number|null;warning:string
 };
 
 const fmt=(value:number|undefined,digits=0)=>
@@ -64,7 +71,8 @@ export default function A320Dashboard({telemetry,live}:{
    return()=>{closed=true;controller.abort();window.clearInterval(timer);};
  },[aircraft,live]);
 
- const e=status?.engines??null,f=status?.fcu??null,aux=status?.aux??null;
+ const e=status?.engines??null,f=status?.fcu??null,aux=status?.aux??null,
+   modes=status?.modes??null;
  const canCapture=!!status?.connected&&!!status.aircraft&&!!f
    &&status.fcuAgeMs!==null&&status.fcuAgeMs<3000;
  function capture(asBaseline:boolean){
@@ -149,6 +157,26 @@ export default function A320Dashboard({telemetry,live}:{
     </div>
    </article>
   </div>
+  <section className="a320-section a320-modes">
+    <h3>Autopilot · doplňkový readback</h3>
+    <p className="a320-hint">Osm obecných SimConnect stavů, nezávislý 1Hz čteč.
+      Nejde o Airbus FMA, zvlášť potvrzený AP1/AP2 ani závazný stav managed/selected.</p>
+    <div className="a320-mode-list">
+      {([
+        ['Flight Director',modes?.flightDirector],
+        ['A/THR ARM',modes?.autoThrottleArmed],
+        ['Managed thrust',modes?.managedThrottleActive],
+        ['APPR armed',modes?.approachArmed],
+        ['APPR active',modes?.approachActive],
+        ['G/S active',modes?.glideSlopeActive],
+        ['Heading lock',modes?.headingLock],
+        ['NAV lock',modes?.navLock]
+      ] as const).map(([label,value])=><div key={label}>
+        <span>{label}</span>
+        <strong>{value===undefined?'—':value?'ON':'OFF'}</strong>
+      </div>)}
+    </div>
+  </section>
   <section className="a320-section a320-proof">
    <h3>A320-07 · Ruční validace FCU</h3>
    <p className="a320-hint">Nejprve zachyťte FCU, pak změňte skutečný knob
@@ -174,6 +202,7 @@ export default function A320Dashboard({telemetry,live}:{
     dálkového ovládání. Pro pilotní PASS porovnejte displej FCU/FMA.
     Export neobsahuje GPS stopu ani přístupové tokeny.</p>
   </section>
+  <A320FcuControlPanel live={live} aircraft={aircraft} />
   <section className="a320-section a320-nav">
    <FlightNavigationPanel navigation={status?navigation:null}/>
    <p className="a320-hint">Zobrazení je pouze read-only GPS readback, nikoli

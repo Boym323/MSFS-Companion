@@ -186,24 +186,71 @@ public sealed class SimConnectTelemetrySource(
         using var waypointIdSubscription = SubscribeWaypointId(client, stoppingToken);
         using var cockpitSystemsSubscription = SubscribeCockpitSystems(client, stoppingToken);
         using var landingSubscription = SubscribeLanding(client, stoppingToken);
-        // Optional readbacks may start after a late first TITLE, without
-        // forcing a new SimConnect connection or losing the base PFD.
+        // Each optional Airbus subscription is independent. Startup failures
+        // and completed/faulted readers retry without restarting the 20 Hz PFD.
         ISimVarSubscription? a320EngineSubscription=null;
         ISimVarSubscription? a320FcuSubscription=null;
         ISimVarSubscription? a320AuxSubscription=null;
-        var a320SubscriptionsAttempted=false;
+        ISimVarSubscription? a320ModesSubscription=null;
+        var nextEngineRetryAt=DateTimeOffset.MinValue;
+        var nextFcuRetryAt=DateTimeOffset.MinValue;
+        var nextAuxRetryAt=DateTimeOffset.MinValue;
+        var nextModesRetryAt=DateTimeOffset.MinValue;
         void EnsureAirbusSubscriptions(DateTimeOffset now)
         {
-            if (a320SubscriptionsAttempted) return;
             var title=identity.Current.Title;
             if (!identity.Trusted(title,now) ||
                 AircraftProfileResolver.Resolve(title).Id!="a320-asobo-candidate")
                 return;
 
-            a320SubscriptionsAttempted=true;
-            a320EngineSubscription=SubscribeA320Engines(client,stoppingToken);
-            a320FcuSubscription=SubscribeA320Fcu(client,stoppingToken);
-            a320AuxSubscription=SubscribeA320Aux(client,stoppingToken);
+            if (a320EngineSubscription?.Completion.IsCompleted==true)
+            {
+                logger.LogWarning("A320 engine subscription ended; restarting only this reader.");
+                a320EngineSubscription.Dispose();
+                a320EngineSubscription=null;
+                nextEngineRetryAt=now.AddSeconds(5);
+            }
+            if (a320FcuSubscription?.Completion.IsCompleted==true)
+            {
+                logger.LogWarning("A320 FCU subscription ended; restarting only this reader.");
+                a320FcuSubscription.Dispose();
+                a320FcuSubscription=null;
+                nextFcuRetryAt=now.AddSeconds(5);
+            }
+            if (a320AuxSubscription?.Completion.IsCompleted==true)
+            {
+                logger.LogWarning("A320 APU/fuel subscription ended; restarting only this reader.");
+                a320AuxSubscription.Dispose();
+                a320AuxSubscription=null;
+                nextAuxRetryAt=now.AddSeconds(5);
+            }
+            if (a320ModesSubscription?.Completion.IsCompleted==true)
+            {
+                logger.LogWarning("A320 mode subscription ended; restarting only this reader.");
+                a320ModesSubscription.Dispose();
+                a320ModesSubscription=null;
+                nextModesRetryAt=now.AddSeconds(5);
+            }
+            if (a320EngineSubscription is null && now>=nextEngineRetryAt)
+            {
+                a320EngineSubscription=SubscribeA320Engines(client,stoppingToken);
+                nextEngineRetryAt=now.AddSeconds(5);
+            }
+            if (a320FcuSubscription is null && now>=nextFcuRetryAt)
+            {
+                a320FcuSubscription=SubscribeA320Fcu(client,stoppingToken);
+                nextFcuRetryAt=now.AddSeconds(5);
+            }
+            if (a320AuxSubscription is null && now>=nextAuxRetryAt)
+            {
+                a320AuxSubscription=SubscribeA320Aux(client,stoppingToken);
+                nextAuxRetryAt=now.AddSeconds(5);
+            }
+            if (a320ModesSubscription is null && now>=nextModesRetryAt)
+            {
+                a320ModesSubscription=SubscribeA320Modes(client,stoppingToken);
+                nextModesRetryAt=now.AddSeconds(5);
+            }
         }
 
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
@@ -272,6 +319,7 @@ public sealed class SimConnectTelemetrySource(
             a320EngineSubscription?.Dispose();
             a320FcuSubscription?.Dispose();
             a320AuxSubscription?.Dispose();
+            a320ModesSubscription?.Dispose();
         }
     }
 
@@ -435,6 +483,24 @@ public sealed class SimConnectTelemetrySource(
         catch(Exception ex)
         {
             logger.LogWarning(ex,"A320 optional APU/fuel SimVars unavailable.");
+            return null;
+        }
+    }
+
+    private ISimVarSubscription? SubscribeA320Modes(SimConnectClient client,CancellationToken token)
+    {
+        try
+        {
+            return client.SimVars.Subscribe<A320SimConnectModesData>(
+                SimConnectPeriod.Second,data=>
+                {
+                    if (identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
+                        a320.UpdateModes(data,DateTimeOffset.UtcNow);
+                },cancellationToken:token);
+        }
+        catch(Exception ex)
+        {
+            logger.LogWarning(ex,"A320 optional AP mode SimVars unavailable; base PFD unaffected.");
             return null;
         }
     }
