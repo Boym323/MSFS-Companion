@@ -1,0 +1,62 @@
+name: Visual UI audit
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/visual-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-ui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+      - name: Install ephemeral Playwright and Chromium
+        working-directory: apps/web
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Build web for production
+        working-directory: apps/web
+        run: npm run build
+      - name: Capture responsive UI and check layout in Chromium
+        working-directory: apps/web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run preview -- --port 4173 > /tmp/kokpit-preview.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; tail -80 /tmp/kokpit-preview.log' EXIT
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/a320?panel=fcu > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/a320?panel=fcu > /dev/null
+          node --experimental-strip-types scripts/visual-audit.mjs
+      - name: Upload visual screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kokpit-ui-visual-baseline
+          path: apps/web/visual-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
