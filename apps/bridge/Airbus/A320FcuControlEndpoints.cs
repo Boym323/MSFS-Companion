@@ -106,7 +106,7 @@ public static class A320FcuControlEndpoints
                     return Results.Conflict(new { error = "V průběhu odesílání se změnilo spojení či letadlo. Výsledek je neznámý." });
                 gate.Sent(input, generation, title!, DateTimeOffset.UtcNow,
                     readback.TimestampUtc);
-                return Results.Accepted(value = new
+                return Results.Accepted(value: new
                 {
                     status = "sent_unverified",
                     command = input.Command,
