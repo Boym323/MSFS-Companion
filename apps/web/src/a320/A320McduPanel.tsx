@@ -124,13 +124,16 @@ export default function A320McduPanel({live,aircraft,identified}:{
       className={page===p?'is-selected':''} aria-pressed={page===p}
       onClick={()=>setPage(p)}>{p}</button>)}
     </div>
-    <h4>KLÁVESY MCDU <small>nedostupné bez ověřeného mapování</small></h4>
-    <div className="a320-mcdu-keypad">
-     {disabledKeys.map(key=><button key={key} type="button"
-      title={'MCDU '+key+' není zatím spojeno se simulátorem'}
-      aria-label={'MCDU '+key+' – neověřená klávesa, vypnuto'}
-      disabled>{key}</button>)}
-    </div>
+    <details className="a320-mcdu-keyboard-details">
+     <summary>Klávesnice MCDU · zatím neaktivní</summary>
+     <p>Originální Airbus klávesy zatím nejsou přes WASM ověřené.</p>
+     <div className="a320-mcdu-keypad">
+      {disabledKeys.map(key=><button key={key} type="button"
+       title={'MCDU '+key+' není zatím spojeno se simulátorem'}
+       aria-label={'MCDU '+key+' – neověřená klávesa, vypnuto'}
+       disabled>{key}</button>)}
+     </div>
+    </details>
    </div>
   </div>
   <p className="a320-mcdu-warning">
