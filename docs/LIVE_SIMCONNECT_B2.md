@@ -114,19 +114,22 @@ nepoužívejte dashboard jako certifikovaný letový přístroj.
 
 ## Oprava TITLE a opakovaného připojování
 
-Pokud Windows bridge uváděl `ArgumentException: The value cannot be an
-empty string (Parameter 'unit')`, příčinou byla prázdná jednotka
-SimConnect při prvním čtení `TITLE` a při jeho následném 1Hz
-sledování. Obě cesty nyní předávají `string`. Starší verze
-mohly po úspěšném otevření SimConnect kvůli této výjimce
-opakovaně připojení rušit, zatímco web hlásil „Bridge připojen“.
+Původní skalární volání `GetAsync<string>("TITLE", "")` /
+`Subscribe<string>("TITLE", "")` vyvolávalo výjimku knihovny
+SimConnect.NET (`ArgumentException: unit`). Následná změna na
+`"string"` obešla toto ověření, ale nativní SimConnect SDK pro
+textovou proměnnou vyžaduje **prázdnou jednotku**.
+
+Proto obě cesty nyní používají `SimConnectAircraftTitleData`:
+strukturovaný `String256` s `[SimConnect("TITLE", "", ...)]`.
+Tato cesta posílá do nativního SDK skutečně prázdnou jednotku
+a neprochází skalárním validátorem argumentu `unit`.
 
 Bridge a MSFS mají v horním panelu oddělené stavy. Po aktualizaci
 Windows instalace spusťte MSFS 2020, načtěte let a ověřte
 `SIMCONNECT LIVE`, reálnou telemetrii i změnu názvu letadla
-bez převzetí starých hodnot. Automatická CI ověřuje pouze
-kontrakt jednotky a chod bridge bez simulátoru;
-skutečné potvrzení vyžaduje Windows s běžícím MSFS.
+bez převzetí starých hodnot. CI ověřuje layout String256 a
+kontrakt jednotky, skutečné potvrzení vyžaduje Windows s MSFS.
 
 ## Stabilita po A320-01: identita není životní podmínkou PFD
 
