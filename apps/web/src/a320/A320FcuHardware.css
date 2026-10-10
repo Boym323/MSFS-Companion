@@ -359,3 +359,8 @@
 @media(max-width:580px){
  .a320-hw-service>summary{align-items:flex-start;flex-direction:column;gap:5px}
 }
+
+/* Disabled flight controls retain the real unlit metal appearance. */
+.a320-hw-knob:disabled{opacity:1;filter:none}
+.a320-hw-round-push:disabled{opacity:1}
+.a320-hw-service[open]>summary{border-bottom:1px solid #38556a}
