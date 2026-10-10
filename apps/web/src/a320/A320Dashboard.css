@@ -80,3 +80,29 @@
 .a320-diagnostic-content .a320-section.a320-nav{margin-top:0}
 @media(max-width:460px){.a320-diagnostic-content{padding:0 8px 8px}
  .a320-diagnostics>summary{padding:13px}.a320-diagnostics>summary span{display:block;margin:5px 0 0}}
+
+/* UI-REF-1: one instrument surface, not a vertically stacked collection. */
+.a320-instrument-tabs{display:flex;gap:7px;align-items:center;padding:9px 4px;
+ margin-top:16px;border-block:1px solid #324a61;overflow-x:auto;
+ scrollbar-width:thin;overscroll-behavior-x:contain}
+.a320-instrument-tabs a{flex:0 0 auto;padding:12px 17px;border:1px solid transparent;
+ border-radius:7px;color:#b7cce0;font-size:13px;font-weight:700;
+ white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
+.a320-instrument-tabs a:hover{color:#fff;background:#21384d}
+.a320-instrument-tabs a.is-active{background:#264962;border-color:#608bad;
+ color:#f6fbff;box-shadow:inset 0 -2px #82c3e6}
+.a320-tab-summary{display:flex;justify-content:space-between;align-items:center;
+ gap:12px;flex-wrap:wrap;padding:14px 3px 6px;color:#a5bbce;font-size:12px}
+.a320-tab-summary strong{color:#e4f0f8;font-size:14px;font-weight:650}
+.a320-instrument-stage{min-width:0;overflow:visible}
+.a320-instrument-stage>:first-child{margin-top:9px}
+.a320-sys-columns--single{grid-template-columns:minmax(0,1fr)}
+.a320-diagnostics{margin-top:10px}
+.a320-diagnostic-intro{padding:19px;border-bottom:1px solid #324c61}
+.a320-diagnostic-intro h3{margin:0 0 5px;font-size:17px}
+.a320-diagnostic-intro p{margin:0;color:#a7bed1;font-size:13px;line-height:1.6}
+.a320-diagnostic-content{padding-top:15px}
+@media(max-width:760px){
+ .a320-instrument-tabs{margin-inline:-5px;padding:8px 2px}
+ .a320-instrument-tabs a{padding:12px 13px}
+}
