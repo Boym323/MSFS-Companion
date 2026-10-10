@@ -35,11 +35,34 @@ public sealed class AircraftIdentityGuard
         var clean=Clean(title);
         var prior=Current;
         // Once switched, never re-qualify the old connection.
-        var changed=prior.Changed || clean is null ||
-            !string.Equals(clean,prior.Title,StringComparison.Ordinal);
+        // Missing TITLE is not proof that the aircraft changed. Revoke command
+        // trust immediately, but retain the last known title for comparison.
+        // A later different, valid title still forces a new SimConnect session.
+        if (clean is null)
+        {
+            Interlocked.Exchange(ref _state,
+                new AircraftIdentitySnapshot(prior.Title,at,prior.Changed,false));
+            return;
+        }
+
+        // A failed initial one-shot read must not create a fake aircraft
+        // identity. The first valid subscription sample becomes the baseline.
+        var changed=prior.Changed || (prior.Title is not null &&
+            !string.Equals(clean,prior.Title,StringComparison.Ordinal));
         Interlocked.Exchange(ref _state,
-            new AircraftIdentitySnapshot(clean,at,changed,clean is not null));
+            new AircraftIdentitySnapshot(clean,at,changed,true));
     }
+
+    // A failed optional TITLE reader must never keep write permissions alive.
+    // Flight telemetry may continue, while controls fail closed until a
+    // fresh, matching TITLE arrives.
+    public void MarkUnavailable()
+    {
+        var prior=Current;
+        Interlocked.Exchange(ref _state,prior with { Known=false });
+    }
+
+    public bool RequiresReconnect => Current.Changed;
 
     public bool Trusted(string? telemetryTitle,DateTimeOffset at)
     {
