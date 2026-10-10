@@ -1,6 +1,6 @@
 /* UI-REF-9: compact pilot navigation; desktop keeps both accessible rows. */
 .cockpit-mobile-tools{display:none}
-@media(max-width:760px){
+@media(max-width:820px){
  .cockpit-topbar{min-height:50px;padding-block:6px;flex-wrap:nowrap;gap:8px}
  .cockpit-topbar .brand small{display:none}
  .cockpit-topbar .brand-icon{width:32px;height:32px;font-size:19px}
