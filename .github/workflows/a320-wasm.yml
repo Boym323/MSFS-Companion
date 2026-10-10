@@ -74,7 +74,22 @@ jobs:
           if (!$vsPath) { throw 'Visual Studio installation not found' }
           $msbuild = Join-Path $vsPath 'MSBuild/Current/Bin/MSBuild.exe'
           if (!(Test-Path $msbuild)) { throw "MSBuild missing: $msbuild" }
-          & $msbuild apps/a320-wasm/KokpitA320Module.vcxproj /m /v:minimal /p:Configuration=Release /p:Platform=MSFS
+          # MSFS 2020 MSI registers the platform, but fresh CI runners do
+          # not always inherit the SDK root in the parent shell.
+          $sdkRoot = $env:MSFS_SDK
+          if (!$sdkRoot -or !(Test-Path (Join-Path $sdkRoot 'WASM/vs/2022/Microsoft.Cpp.MSFS.Common.props'))) {
+            $sdkRoot = 'C:\MSFS SDK'
+          }
+          if (!(Test-Path (Join-Path $sdkRoot 'WASM/vs/2022/Microsoft.Cpp.MSFS.Common.props'))) {
+            Write-Host 'Looking for installed WASM toolset directories:'
+            Get-ChildItem 'C:\' -Directory | Where-Object { $_.Name -like '*MSFS*' } |
+              ForEach-Object { Write-Host $_.FullName }
+            throw "WASM toolset missing below $sdkRoot: SDK installation layout changed"
+          }
+          if (!$sdkRoot.EndsWith('\')) { $sdkRoot += '\' }
+          $env:MSFS_SDK = $sdkRoot
+          Write-Host "SDK root = $sdkRoot"
+          & $msbuild apps/a320-wasm/KokpitA320Module.vcxproj /m /v:minimal /p:Configuration=Release /p:Platform=MSFS "/p:ToolsetRoot=$sdkRoot"
           if ($LASTEXITCODE -ne 0) { throw "MSFS SDK WASM compile failed ($LASTEXITCODE)" }
           $wasm = 'apps/a320-wasm/build/Release/kokpit-a320.wasm'
           if (!(Test-Path $wasm)) { throw "No actual SDK-generated WASM at $wasm" }
