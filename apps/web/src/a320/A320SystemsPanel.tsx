@@ -32,9 +32,10 @@ function Value({name,value,unit='',warning}:{name:string;
  </div>;
 }
 
-export default function A320SystemsPanel({live,aircraft,identified,
+export default function A320SystemsPanel({live,aircraft,identified,view='both',
  engines,enginesAgeMs,aux,auxAgeMs,modes,modesAgeMs}:{
  live:boolean;aircraft:string;identified:boolean;
+ view?:'overhead'|'ecam'|'both';
  engines:EngineData|null;enginesAgeMs:number|null;
  aux:AuxData|null;auxAgeMs:number|null;
  modes:ModeData|null;modesAgeMs:number|null
@@ -77,13 +78,14 @@ export default function A320SystemsPanel({live,aircraft,identified,
  ];
  return <section className="a320-sys-root" aria-label="Airbus Overhead a ECAM referenční systémový přehled">
   <div className="a320-sys-heading">
-   <div><span>A320-UI-3 · SYSTEMS</span><h3>Overhead &amp; ECAM · systémový přehled</h3></div>
+   <div><span>ŽIVÁ DATA · SIMCONNECT</span><h3>{view==='overhead'?'Overhead · systémový přehled':
+     view==='ecam'?'ECAM · motory a palivo':'Overhead a ECAM'}</h3></div>
    <span role="status" className={trusted?'is-online':'a320-sys-muted'}>
     {trusted?'A320 identita rozpoznána':'A320 není rozpoznán'}
    </span>
   </div>
-  <div className="a320-sys-columns">
-   <section className="a320-sys-overhead">
+  <div className={'a320-sys-columns'+(view==='both'?'':' a320-sys-columns--single')}>
+   {view!=='ecam'&&<section className="a320-sys-overhead">
     <header><span>OVERHEAD</span><strong>LIGHTS / AIR DATA</strong></header>
     <div className="a320-sys-flag-grid">
      {flags.map(f=><Flag key={f.key} name={f.label}
@@ -102,8 +104,8 @@ export default function A320SystemsPanel({live,aircraft,identified,
     <p className="a320-sys-note">Zobrazuje se aktuální stav obecných světel,
      pitot heat a parkovací brzdy ze SimConnectu. Nejde o potvrzení
      polohy fyzických Airbus overhead přepínačů. Přepínače zde neposílají příkazy.</p>
-   </section>
-   <section className="a320-sys-ecam">
+   </section>}
+   {view!=='overhead'&&<section className="a320-sys-ecam">
     <header><span>ECAM DATA</span><strong>ENGINE / APU / FUEL</strong></header>
     <div className="a320-sys-engine-pair">
      {[1,2].map(index=><div className="a320-sys-engine" key={index}>
@@ -132,7 +134,7 @@ export default function A320SystemsPanel({live,aircraft,identified,
     <p className="a320-sys-note">Referenční údaje ze standardních SimVars,
      nikoli originální obrazovka ECAM nebo Airbus FMA.
      Chybějící či zastaralá data nejsou zobrazována jako nula nebo OFF.</p>
-   </section>
+   </section>}
   </div>
   {connectionError&&trusted&&<p className="a320-sys-warning" role="status">
    Čtení světel/overhead systémů není dostupné. Ostatní údaje zůstávají nezávislé.</p>}
