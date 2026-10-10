@@ -353,11 +353,11 @@
 .a320-hw-view-options{display:flex;align-items:center;gap:5px}
 .a320-hw-view-modes button{min-height:44px;padding:9px 13px;color:#c9dfeb;
  border:1px solid #3b5b72;border-radius:7px;background:#142c40;
- font:650 13px/1.2 inherit;cursor:pointer}
+ font-size:13px;font-weight:650;line-height:1.2;font-family:inherit;cursor:pointer}
 .a320-hw-view-modes button[aria-pressed="true"]{color:#fff;border-color:#81b7da;
  background:#22506d}
 .a320-hw-view-modes button:focus-visible{outline:3px solid #8bd3fa;outline-offset:2px}
-.a320-hw-scaled{position:relative;width:1200px;height:400px;margin-inline:auto}
+.a320-hw-scaled{position:relative;width:1200px;height:400px;margin-inline:auto;overflow:hidden}
 .a320-hw-scaled>.a320-hw-faceplate{margin:0;transform-origin:top left}
 .a320-hw-viewer.is-fullscreen{position:fixed;inset:0;z-index:1000;
  display:flex;flex-direction:column;max-width:none;
