@@ -35,7 +35,7 @@ struct Reply {
 static_assert(sizeof(Command)==16, "Protocol must be fixed-size");
 static_assert(sizeof(Reply)==16, "Protocol must be fixed-size");
 
-HANDLE sim=nullptr;
+HANDLE sim=0;
 DWORD lastSequence=0;
 
 // These names appear in the official MSFS 2020 Asobo AIRBUS
@@ -89,7 +89,7 @@ void CALLBACK Dispatch(SIMCONNECT_RECV* data,DWORD size,void*) {
 }
 
 bool Initialize() {
-    if(FAILED(SimConnect_Open(&sim,"Kokpit Asobo A320 H-Event Module",nullptr,0,nullptr,0)))
+    if(FAILED(SimConnect_Open(&sim,"Kokpit Asobo A320 H-Event Module",0,0,0,0)))
         return false;
     if(FAILED(SimConnect_MapClientDataNameToID(sim,"Kokpit.A320.Command.v1",kCommandArea)) ||
        FAILED(SimConnect_MapClientDataNameToID(sim,"Kokpit.A320.Response.v1",kResponseArea)) ||
@@ -112,9 +112,9 @@ bool Initialize() {
 extern "C" MSFS_CALLBACK void module_init(void) {
     if(!Initialize()) {
         std::fprintf(stderr,"Kokpit A320 WASM module initialization failed.\n");
-        if(sim) { SimConnect_Close(sim);sim=nullptr; }
+        if(sim) { SimConnect_Close(sim);sim=0; }
     }
 }
 extern "C" MSFS_CALLBACK void module_deinit(void) {
-    if(sim) { SimConnect_Close(sim);sim=nullptr; }
+    if(sim) { SimConnect_Close(sim);sim=0; }
 }
