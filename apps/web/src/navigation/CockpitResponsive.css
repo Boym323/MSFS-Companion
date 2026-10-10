@@ -1,0 +1,33 @@
+/* UI-REF-9: compact pilot navigation; desktop keeps both accessible rows. */
+.cockpit-mobile-tools{display:none}
+@media(max-width:820px){
+ .cockpit-topbar{min-height:50px;padding-block:6px;flex-wrap:nowrap;gap:8px}
+ .cockpit-topbar .brand small{display:none}
+ .cockpit-topbar .brand-icon{width:32px;height:32px;font-size:19px}
+ .cockpit-statuses{flex-wrap:nowrap;width:auto;margin-left:auto;gap:4px}
+ .cockpit-statuses .connection,.simulator-connection{padding:6px 8px;font-size:11px;gap:5px}
+ .cockpit-primary-nav{padding-block:3px}
+ .cockpit-secondary-nav{display:none!important}
+ .cockpit-navigation{margin-bottom:9px}
+ .cockpit-mobile-tools{display:block;border-top:1px solid #25394f}
+ .cockpit-mobile-tools>summary{min-height:44px;display:flex;align-items:center;gap:7px;
+  padding:8px 5px;color:#c4d9eb;font-size:13px;font-weight:650;cursor:pointer}
+ .cockpit-mobile-tools>summary:focus-visible{outline:2px solid #89cdfa;outline-offset:2px}
+ .cockpit-mobile-tools>summary::after{content:'⌄';margin-left:auto;color:#9ebdd0}
+ .cockpit-mobile-tools[open]>summary::after{content:'⌃'}
+ .cockpit-mobile-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));
+  gap:6px;padding:4px 0 11px}
+ .cockpit-mobile-links a{display:flex;align-items:center;min-height:44px;min-width:0;
+  padding:9px 11px;border:1px solid #29445b;border-radius:7px;background:#12263a;
+  color:#c4d9e9;font-size:13px;text-decoration:none}
+ .cockpit-mobile-links a.selected{background:#193956;border-color:#608bad;color:#fff}
+ .cockpit-mobile-links a:focus-visible{outline:3px solid #8bd3fa;outline-offset:1px}
+}
+@media(max-width:470px){
+ .cockpit-topbar .brand-icon{display:none}
+ .cockpit-topbar .brand strong{font-size:15px}
+ .cockpit-statuses .connection,.simulator-connection{padding:5px 6px;font-size:11px}
+ .cockpit-status-full{display:none}
+ .cockpit-status-short{display:inline}
+}
+@media(min-width:471px){.cockpit-status-short{display:none}}

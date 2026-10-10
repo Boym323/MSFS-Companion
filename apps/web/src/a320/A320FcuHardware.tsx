@@ -1,4 +1,4 @@
-import {useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {fcuSpecs,formatFcuValue,nextFcuReference,validateFcuReference,
  type FcuField,type FcuReference} from './fcuUiModel';
 import './A320FcuHardware.css';
@@ -148,6 +148,49 @@ export default function A320FcuHardware({
  onStep,onDraft,onSubmit,onMode
 }:Props){
  const [altThousand,setAltThousand]=useState(false);
+ const [viewMode,setViewMode]=useState<'fit'|'actual'>(()=>window.innerWidth<640?'actual':'fit');
+ const [fullscreen,setFullscreen]=useState(false);
+ const [viewportWidth,setViewportWidth]=useState(()=>Math.max(240,window.innerWidth-64));
+ const viewportRef=useRef<HTMLDivElement|null>(null);
+ const viewerRef=useRef<HTMLDivElement|null>(null);
+ const fullscreenButtonRef=useRef<HTMLButtonElement|null>(null);
+ useEffect(()=>{
+  const element=viewportRef.current;
+  if(!element)return;
+  const measure=()=>setViewportWidth(element.clientWidth);
+  measure();
+  if(typeof ResizeObserver==='undefined'){
+   window.addEventListener('resize',measure);
+   return()=>window.removeEventListener('resize',measure);
+  }
+  const observer=new ResizeObserver(measure);
+  observer.observe(element);
+  return()=>observer.disconnect();
+ },[fullscreen]);
+ useEffect(()=>{
+  if(!fullscreen)return;
+  const previous=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  fullscreenButtonRef.current?.focus();
+  const onKey=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();setFullscreen(false);}
+   if(event.key!=='Tab')return;
+   const focusable=Array.from(viewerRef.current?.querySelectorAll<HTMLElement>(
+    'button:not([disabled]),input:not([disabled]),summary,[tabindex="0"]')??[])
+    .filter(el=>el.getClientRects().length>0);
+   if(!focusable.length)return;
+   const first=focusable[0],last=focusable[focusable.length-1];
+   if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+   else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  };
+  document.addEventListener('keydown',onKey);
+  return()=>{
+   document.body.style.overflow=previous;
+   document.removeEventListener('keydown',onKey);
+   fullscreenButtonRef.current?.focus();
+  };
+ },[fullscreen]);
+ const scale=viewMode==='fit'?Math.min(1,viewportWidth/1200):1;
  const speedField:FcuField=machMode?'mach':'speed';
  const fieldValues:Record<FcuField,number|null>={
   speed:fresh&&fcu?fcu.selectedSpeedKnots:null,
@@ -192,9 +235,22 @@ export default function A320FcuHardware({
  return <div className="a320-hw-root">
   <p className="a320-hw-notice">VĚRNÉ ROZLOŽENÍ FCU · PŮVODNÍ A320neo V1
    <span>Hodnoty jsou obecné SimVars, nikoli ověřené indikace FCU nebo FMA.</span></p>
-  <div className="a320-hw-scroll" role="region" tabIndex={0}
-   aria-label="Panel Flight Control Unit; na úzkém displeji lze posouvat vodorovně">
-   <div className="a320-hw-faceplate" data-testid="a320-fcu-faceplate">
+  <div className={'a320-hw-viewer'+(fullscreen?' is-fullscreen':'')} ref={viewerRef}
+   role={fullscreen?'dialog':undefined} aria-modal={fullscreen?true:undefined}
+   aria-label={fullscreen?'FCU na celou obrazovku':undefined}>
+   <div className="a320-hw-view-modes" role="group" aria-label="Velikost zobrazení FCU">
+    <div className="a320-hw-view-options">
+     <button type="button" aria-pressed={viewMode==='fit'} onClick={()=>setViewMode('fit')}>Přizpůsobit</button>
+     <button type="button" aria-pressed={viewMode==='actual'} onClick={()=>setViewMode('actual')}>1:1</button>
+    </div>
+    <button ref={fullscreenButtonRef} type="button" onClick={()=>{if(!fullscreen)setViewMode('fit');setFullscreen(value=>!value);}}>
+     {fullscreen?'Zavřít celé zobrazení':'Celá obrazovka'}</button>
+   </div>
+   <div className="a320-hw-scroll" ref={viewportRef} role="region" tabIndex={0}
+    aria-label={viewMode==='fit'?'Panel Flight Control Unit přizpůsobený šířce':'Panel Flight Control Unit; lze posouvat vodorovně'}>
+    <div className="a320-hw-scaled" style={{width:1200*scale,height:400*scale}}>
+     <div className="a320-hw-faceplate" data-testid="a320-fcu-faceplate"
+      style={{transform:viewMode==='fit'?`scale(${scale})`:undefined}}>
     <span className="a320-hw-fastener pos-tl"/><span className="a320-hw-fastener pos-tr"/>
     <span className="a320-hw-fastener pos-bl"/><span className="a320-hw-fastener pos-br"/>
     <div className="a320-hw-windows" data-testid="a320-fcu-windows">
@@ -241,10 +297,12 @@ export default function A320FcuHardware({
      <div className="a320-hw-item a320-hw-level-off">PUSH TO<br/>LEVEL<br/>OFF</div>
      <div className="a320-hw-item a320-hw-appr"><PushButton>APPR</PushButton></div>
     </div>
+    </div>
    </div>
   </div>
+  </div>
   <div className="a320-hw-support" role="note">
-   <span>⇆ Na užších displejích lze FCU posouvat do stran.</span>
+   <span>{viewMode==='fit'?'FCU je přizpůsobeno šířce; pro přesnější dotyk použij 1:1.':'⇆ FCU v měřítku 1:1 lze posouvat do stran.'}</span>
    <span>Táhni knob doleva/doprava pro návrh hodnoty; pro odeslání otevři webové ovládání.</span>
   </div>
   <details className="a320-hw-service">

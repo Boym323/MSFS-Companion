@@ -1,3 +1,5 @@
+import {useEffect,useRef} from 'react';
+import './CockpitResponsive.css';
 import type { ConnectionState, TelemetryStatus } from '../telemetry/types';
 import { activeNavigationGroup, navigationGroups, normalizeNavigationPath } from './navigation';
 
@@ -14,6 +16,14 @@ export default function CockpitHeader({
 }: HeaderProps) {
   const group = activeNavigationGroup(pathname);
   const path = normalizeNavigationPath(pathname);
+  const primaryNavRef=useRef<HTMLElement|null>(null);
+  useEffect(()=>{
+    const nav=primaryNavRef.current;
+    const active=nav?.querySelector<HTMLElement>('[aria-current="location"]');
+    if(nav&&active){
+      nav.scrollLeft=Math.max(0,active.offsetLeft-nav.offsetLeft-(nav.clientWidth-active.offsetWidth)/2);
+    }
+  },[path]);
   const simulatorLive = sourceIsLive && sourceStatus?.mode === 'simconnect';
   const simulatorMock = sourceIsLive && sourceStatus?.mode === 'mock';
   const simulatorText = simulatorMock ? 'Ukázková data'
@@ -34,16 +44,18 @@ export default function CockpitHeader({
       <div className="cockpit-statuses" aria-label="Stav spojení">
         <div className={`connection connection--${connection}`} title="Spojení prohlížeče s bridge">
           <span className="connection-dot" aria-hidden="true" />
-          {connection === 'connected' ? 'Bridge připojen' : connection === 'connecting' ? 'Bridge se připojuje' : 'Bridge odpojen'}
+          <span className="cockpit-status-full">{connection === 'connected' ? 'Bridge připojen' : connection === 'connecting' ? 'Bridge se připojuje' : 'Bridge odpojen'}</span>
+          <span className="cockpit-status-short">{connection === 'connected' ? 'Bridge OK' : connection === 'connecting' ? 'Bridge…' : 'Bridge OFF'}</span>
         </div>
         <div className={`simulator-connection ${simulatorLive ? 'simulator-connection--live' : simulatorMock ? 'simulator-connection--mock' : 'simulator-connection--offline'}`}>
           <span className="connection-dot" aria-hidden="true" />
-          {simulatorText}
+          <span className="cockpit-status-full">{simulatorText}</span>
+          <span className="cockpit-status-short">{simulatorLive ? 'MSFS OK' : simulatorMock ? 'DEMO' : 'MSFS OFF'}</span>
         </div>
       </div>
     </header>
     <div className="cockpit-navigation">
-      <nav className="cockpit-primary-nav" aria-label="Hlavní navigace">
+      <nav className="cockpit-primary-nav" ref={primaryNavRef} aria-label="Hlavní navigace">
         {navigationGroups.map(item => (
           <a key={item.href} href={item.href}
              className={item === group ? 'selected' : undefined}
@@ -61,6 +73,16 @@ export default function CockpitHeader({
           </a>
         ))}
       </nav>
+      <details className="cockpit-mobile-tools" key={group.href}>
+        <summary>Nástroje · {group.items.find(item=>item.href===path)?.label??group.label}</summary>
+        <nav className="cockpit-mobile-links" aria-label={`Nástroje v sekci ${group.label}`}>
+          {group.items.map(item=>(
+            <a key={item.href} href={item.href}
+               className={path===item.href?'selected':undefined}
+               aria-current={path===item.href?'page':undefined}>{item.label}</a>
+          ))}
+        </nav>
+      </details>
     </div>
   </>;
 }

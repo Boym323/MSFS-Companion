@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import type {TelemetrySnapshot} from '../telemetry/types';
 import {useFlightNavigation,FlightNavigationPanel} from '../map/FlightNavigation';
 import {compareA320FcuEvidence,type FcuEvidence} from './fcuEvidence';
@@ -43,6 +43,7 @@ const fmt=(value:number|undefined,digits=0)=>
 export default function A320Dashboard({telemetry,live}:{
  telemetry:TelemetrySnapshot|null;live:boolean
 }){
+ const tabsRef=useRef<HTMLElement|null>(null);
  const [status,setStatus]=useState<Readback|null>(null);
  const [error,setError]=useState('');
  const [baseline,setBaseline]=useState<FcuEvidence|null>(null);
@@ -54,6 +55,13 @@ export default function A320Dashboard({telemetry,live}:{
    window.addEventListener('popstate',sync);
    return()=>window.removeEventListener('popstate',sync);
  },[]);
+ useEffect(()=>{
+  const nav=tabsRef.current;
+  const active=nav?.querySelector<HTMLElement>('a[aria-current="page"]');
+  if(nav&&active){
+   nav.scrollLeft=Math.max(0,active.offsetLeft-nav.offsetLeft-(nav.clientWidth-active.offsetWidth)/2);
+  }
+ },[activeTab]);
  function selectTab(tab:A320Tab){
    if(tab===activeTab)return;
    window.history.pushState(null,'',a320PanelUrl(tab,window.location.search));
@@ -130,7 +138,7 @@ export default function A320Dashboard({telemetry,live}:{
   {error&&<p className="a320-alert" role="status">{error}</p>}
   {!status&&live&&<p className="a320-alert">Zobrazí se pouze rozpoznaný kandidát
     původního Asobo A320neo. Žádné údaje nepřebírám z jiných letadel.</p>}
-  <nav className="a320-instrument-tabs" aria-label="Přístroje Airbus A320">
+  <nav className="a320-instrument-tabs" ref={tabsRef} aria-label="Přístroje Airbus A320">
    {A320_TABS.map(tab=><a key={tab.id} href={a320PanelUrl(tab.id,window.location.search)}
       aria-current={activeTab===tab.id?'page':undefined}
       className={activeTab===tab.id?'is-active':undefined}
