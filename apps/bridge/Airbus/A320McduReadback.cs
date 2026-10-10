@@ -47,7 +47,7 @@ public static class A320McduReadback
         return new Status(candidate,candidate?title:null,profile.Id,
             McduScreenAvailable:false,McduKeysAvailable:false,
             McduFlightPlanVerified:false,KeyActions:[],
-            Source:"generic_gps_simvars",GpsAgeMs=fresh?age:null,
+            Source:"generic_gps_simvars",GpsAgeMs:fresh?age:null,
             Gps:gps,
             Note:"Pouze obecná GPS navigace. MCDU displej, letový plán FMS a " +
                  "MCDU tlačítka původního Asobo A320neo zatím nejsou dostupná. " +
