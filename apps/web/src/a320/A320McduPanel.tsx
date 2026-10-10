@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import {freshMcduGps,mcduMinutes,mcduValue,mcduWaypointName,
  type McduPage,type McduStatus,type McduGps} from './mcduModel';
 import './A320McduPanel.css';
+import A320SectionHeader from './A320SectionHeader';
 
 type Reading={payload:McduStatus;receivedAt:number};
 const pages:readonly McduPage[]=['F-PLN','PROG','STATUS'];
@@ -104,10 +105,8 @@ export default function A320McduPanel({live,aircraft,identified}:{
   !gps?'GPS data nejsou dostupná nebo jsou zastaralá':
   'Aktivní GPS data · skutečný MCDU ještě není integrován';
  return <section className="a320-mcdu-section" aria-label="Airbus A320 MCDU companion">
-  <div className="a320-mcdu-heading">
-   <div><span>A320-UI-4 · FLIGHT MANAGEMENT</span><h3>MCDU Companion</h3></div>
-   <strong className={gps?'a320-mcdu-state-ok':'a320-mcdu-state-off'}>{detail}</strong>
-  </div>
+  <A320SectionHeader title="MCDU Companion" eyebrow="LETOVÝ PLÁN"
+   status={detail}/>
   <div className="a320-mcdu-layout">
    <div className="a320-mcdu-unit">
     <div className="a320-mcdu-lsk" aria-hidden="true">
