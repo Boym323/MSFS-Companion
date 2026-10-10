@@ -33,7 +33,8 @@ try
     var full = WindowsHostLogReader.ReadFile(file, 99);
     Check(full.Lines.Length == 6 && !full.Truncated, "full file");
     Check(full.Lines[1].Contains("Token=[SKRYTO]") &&
-          full.Lines[1].Contains("Bearer [SKRYTO]") &&
+          full.Lines[1].Contains("Authorization:[SKRYTO]") &&
+          !full.Lines[1].Contains("abc.def.ghi") &&
           !full.Lines[1].Contains("secret-value"), "auth redaction");
     Check(full.Lines[2].Contains("access_token=[SKRYTO]") &&
           !full.Lines[2].Contains("should-not-leak"), "query redaction");
