@@ -5,6 +5,7 @@ import {compareA320FcuEvidence,type FcuEvidence} from './fcuEvidence';
 import A320FcuControlPanel from './A320FcuControlPanel';
 import A320HEventsPanel from './A320HEventsPanel';
 import A320FcuCockpit from './A320FcuCockpit';
+import A320EfisNd from './A320EfisNd';
 import './A320Dashboard.css';
 
 type Engines={
@@ -45,8 +46,9 @@ export default function A320Dashboard({telemetry,live}:{
  const [baseline,setBaseline]=useState<FcuEvidence|null>(null);
  const [after,setAfter]=useState<FcuEvidence|null>(null);
  const [showDiagnostics,setShowDiagnostics]=useState(false);
- const navigation=useFlightNavigation(live);
  const aircraft=telemetry?.aircraft??'';
+ // Reset the GPS reader whenever trusted A320 identity is absent or changes.
+ const navigation=useFlightNavigation(live&&!!status?.connected&&status.aircraft===aircraft);
  useEffect(()=>{setBaseline(null);setAfter(null);},[aircraft,live]);
  useEffect(()=>{
    if(!live||!aircraft){setStatus(null);return;}
@@ -103,7 +105,7 @@ export default function A320Dashboard({telemetry,live}:{
   <div className="a320-heading">
    <div>
     <p className="a320-eyebrow">ASOBO A320NEO V1 · KOKPIT</p>
-    <h2>Airbus FCU · dotykové řízení</h2>
+    <h2>Airbus A320neo · systémy</h2>
     <p>Živá referenční data a zabezpečené ovládání Airbus FCU.
        Neověřené funkce zůstávají zamčené; diagnostika je níže.</p>
    </div>
@@ -118,6 +120,9 @@ export default function A320Dashboard({telemetry,live}:{
   <A320FcuCockpit live={live} aircraft={aircraft}
     readbackAircraft={status?.aircraft??null} fcu={f}
     fcuAgeMs={status?.fcuAgeMs??null}/>
+  <A320EfisNd live={live} telemetry={telemetry}
+   identified={!!status?.connected&&status.aircraft===aircraft}
+   navigation={navigation}/>
   <details className="a320-diagnostics" onToggle={event=>
     setShowDiagnostics(event.currentTarget.open)}>
     <summary>Diagnostika a pokročilé informace <span>Referenční hodnoty, motory, logy a testy</span></summary>
