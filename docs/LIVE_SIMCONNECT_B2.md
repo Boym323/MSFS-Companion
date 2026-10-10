@@ -127,3 +127,27 @@ Windows instalace spusťte MSFS 2020, načtěte let a ověřte
 bez převzetí starých hodnot. Automatická CI ověřuje pouze
 kontrakt jednotky a chod bridge bez simulátoru;
 skutečné potvrzení vyžaduje Windows s běžícím MSFS.
+
+## Stabilita po A320-01: identita není životní podmínkou PFD
+
+Dřívější verze ukončovala celé SimConnect spojení, pokud 1Hz
+subscription `TITLE` neaktualizovala identitu do 10 sekund, nebo
+pokud se její odběr ukončil. To vyvolávalo opakované reconnecty
+navzdory zdravým letovým SimFrames.
+
+Nyní jsou dvě nezávislé podmínky:
+
+- **PFD / mapa / letová telemetrie** běží podle živých validních SimFrame
+  (6s watchdog); stale nebo dočasně nedostupné TITLE ji nevypíná.
+- **Povely do kokpitu a ověřený A320 readback** vyžadují čerstvé, shodné
+  TITLE (10 sekund). Prázdná hodnota okamžitě odnímá důvěru. Při
+  ukončeném TITLE odběru se ovládání zablokuje a odběr zkusí obnovit
+  po 5 sekundách. Potvrzená změna názvu letadla dál vynutí nový
+  SimConnect session kvůli odstranění starých aircraft subscriptions.
+
+Při podezření na výpadek otevřete `/api/status`:
+pokud `connectionAttempts` roste spolu s `lastError`, zkontrolujte
+`%LOCALAPPDATA%\\MSFS Companion\\windows-host.log`.
+Pokud stabilně přijímáte `incomingRateHz`, ale `/api/aircraft/identity`
+hlásí `trusted=false`, jde o problém pomalého TITLE readeru, ne o
+pád základního spojení. Ověření na skutečném MSFS 2020 je stále nutné.
