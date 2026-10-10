@@ -235,8 +235,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
 
     private string? A320CommunityFolder()
     {
-        return A320ModuleInstaller.ValidCommunity(_settings.A320CommunityPath)
-            ? _settings.A320CommunityPath : A320ModuleInstaller.DetectCommunity();
+        // Once approved, NEVER silently switch to another installation.
+        // Discovery is for first-time user consent only.
+        if (_settings.A320CommunityPath is { Length: > 0 } approved)
+            return A320ModuleInstaller.ValidCommunity(approved) ? approved : null;
+        return A320ModuleInstaller.DetectCommunity();
     }
 
     private void ConfigureA320Module()
