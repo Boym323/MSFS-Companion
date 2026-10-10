@@ -114,16 +114,46 @@ nepoužívejte dashboard jako certifikovaný letový přístroj.
 
 ## Oprava TITLE a opakovaného připojování
 
-Pokud Windows bridge uváděl `ArgumentException: The value cannot be an
-empty string (Parameter 'unit')`, příčinou byla prázdná jednotka
-SimConnect při prvním čtení `TITLE` a při jeho následném 1Hz
-sledování. Obě cesty nyní předávají `string`. Starší verze
-mohly po úspěšném otevření SimConnect kvůli této výjimce
-opakovaně připojení rušit, zatímco web hlásil „Bridge připojen“.
+Původní skalární volání `GetAsync<string>("TITLE", "")` /
+`Subscribe<string>("TITLE", "")` vyvolávalo výjimku knihovny
+SimConnect.NET (`ArgumentException: unit`). Následná změna na
+`"string"` obešla toto ověření, ale nativní SimConnect SDK pro
+textovou proměnnou vyžaduje **prázdnou jednotku**.
+
+Proto obě cesty nyní používají `SimConnectAircraftTitleData`:
+strukturovaný `String256` s `[SimConnect("TITLE", "", ...)]`.
+Tato cesta posílá do nativního SDK skutečně prázdnou jednotku
+a neprochází skalárním validátorem argumentu `unit`.
+Stejný problém měla textová SimVar `GPS WP NEXT ID` pro navigaci:
+nyní také používá samostatný strukturovaný `String256` s prázdnou
+nativní jednotkou.
 
 Bridge a MSFS mají v horním panelu oddělené stavy. Po aktualizaci
 Windows instalace spusťte MSFS 2020, načtěte let a ověřte
 `SIMCONNECT LIVE`, reálnou telemetrii i změnu názvu letadla
-bez převzetí starých hodnot. Automatická CI ověřuje pouze
-kontrakt jednotky a chod bridge bez simulátoru;
-skutečné potvrzení vyžaduje Windows s běžícím MSFS.
+bez převzetí starých hodnot. CI ověřuje layout String256 a
+kontrakt jednotky, skutečné potvrzení vyžaduje Windows s MSFS.
+
+## Stabilita po A320-01: identita není životní podmínkou PFD
+
+Dřívější verze ukončovala celé SimConnect spojení, pokud 1Hz
+subscription `TITLE` neaktualizovala identitu do 10 sekund, nebo
+pokud se její odběr ukončil. To vyvolávalo opakované reconnecty
+navzdory zdravým letovým SimFrames.
+
+Nyní jsou dvě nezávislé podmínky:
+
+- **PFD / mapa / letová telemetrie** běží podle živých validních SimFrame
+  (6s watchdog); stale nebo dočasně nedostupné TITLE ji nevypíná.
+- **Povely do kokpitu a ověřený A320 readback** vyžadují čerstvé, shodné
+  TITLE (10 sekund). Prázdná hodnota okamžitě odnímá důvěru. Při
+  ukončeném TITLE odběru se ovládání zablokuje a odběr zkusí obnovit
+  po 5 sekundách. Potvrzená změna názvu letadla dál vynutí nový
+  SimConnect session kvůli odstranění starých aircraft subscriptions.
+
+Při podezření na výpadek otevřete `/api/status`:
+pokud `connectionAttempts` roste spolu s `lastError`, zkontrolujte
+`%LOCALAPPDATA%\\MSFS Companion\\windows-host.log`.
+Pokud stabilně přijímáte `incomingRateHz`, ale `/api/aircraft/identity`
+hlásí `trusted=false`, jde o problém pomalého TITLE readeru, ne o
+pád základního spojení. Ověření na skutečném MSFS 2020 je stále nutné.

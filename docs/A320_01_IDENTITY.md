@@ -7,11 +7,15 @@ neprokazuje instalaci původní Asobo V1. Addony A32NX/Fenix/iniBuilds
 se za Asobo nevydávají.
 
 SimConnect bridge po spojení zjišťuje TITLE a následně
-ho odebírá nezávisle každou sekundu. Změna či ztráta identity
-**okamžitě odebere důvěru v příkazy** a připojení se znovu
-naváže se smazanými sekundárními daty. Neplatná/stará
-identita (10 s) nemůže odeslat příkaz. Stav je read-only
-`GET /api/aircraft/identity`, s atributem `trusted`.
+ho odebírá nezávisle každou sekundu. **Potvrzená změna letadla**
+okamžitě odebere důvěru v příkazy a vyžádá nové SimConnect
+subscriptions s vyčištěnými sekundárními daty. **Chybějící či stará
+identita (10 s) nepřerušuje živý PFD**, ale ihned/po vypršení
+čerstvosti zablokuje ovládání a skryje neověřený Airbus readback.
+Ukončený odběr TITLE se obnovuje odděleně po 5 sekundách.
+Při opožděném prvním TITLE se ověřená identita zavede bez restartu
+a případné read-only Airbus subscriptions se spustí dodatečně.
+Stav je read-only `GET /api/aircraft/identity` (`trusted`).
 
 Pro každý známý Airbus / A320, včetně rozpoznaných variant A318/A319/A321,
 A330/A350/A380 a samostatných názvů iniBuilds, se blokují generické

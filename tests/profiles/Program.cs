@@ -1,5 +1,8 @@
 using MsfsCompanion.Bridge.Aircraft;
 using MsfsCompanion.Bridge.Telemetry;
+using SimConnect.NET;
+using SimConnect.NET.SimVar;
+using System.Runtime.InteropServices;
 static void Check(bool x, string reason) { if (!x) throw new Exception(reason); }
 Check(AircraftProfileResolver.Resolve("Cessna 172 Skyhawk G1000").Id == "c172", "c172");
 Check(AircraftProfileResolver.Resolve("CubCrafters NXCub").Id == "nxcub", "specific before general");
@@ -10,8 +13,23 @@ Check(AircraftProfileResolver.Resolve("Asobo Airbus A320neo").Id == "a320-asobo-
 Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "airbus-addon", "fbw separated");
 Check(AircraftProfileResolver.Resolve("Fenix Airbus A320").Id == "airbus-addon", "fenix separated");
 Check(AircraftProfileResolver.Resolve("iniBuilds Airbus A320neo").Id == "airbus-addon", "v2 separated");
-// SimConnect.NET odmítá prázdnou jednotku v TITLE GetAsync/Subscribe.
-Check(SimConnectTelemetrySource.AircraftTitleUnit == "string", "TITLE SimVar unit is nonempty string");
+// SimConnect strings MUST pass empty units to the native SDK. The scalar
+// Subscribe overload rejects empty units; a typed struct avoids that bug.
+var titleField=typeof(SimConnectAircraftTitleData).GetField(nameof(SimConnectAircraftTitleData.Title));
+var titleAttr=titleField?.GetCustomAttributes(typeof(SimConnectAttribute),false)
+    .OfType<SimConnectAttribute>().SingleOrDefault();
+Check(titleAttr?.Name=="TITLE" && titleAttr.Unit=="" &&
+      titleAttr.DataType==SimConnectDataType.String256,
+    "TITLE must use native String256 definition with empty SimConnect unit");
+Check(Marshal.SizeOf<SimConnectAircraftTitleData>()==256,
+    "TITLE payload must match native 256-byte ANSI struct");
+var wpField=typeof(SimConnectNextWaypointIdData).GetField(nameof(SimConnectNextWaypointIdData.Name));
+var wpAttr=wpField?.GetCustomAttributes(typeof(SimConnectAttribute),false)
+    .OfType<SimConnectAttribute>().SingleOrDefault();
+Check(wpAttr?.Name=="GPS WP NEXT ID" && wpAttr.Unit=="" &&
+      wpAttr.DataType==SimConnectDataType.String256 &&
+      Marshal.SizeOf<SimConnectNextWaypointIdData>()==256,
+    "GPS WP NEXT ID must use native String256 with empty SimConnect unit");
 Check(AircraftProfileResolver.IsAirbusLike("A320neo"),"airbus identification");
 Check(AircraftProfileResolver.IsAirbusLike("iniBuilds A321neo"),"A321 addon must be Airbus-protected");
 Check(AircraftProfileResolver.IsAirbusLike("Airbus A350-900"),"other Airbus family AP policy");
@@ -29,6 +47,31 @@ identity.Reset();
 Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(5)),"reset blocks control");
 identity.Begin("Airbus A320neo",at);
 Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(11)),"stale identity cannot control");
+// Regression: after 10s of missing TITLE callbacks, PFD must remain alive
+// while command authorization expires. Only a real TITLE change reconnects.
+Check(!identity.RequiresReconnect,"stale identity alone must not restart SimConnect");
+identity.Observe("Airbus A320neo",at.AddSeconds(12));
+Check(identity.Trusted("Airbus A320neo",at.AddSeconds(13)),
+    "matching TITLE heartbeat restores trust");
+identity.Observe("",at.AddSeconds(14));
+Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(14)),
+    "blank TITLE immediately blocks controls");
+Check(!identity.RequiresReconnect,"missing TITLE must not restart live PFD");
+identity.Observe("Airbus A320neo",at.AddSeconds(15));
+Check(identity.Trusted("Airbus A320neo",at.AddSeconds(15)),
+    "matching TITLE recovers after transient blank sample");
+identity.MarkUnavailable();
+Check(!identity.Trusted("Airbus A320neo",at.AddSeconds(16)),
+    "failed TITLE subscription must revoke controls");
+identity.Observe("Cessna 172",at.AddSeconds(17));
+Check(identity.RequiresReconnect,"genuine aircraft switch must reconnect");
+identity.Reset();
+identity.Begin(null,at);
+Check(!identity.Trusted("Letadlo MSFS (SimConnect)",at.AddSeconds(1)),
+    "display-only placeholder is never a trusted aircraft identity");
+identity.Observe("Airbus A320neo",at.AddSeconds(2));
+Check(!identity.RequiresReconnect && identity.Trusted("Airbus A320neo",at.AddSeconds(2)),
+    "late initial TITLE must establish identity without a reconnect");
 Check(AircraftProfileResolver.Resolve("RandomAircraft").Id == "generic", "fallback");
 Check(!AircraftProfileResolver.Resolve("Cessna 172").Verified, "not verified");
 Console.WriteLine("PASS: aircraft profiles and generic fallback.");
