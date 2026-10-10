@@ -70,7 +70,7 @@ export default function A320SystemsPanel({live,aircraft,identified,
  const validEngines=trusted?latestValue(engines,enginesAgeMs):null;
  const validAux=trusted?latestValue(aux,auxAgeMs):null;
  const validModes=trusted?latestValue(modes,modesAgeMs):null;
- const flags:ReadonlyArray<{label:string;key:keyof CockpitSystemFlags}>=[
+ const flags:ReadonlyArray<{label:string;key:Exclude<keyof CockpitSystemFlags,'timestampUtc'>}>=[
   {label:'LAND',key:'landing'}, {label:'TAXI',key:'taxi'},
   {label:'NAV',key:'nav'},{label:'BEACON',key:'beacon'},
   {label:'STROBE',key:'strobe'}, {label:'PITOT HEAT',key:'pitot'}
