@@ -6,6 +6,7 @@ import A320FcuControlPanel from './A320FcuControlPanel';
 import A320HEventsPanel from './A320HEventsPanel';
 import A320FcuCockpit from './A320FcuCockpit';
 import A320EfisNd from './A320EfisNd';
+import A320SystemsPanel from './A320SystemsPanel';
 import './A320Dashboard.css';
 
 type Engines={
@@ -123,6 +124,11 @@ export default function A320Dashboard({telemetry,live}:{
   <A320EfisNd live={live} telemetry={telemetry}
    identified={!!status?.connected&&status.aircraft===aircraft}
    navigation={navigation}/>
+  <A320SystemsPanel live={live} aircraft={aircraft}
+   identified={!!status?.connected&&status.aircraft===aircraft}
+   engines={e} enginesAgeMs={status?.enginesAgeMs??null}
+   aux={aux} auxAgeMs={status?.auxAgeMs??null}
+   modes={modes} modesAgeMs={status?.modesAgeMs??null}/>
   <details className="a320-diagnostics" onToggle={event=>
     setShowDiagnostics(event.currentTarget.open)}>
     <summary>Diagnostika a pokročilé informace <span>Referenční hodnoty, motory, logy a testy</span></summary>
