@@ -106,13 +106,13 @@ export default function App() {
         aircraft={sourceIsLive ? telemetry?.aircraft ?? null : null} />
 
       <main>
-        <div className="intro">
+        {!isA320&&<div className="intro">
           <div className="eyebrow">{page.eyebrow}</div>
           <h1>{page.heading}</h1>
           <p>{page.description}</p>
-        </div>
+        </div>}
 
-        <section className={isPfd ? 'summary summary--compact' : 'summary'}>
+        {(pathname==='/admin'||pathname==='/')&&<section className="summary">
           <article>
             <span className="label">Zdroj dat</span>
             <strong>{sourceLabel}</strong>
@@ -130,9 +130,9 @@ export default function App() {
               ? `Stáří vzorku ${Math.round(lastUpdateAgeMs)} ms`
               : sourceMode === 'simconnect' ? `Pokus o spojení č. ${sourceStatus?.connectionAttempts ?? 0}` : 'Dosud bez dat'}</span>
           </article>
-        </section>
+        </section>}
 
-        {sourceIsLive && sourceStatus && (
+        {(isHealth||pathname==='/admin'||pathname==='/')&&sourceIsLive && sourceStatus && (
           <details className="telemetry-diagnostics">
             <summary>Diagnostika přenosu · {sourceStatus?.incomingRateHz.toFixed(1)} / {sourceStatus?.sampleRateHz.toFixed(1)} Hz</summary>
             <div className="telemetry-diagnostics-body">

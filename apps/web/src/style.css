@@ -267,3 +267,62 @@ h2 { margin: 0 0 20px; font-size: 17px; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .cockpit-primary-nav a, .cockpit-secondary-nav a { transition: none; }
 }
+
+/* UI-REF-3/4 · unified shell tokens; components may preserve instrument-specific
+   textures, but typography/spacing/backgrounds share one visual language. */
+:root{
+ --kokpit-surface:#101d30;
+ --kokpit-surface-raised:#192c40;
+ --kokpit-surface-deep:#0b1725;
+ --kokpit-border:#35536a;
+ --kokpit-text:#e6f1f8;
+ --kokpit-text-muted:#b3c9d8;
+ --kokpit-accent:#8ec4e5;
+ --kokpit-gap-xs:4px;
+ --kokpit-gap-sm:8px;
+ --kokpit-gap-md:12px;
+ --kokpit-gap-lg:16px;
+ --kokpit-gap-xl:24px;
+ --kokpit-radius:9px;
+}
+.cockpit-topbar{min-height:64px;padding-block:8px}
+.cockpit-topbar .brand-icon{width:38px;height:38px;border-radius:9px}
+.cockpit-statuses .connection,.simulator-connection{padding:7px 11px;font-size:12px}
+.cockpit-navigation{margin-bottom:19px}
+.cockpit-primary-nav,.cockpit-secondary-nav{
+ display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+ overscroll-behavior-x:contain;scrollbar-width:thin;
+ scroll-snap-type:x proximity;max-width:100%;white-space:nowrap;
+ padding:7px 0;gap:5px
+}
+.cockpit-primary-nav a,.cockpit-secondary-nav a{
+ flex:0 0 auto;scroll-snap-align:start;
+ min-height:44px;display:inline-flex;align-items:center;
+ padding:10px 13px;white-space:nowrap;
+ font-size:13px
+}
+.cockpit-secondary-nav{padding-block:4px 7px}
+.cockpit-secondary-nav a{padding:8px 11px;font-size:12px}
+.intro{margin-bottom:18px}
+.intro h1{font-size:clamp(23px,3vw,32px);margin:4px 0 2px}
+.intro p{font-size:13px;line-height:1.5}
+.shell>main{min-width:0}
+@media(max-width:760px){
+ .shell{padding-inline:clamp(12px,3vw,18px)}
+ .cockpit-navigation{margin-bottom:14px}
+ .cockpit-topbar{padding-block:7px;min-height:56px}
+ .cockpit-topbar .brand-icon{width:36px;height:36px}
+ .cockpit-primary-nav,.cockpit-secondary-nav{
+  display:flex;flex-wrap:nowrap;overflow-x:auto;
+  scroll-snap-type:x proximity
+ }
+ .cockpit-primary-nav a,.cockpit-secondary-nav a{
+  flex:0 0 auto;min-height:44px;white-space:nowrap;text-align:left
+ }
+}
+@media(max-width:470px){
+ .cockpit-primary-nav{display:flex;grid-template-columns:none}
+ .cockpit-statuses{width:auto;flex-wrap:wrap}
+ .cockpit-topbar{gap:8px}
+ .cockpit-topbar .brand small{max-width:min(70vw,330px)}
+}
