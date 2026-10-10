@@ -156,4 +156,40 @@ Check(expired.GetProperty("state").GetString()=="unconfirmed","unconfirmed timeo
 gate.Disarm();
 Check(!gate.Armed(generation,title,at.AddSeconds(5)),"pilot revocation");
 
+
+// In-sim WASM protocol: fixed-size packets and exact semantic operation IDs.
+Check(System.Runtime.InteropServices.Marshal.SizeOf<A320WasmProtocol.Command>()==16,
+    "WASM request packet size");
+Check(System.Runtime.InteropServices.Marshal.SizeOf<A320WasmProtocol.Reply>()==16,
+    "WASM reply packet size");
+var wasmActions=new [] {
+    ("a320.fcu.speed.selected",1u),
+    ("a320.fcu.speed.managed",2u),
+    ("a320.fcu.heading.selected",3u),
+    ("a320.fcu.heading.managed",4u),
+    ("a320.fcu.altitude.selected",5u),
+    ("a320.fcu.altitude.managed",6u)
+};
+Check(A320WasmProtocol.AvailableActions.Count==6,"limited module command set");
+foreach(var (command,expected) in wasmActions)
+    Check(A320WasmProtocol.TryResolve(command,out var code) && code==expected,
+        "WASM op mapping: "+command);
+Check(!A320WasmProtocol.TryResolve("a320.fcu.ap1.on",out _),"no AP1 activation");
+Check(!A320WasmProtocol.TryResolve("a320.fcu.speed.set;EXEC",out _),
+    "no arbitrary WASM script");
+Check(!A320WasmProtocol.TryResolve("autopilot.on",out _),"no generic AP bypass");
+Check(!A320WasmProtocol.TryResolve(null,out _),"null WASM op denied");
+Check(A320WasmProtocol.Valid(new A320WasmProtocol.Reply {
+    Magic=A320WasmProtocol.Magic,Version=1,Sequence=42,Status=1
+},42),"valid ack");
+Check(!A320WasmProtocol.Valid(new A320WasmProtocol.Reply {
+    Magic=A320WasmProtocol.Magic,Version=2,Sequence=42,Status=1
+},42),"protocol version mismatch denied");
+Check(!A320WasmProtocol.Valid(new A320WasmProtocol.Reply {
+    Magic=A320WasmProtocol.Magic,Version=1,Sequence=41,Status=1
+},42),"stale/replayed sequence denied");
+Check(!A320WasmProtocol.Valid(new A320WasmProtocol.Reply {
+    Magic=0,Version=1,Sequence=42,Status=1
+},42),"foreign packet denied");
+
 Console.WriteLine("A320 readback PASS: FCU slots, independent N1/N2, stale and identity guard");

@@ -157,6 +157,11 @@ jobs:
       - name: A320-02/03 Airbus read-only SimVars and FCU validity
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/airbus-logic/MsfsCompanion.A320Check.csproj --configuration Release
+      - name: A320 WASM H-event allowlist and replay (mock SDK, not real simulator)
+        if: needs.changes.outputs.all == 'true' || needs.changes.outputs.smoke == 'true'
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -Itests/a320-wasm-sdk-stub tests/a320-wasm-native.cpp -o /tmp/kokpit-a320-wasm-contract
+          /tmp/kokpit-a320-wasm-contract
       - name: Runtime smoke tests (HTTP, WebSocket, mock)
         if: needs.changes.outputs.smoke == 'true' || needs.changes.outputs.all == 'true'
         run: |
