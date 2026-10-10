@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import WindowsHostLogPanel from './WindowsHostLogPanel';
 import './SystemHealth.css';
 type Indicator = {id:string;label:string;state:string;detail:string};
 type Cache = { available?:boolean; loaded?:boolean; stale?:boolean;
@@ -77,5 +78,6 @@ export default function SystemHealth(){
         Exportovat anonymizovanou diagnostiku JSON
       </button>
     </>}
+    <WindowsHostLogPanel />
   </section>;
 }
