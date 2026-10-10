@@ -344,3 +344,28 @@
 .a320-hw-knob:disabled{opacity:1;filter:none}
 .a320-hw-round-push:disabled{opacity:1}
 .a320-hw-service[open]>summary{border-bottom:1px solid #38556a}
+
+/* UI-REF-10: retain the aircraft's 1200 × 400 coordinate plane. The wrapper
+   owns the scaled box dimensions, so fit mode never scrolls the entire page. */
+.a320-hw-viewer{min-width:0;max-width:100%}
+.a320-hw-view-modes{display:flex;align-items:center;justify-content:space-between;
+ gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.a320-hw-view-options{display:flex;align-items:center;gap:5px}
+.a320-hw-view-modes button{min-height:44px;padding:9px 13px;color:#c9dfeb;
+ border:1px solid #3b5b72;border-radius:7px;background:#142c40;
+ font:650 13px/1.2 inherit;cursor:pointer}
+.a320-hw-view-modes button[aria-pressed="true"]{color:#fff;border-color:#81b7da;
+ background:#22506d}
+.a320-hw-view-modes button:focus-visible{outline:3px solid #8bd3fa;outline-offset:2px}
+.a320-hw-scaled{position:relative;width:1200px;height:400px;margin-inline:auto}
+.a320-hw-scaled>.a320-hw-faceplate{margin:0;transform-origin:top left}
+.a320-hw-viewer.is-fullscreen{position:fixed;inset:0;z-index:1000;
+ display:flex;flex-direction:column;max-width:none;
+ background:#08121e;padding:clamp(10px,2vw,24px);overflow:hidden}
+.a320-hw-viewer.is-fullscreen .a320-hw-scroll{min-height:0;flex:1;
+ display:flex;align-items:center;max-height:100%;max-width:100%}
+.a320-hw-viewer.is-fullscreen .a320-hw-scaled{flex:0 0 auto;margin-inline:auto}
+@media(max-width:600px){
+ .a320-hw-view-modes button{padding:8px 10px;font-size:12px}
+ .a320-hw-viewer.is-fullscreen .a320-hw-scroll{align-items:flex-start}
+}
