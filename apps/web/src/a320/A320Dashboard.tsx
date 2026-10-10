@@ -61,7 +61,7 @@ export default function A320Dashboard({telemetry,live}:{
  }
  const aircraft=telemetry?.aircraft??'';
  // Reset the GPS reader whenever trusted A320 identity is absent or changes.
- const navigation=useFlightNavigation(activeTab==='nd'&&live&&!!status?.connected&&status.aircraft===aircraft);
+ const navigation=useFlightNavigation((activeTab==='nd'||activeTab==='diagnostics')&&live&&!!status?.connected&&status.aircraft===aircraft);
  useEffect(()=>{setBaseline(null);setAfter(null);},[aircraft,live]);
  useEffect(()=>{
    if(!live||!aircraft){setStatus(null);return;}
@@ -119,8 +119,8 @@ export default function A320Dashboard({telemetry,live}:{
    <div>
     <p className="a320-eyebrow">ASOBO A320NEO V1 · KOKPIT</p>
     <h2>Airbus A320neo · systémy</h2>
-    <p>Živá referenční data a zabezpečené ovládání Airbus FCU.
-       Neověřené funkce zůstávají zamčené; diagnostika je níže.</p>
+    <p>Přístroje a referenční data původního Asobo A320neo.
+       Neověřené funkce zůstávají zamčené; testy jsou v záložce Diagnostika.</p>
    </div>
    <span className="a320-status" role="status">
     {status?'Referenční SimConnect data · Airbus FMA neověřeno':
@@ -266,8 +266,10 @@ export default function A320Dashboard({telemetry,live}:{
    </section>}
   </div>
   <p className="a320-footer">Typ: {status?.aircraft??'—'} ·
-    FCU {f?Math.round(status?.fcuAgeMs??0)+' ms':'nedostupné'} ·
-    ENG {e?Math.round(status?.enginesAgeMs??0)+' ms':'nedostupné'}.
+    FCU {f&&status?.fcuAgeMs!=null&&Number.isFinite(status.fcuAgeMs)?
+      Math.round(status.fcuAgeMs)+' ms':'nedostupné'} ·
+    ENG {e&&status?.enginesAgeMs!=null&&Number.isFinite(status.enginesAgeMs)?
+      Math.round(status.enginesAgeMs)+' ms':'nedostupné'}.
     Nedostupné hodnoty jsou „—“, ne falešná nula.</p>
  </section>;
 }
