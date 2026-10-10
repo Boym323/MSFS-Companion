@@ -138,12 +138,23 @@ internal static class A320ModuleInstaller
             if (IsReparse(target)) return false;
             var modules = Path.Combine(target, "modules");
             if (!Directory.Exists(modules) || IsReparse(modules)) return false;
-            var allowed = new HashSet<string>(Payload.Select(x => x.Replace('/',
-                Path.DirectorySeparatorChar)), StringComparer.OrdinalIgnoreCase) { MarkerName };
-            var files = Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories)
-                .Select(x => Path.GetRelativePath(target, x)).ToList();
-            if (files.Count != allowed.Count || !files.All(allowed.Contains)) return false;
-            return files.All(rel => !IsReparse(Path.Combine(target, rel)));
+            // Never recursively enumerate a folder before checking its exact
+            // shape: an unexpected junction could escape the Community root.
+            var dirs = Directory.EnumerateDirectories(target, "*",
+                SearchOption.TopDirectoryOnly).ToList();
+            if (dirs.Count != 1 ||
+                !string.Equals(Path.GetFileName(dirs[0]), "modules",
+                    StringComparison.OrdinalIgnoreCase)) return false;
+            var rootFiles = Directory.EnumerateFiles(target, "*",
+                SearchOption.TopDirectoryOnly).ToList();
+            var moduleFiles = Directory.EnumerateFiles(modules, "*",
+                SearchOption.TopDirectoryOnly).ToList();
+            if (rootFiles.Count != 3 || moduleFiles.Count != 1) return false;
+            var rootAllowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { "manifest.json", "layout.json", MarkerName };
+            if (!rootFiles.All(x => rootAllowed.Contains(Path.GetFileName(x))) ||
+                Path.GetFileName(moduleFiles[0]) != "kokpit-a320.wasm") return false;
+            return rootFiles.Concat(moduleFiles).All(x => !IsReparse(x));
         }
         catch { return false; }
     }
@@ -258,7 +269,9 @@ internal static class A320ModuleInstaller
         }
         finally
         {
-            if (Directory.Exists(stage)) Directory.Delete(stage, recursive: true);
+            try { if (Directory.Exists(stage) && !IsReparse(stage))
+                Directory.Delete(stage, recursive: true); }
+            catch (Exception ex) { EventLogFile.Write("A320 staging cleanup: " + ex.GetType().Name); }
         }
     }
 
