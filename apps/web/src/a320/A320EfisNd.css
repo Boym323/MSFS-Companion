@@ -1,0 +1,64 @@
+.a320-efis-nd{background:#101d2c;border:1px solid #35526b;border-radius:10px;
+ padding:19px;margin:18px 0;color:#e3edf7;min-width:0}
+.a320-efis-header{display:flex;align-items:center;justify-content:space-between;
+ gap:16px;flex-wrap:wrap;margin:0 0 16px}
+.a320-efis-eyebrow{font-size:10px;font-weight:800;letter-spacing:.13em;
+ color:#7fb6df;margin:0 0 4px}
+.a320-efis-header h3{margin:0;font-size:18px}
+.a320-efis-source{font-size:11px;color:#acc3d4;background:#1b3349;
+ border:1px solid #426781;padding:8px 11px;border-radius:5px}
+.a320-efis-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,1.13fr);
+ align-items:stretch;gap:18px}
+.a320-efis-controls{min-width:0;display:grid;gap:14px;align-content:start}
+.a320-efis-control-section{min-width:0;background:#1a2b3b;border:1px solid #3e5569;
+ padding:12px;border-radius:7px}
+.a320-efis-control-section h4{margin:0 0 10px;font-size:12px;letter-spacing:.07em}
+.a320-efis-control-section h4 small{display:block;font-size:11px;color:#aec0d1;
+ font-weight:400;letter-spacing:0;margin-top:5px}
+.a320-efis-toggle-row,.a320-efis-range-row,.a320-efis-overlays{display:flex;
+ flex-wrap:wrap;gap:7px}
+.a320-efis-toggle-row button,.a320-efis-range-row button,.a320-efis-flag-button{
+ min-height:46px;min-width:46px;padding:8px 11px;border-radius:4px;
+ border:1px solid #607589;background:#213a4d;color:#e8f0f8;
+ font:700 12px Arial,sans-serif;cursor:pointer}
+.a320-efis-toggle-row button.selected,.a320-efis-range-row button.selected{
+ background:#325c69;border-color:#9ac1bf;color:#f8ffff;
+ box-shadow:inset 0 0 0 1px #a2ccbc55}
+.a320-efis-toggle-row button:disabled,.a320-efis-flag-button:disabled{
+ opacity:.48;cursor:not-allowed}
+.a320-efis-overlays button{font-size:11px}
+.a320-efis-control-section p{font-size:11px;color:#a4bed0;line-height:1.6;margin:10px 0 0}
+.a320-efis-controls button:focus-visible{outline:2px solid #aedfff;outline-offset:3px}
+.a320-efis-data-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px;margin:0}
+.a320-efis-data-list>div{display:grid;gap:5px;padding:10px;
+ background:#162b40;border:1px solid #345573;min-width:0;border-radius:5px}
+.a320-efis-data-list span{font-size:10px;color:#b0c9d7;letter-spacing:.07em}
+.a320-efis-data-list strong{font-size:13px;overflow-wrap:anywhere;
+ color:#f0f5fa}
+.a320-nd-view{min-width:0;background:#030d10;border:2px solid #516874;
+ border-radius:10px;padding:6px;box-shadow:inset 0 5px 20px #000}
+.a320-nd-view svg{width:100%;height:auto;display:block;max-height:500px}
+.a320-nd-background{fill:#07100e}
+.a320-nd-range-ring{fill:none;stroke:#336c61;stroke-width:1;stroke-dasharray:5 5}
+.a320-nd-range-label{font:11px Consolas,monospace;fill:#68a999}
+.a320-nd-hdg-tick{stroke:#c4e7c6;stroke-width:1.4}
+.a320-nd-hdg-text{font:13px Consolas,monospace;fill:#d6e2d0}
+.a320-nd-heading-box{stroke:#d0dcd4;fill:#10251e;stroke-width:1}
+.a320-nd-heading-number{font:700 20px Consolas,monospace;fill:#d5eee0}
+.a320-nd-flag{font:700 11px Consolas,monospace;fill:#67aab8;letter-spacing:1px}
+.a320-nd-aircraft-pointer{fill:#f8d643}
+.a320-nd-aircraft{fill:none;stroke:#f6cd39;stroke-width:3}
+.a320-nd-bearing-line{stroke:#e292ef;stroke-width:2;stroke-dasharray:4 6}
+.a320-nd-waypoint-symbol{stroke:#ff5aff;fill:none;stroke-width:2}
+.a320-nd-waypoint-label{font:700 14px Consolas,monospace;fill:#e59fe9}
+.a320-nd-unavailable{fill:#e9c671;font:700 13px Consolas,monospace}
+.a320-nd-footer{display:flex;gap:10px;justify-content:space-between;
+ flex-wrap:wrap;color:#60c5c2;font:700 12px Consolas,monospace;padding:3px 12px 10px}
+.a320-efis-disclaimer{font-size:11px;line-height:1.6;color:#9cb8ca;margin:13px 0 0}
+@media(max-width:1030px){.a320-efis-layout{grid-template-columns:1fr}
+ .a320-efis-controls{order:2}.a320-nd-view{order:1}}
+@media(max-width:470px){.a320-efis-nd{padding:11px}
+ .a320-efis-data-list{grid-template-columns:1fr 1fr}
+ .a320-nd-footer{font-size:10px}
+ .a320-nd-unavailable{font-size:10px}}
