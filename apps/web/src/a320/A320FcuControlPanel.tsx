@@ -69,9 +69,11 @@ export default function A320FcuControlPanel({live,aircraft}:{
     }
     setBusy(true);setMessage('');
     try{
+      const token=window.sessionStorage.getItem('msfs-companion-control-session');
       const r=await fetch('/api/a320/controls/command',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json',
+          ...(token?{'X-MSFS-Control-Token':token}:{})},
         body:JSON.stringify({command:action.command,value:n})
       });
       if(!r.ok){
