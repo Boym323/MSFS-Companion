@@ -57,7 +57,6 @@ function Window({id,label,extra,value}:{id:string;label:string;extra?:string;val
    <div className="a320-hw-led-frame">
     <LedNumber value={value} label={label} characters={id==='altitude'?5:id==='vs'?5:id==='speed'&&value.includes('.')?4:3}/>
    </div>
-  </details>
  </div>;
 }
 
