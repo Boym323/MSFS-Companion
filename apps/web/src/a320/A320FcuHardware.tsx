@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef,useState} from 'react';
 import {fcuSpecs,formatFcuValue,nextFcuReference,validateFcuReference,
  type FcuField,type FcuReference} from './fcuUiModel';
 import './A320FcuHardware.css';
@@ -57,19 +57,21 @@ function Window({id,label,extra,value}:{id:string;label:string;extra?:string;val
    <div className="a320-hw-led-frame">
     <LedNumber value={value} label={label} characters={id==='altitude'?5:id==='vs'?5:id==='speed'&&value.includes('.')?4:3}/>
    </div>
+  </details>
  </div>;
 }
 
-function Selector({label,subLabel,onClick,active=false}:{
- label:string;subLabel?:string;onClick?:()=>void;active?:boolean
-}){
- return <button type="button" className={'a320-hw-selector'+(active?' is-positioned':'')}
-  onClick={onClick} disabled={!onClick}
-  title={onClick?label+' — přepíná pouze zobrazení na webu':
-   label+' — skutečná poloha v letadle zatím není k dispozici'}
-  aria-label={label+(subLabel?' '+subLabel:'')+(onClick?' (lokální nastavení)':' (nedostupné)')}>
-   <span className="a320-hw-selector-lip"/><span className="a320-hw-selector-center"/>
- </button>;
+/** The little FCU selectors are push buttons, not rotary knobs.
+ * Their simulator state is not available so they must never imply an active mode.
+ */
+function RoundPush({label,onClick}:{label:string;onClick?:()=>void}){
+ return <button type="button" className="a320-hw-round-push" disabled={!onClick}
+  onClick={onClick}
+  title={onClick?label+' – pouze změna webového zobrazení':
+   label+' – ovládání v simulátoru zatím není ověřeno'}
+  aria-label={label+(onClick?' (mění pouze web)':' (neaktivní)')}>
+   <span className="a320-hw-round-rim"><span className="a320-hw-round-inner"/></span>
+  </button>;
 }
 
 function PushButton({children,small=false}:{children:string;small?:boolean}){
@@ -84,26 +86,41 @@ function Knob({label,onMinus,onPlus,disabled,altitude=false,vertical=false}:{
  label:string;onMinus:()=>void;onPlus:()=>void;disabled:boolean;
  altitude?:boolean;vertical?:boolean
 }){
+ const gesture=useRef<{id:number;x:number;y:number}|null>(null);
  return <div className={'a320-hw-knob-group'+(altitude?' is-alt':'')+(vertical?' is-vs':'')}>
-  {altitude&&<div className="a320-hw-knob-markings"><span>100</span><span>1000</span></div>}
-  {vertical&&<div className="a320-hw-vs-arrows" aria-hidden="true">
-   <span className="a320-hw-vs-up">↶ UP</span><span className="a320-hw-vs-down">DN ↷</span>
-  </div>}
-  <div className="a320-hw-knob-control">
-   <button className="a320-hw-tiny-step" type="button" disabled={disabled}
-    onClick={onMinus} aria-label={label+' snížit požadovanou hodnotu'}>−</button>
-   <button type="button" className="a320-hw-knob" disabled={disabled}
-    title={label+' – dotykem zvýšit požadovanou hodnotu; − / + upravuje pouze návrh hodnoty'}
-    onClick={onPlus}
-    onWheel={e=>{if(!disabled){e.preventDefault();(e.deltaY>0?onMinus:onPlus)();}}}
-    aria-label={label+' – otočný ovladač, klepnutím zvýšit návrh hodnoty'}>
-    <span className="a320-hw-knob-bezel"><span className="a320-hw-knob-grip">
-     <span className="a320-hw-knob-top"><span className="a320-hw-knob-pointer"/></span>
-    </span></span>
-   </button>
-   <button className="a320-hw-tiny-step" type="button" disabled={disabled}
-    onClick={onPlus} aria-label={label+' zvýšit požadovanou hodnotu'}>+</button>
-  </div>
+  <button type="button" className="a320-hw-knob" disabled={disabled}
+   title={label+' – posunutí doprava/zleva mění návrh; na hodnotu v letadle se použije NASTAVIT'}
+   aria-label={label+' – otočný ovladač. Tažením doprava přidat, doleva ubrat. Klávesy šipek.'}
+   onPointerDown={e=>{
+    if(disabled||e.button!==0)return;
+    gesture.current={id:e.pointerId,x:e.clientX,y:e.clientY};
+    e.currentTarget.setPointerCapture(e.pointerId);
+   }}
+   onPointerUp={e=>{
+    const start=gesture.current;
+    gesture.current=null;
+    if(!start||start.id!==e.pointerId||disabled)return;
+    const dx=e.clientX-start.x;
+    if(Math.abs(dx)<12){onPlus();return;}
+    const count=Math.min(8,Math.max(1,Math.floor(Math.abs(dx)/18)));
+    for(let n=0;n<count;n++){if(dx>0)onPlus();else onMinus();}
+   }}
+   onPointerCancel={()=>{gesture.current=null;}}
+   onClick={e=>{if(e.detail===0&&!disabled)onPlus();}}
+   onKeyDown={e=>{
+    if(disabled)return;
+    if(e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();onPlus();}
+    if(e.key==='ArrowDown'||e.key==='ArrowLeft'){e.preventDefault();onMinus();}
+   }}
+   onWheel={e=>{
+    if(disabled)return;
+    e.preventDefault();
+    if(e.deltaY>0)onMinus();else onPlus();
+   }}>
+   <span className="a320-hw-knob-bezel"><span className="a320-hw-knob-grip">
+    <span className="a320-hw-knob-top"><span className="a320-hw-knob-pointer"/></span>
+   </span></span>
+  </button>
  </div>;
 }
 
@@ -182,72 +199,69 @@ export default function A320FcuHardware({
     <span className="a320-hw-fastener pos-tl"/><span className="a320-hw-fastener pos-tr"/>
     <span className="a320-hw-fastener pos-bl"/><span className="a320-hw-fastener pos-br"/>
     <div className="a320-hw-windows" data-testid="a320-fcu-windows">
-     <Window id="speed" label={machMode?'MACH':'SPD'} extra={machMode?'SPD':'MACH'}
-      value={led(speedField)}/>
-     <Window id="heading" label="HDG" extra="TRK · LAT" value={led('heading')}/>
-     <Window id="altitude" label="ALT" extra="LVL / CH" value={led('altitude')}/>
+     <Window id="speed" label="SPD" extra="MACH" value={led(speedField)}/>
+     <Window id="heading" label="HDG" extra="LAT" value={led('heading')}/>
+     <div className="a320-hw-center-lamp" aria-hidden="true">
+      <span>HDG&nbsp; V/S</span><span>TRK&nbsp; FPA</span>
+     </div>
+     <Window id="altitude" label="ALT" extra="LVL/CH" value={led('altitude')}/>
      <Window id="vs" label="V/S" extra="FPA" value={led('vs')}/>
     </div>
-    <div className="a320-hw-body">
-     <div className="a320-hw-bay a320-hw-bay-speed">
-      <div className="a320-hw-switch-stack">
-       <span className="a320-hw-engrave">SPD<br/>MACH</span>
-       <Selector label="SPD / MACH" onClick={onMachMode}/>
-      </div>
+    <div className="a320-hw-hardware" data-testid="a320-fcu-hardware">
+     <div className="a320-hw-item a320-hw-spd-mode">
+      <span className="a320-hw-engrave">SPD<br/>MACH</span>
+      <RoundPush label="SPD / MACH" onClick={onMachMode}/>
+     </div>
+     <div className="a320-hw-item a320-hw-speed-knob">
       {knob(speedField,'SPD / MACH')}
-      <span className="a320-hw-etched-lower">SPD / MACH</span>
      </div>
-     <div className="a320-hw-bay a320-hw-bay-heading">
+     <div className="a320-hw-item a320-hw-heading-knob">
       {knob('heading','HDG / TRK')}
-      <span className="a320-hw-etched-lower">HDG / TRK</span>
-      <div className="a320-hw-loc"><PushButton children="LOC" small/></div>
      </div>
-     <div className="a320-hw-bay a320-hw-bay-center">
-      <div className="a320-hw-mode-switches">
-       <div><span className="a320-hw-engrave">HDG<br/>TRK</span><Selector label="HDG / TRK"/></div>
-       <div><span className="a320-hw-engrave">V/S<br/>FPA</span><Selector label="V/S / FPA"/></div>
-      </div>
-      <div className="a320-hw-ap-pair">
-       <PushButton children="AP1"/><PushButton children="AP2"/>
-      </div>
-      <div className="a320-hw-athr"><PushButton children="A/THR"/></div>
+     <div className="a320-hw-item a320-hw-loc"><PushButton>LOC</PushButton></div>
+     <div className="a320-hw-item a320-hw-central-mode">
+      <span className="a320-hw-two-line-label"><span>HDG&nbsp; V/S</span><span>TRK&nbsp; FPA</span></span>
+      <RoundPush label="HDG V/S – TRK FPA"/>
      </div>
-     <div className="a320-hw-bay a320-hw-bay-altitude">
-      <div className="a320-hw-alt-main">
-       {knob('altitude','ALT',true)}
-       <div className="a320-hw-alt-options">
-        <Selector label="METRIC ALT"/>
-        <span className="a320-hw-engrave">METRIC<br/>ALT</span>
-       </div>
-      </div>
-      <div className="a320-hw-alt-foot">
-       <button type="button" className="a320-hw-alt-step-select"
-        onClick={()=>setAltThousand(x=>!x)}
-        title="Mění jen velikost kroku při editaci webové reference, nikoli otočný přepínač v simulátoru"
-        aria-label={'Krok změny výšky: '+(altThousand?'1000':'100')+' stop; pouze web'}>
-        {altThousand?'1000':'100'} FT <span>WEB KROK</span>
-       </button>
-       <PushButton children="EXPED" small/>
-      </div>
+     <div className="a320-hw-item a320-hw-ap1"><PushButton>AP1</PushButton></div>
+     <div className="a320-hw-item a320-hw-ap2"><PushButton>AP2</PushButton></div>
+     <div className="a320-hw-item a320-hw-athr"><PushButton>A/THR</PushButton></div>
+     <div className="a320-hw-item a320-hw-altitude-knob">
+      <div className="a320-hw-knob-markings" aria-hidden="true"><span>100</span><span>1000</span></div>
+      {knob('altitude','ALT',true)}
      </div>
-     <div className="a320-hw-bay a320-hw-bay-vs">
+     <div className="a320-hw-item a320-hw-metric">
+      <RoundPush label="METRIC ALT"/>
+      <span className="a320-hw-engrave">METRIC<br/>ALT</span>
+     </div>
+     <div className="a320-hw-item a320-hw-exped"><PushButton>EXPED</PushButton></div>
+     <div className="a320-hw-item a320-hw-vs-knob">
+      <span className="a320-hw-vs-up">UP</span><span className="a320-hw-vs-down">DN</span>
       {knob('vs','V/S / FPA',false,true)}
-      <span className="a320-hw-level-off">PUSH TO<br/>LEVEL OFF</span>
-      <div className="a320-hw-appr"><PushButton children="APPR" small/></div>
      </div>
+     <div className="a320-hw-item a320-hw-level-off">PUSH TO<br/>LEVEL<br/>OFF</div>
+     <div className="a320-hw-item a320-hw-appr"><PushButton>APPR</PushButton></div>
     </div>
    </div>
   </div>
   <div className="a320-hw-support" role="note">
-   <span>SCROLL ⇆ <strong>pokud panel přesahuje šířku obrazovky</strong></span>
-   <span>Knoby mění pouze návrh hodnoty. Povel odešle až „Nastavit“.</span>
+   <span>⇆ Na užších displejích lze FCU posouvat do stran.</span>
+   <span>Táhni knob doleva/doprava pro návrh hodnoty; pro odeslání otevři webové ovládání.</span>
   </div>
+  <details className="a320-hw-service">
+   <summary><span>Rozbalit webové ovládání referencí a PUSH/PULL</span>
+    <span className="a320-hw-service-meta">Úprava hodnot a diagnostika</span></summary>
   <div className="a320-hw-dock">
    <div className="a320-hw-dock-heading">
     <div><strong>Ovládání z webu</strong><span>Referenční povely a Airbus PUSH/PULL</span></div>
     <span className={canSet?'a320-hw-dock-ok':'a320-hw-dock-locked'}>
      {canSet?'POVOLENO':'ZAMČENO'}
     </span>
+   </div>
+   <div className="a320-hw-quick-settings">
+    <label><input type="checkbox" checked={altThousand}
+      onChange={e=>setAltThousand(e.target.checked)}/>
+      Krok úpravy ALT 1000 ft (jinak 100 ft; pouze webové zadávání)</label>
    </div>
    <div className="a320-hw-editor-grid">
     <ChannelEditor key={speedField} field={speedField} liveValue={fieldValues[speedField]}
