@@ -118,3 +118,17 @@
  .a320-tab-summary{display:none}
  .a320-instrument-stage>:first-child{margin-top:5px}
 }
+
+/* UX audit 2026-10-11: keep numeric FCU controls readable and operable on narrow phones. */
+@media(max-width:600px){
+ .a320-fcu-action-grid{grid-template-columns:minmax(0,1fr)}
+ .a320-fcu-action-row{flex-wrap:nowrap}
+ .a320-fcu-action input{min-width:0}
+ .a320-fcu-action button{min-height:44px;min-width:44px}
+}
+.a320-instrument-tabs a:focus-visible,
+.a320-diagnostics>summary:focus-visible,
+.a320-fcu-action input:focus-visible,
+.a320-fcu-action button:focus-visible{
+ outline:3px solid #aadfff;outline-offset:2px
+}
