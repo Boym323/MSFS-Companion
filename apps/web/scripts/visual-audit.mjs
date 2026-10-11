@@ -162,6 +162,22 @@ try{
    await page.screenshot({path:new URL(file,out).pathname,
     fullPage:true,animations:'disabled'});
    manifest.push({file,...device,panel:screen.name,geometry,note:'offline core-page UX audit'});
+   if(screen.name==='controls'){
+    const disclosure=page.locator('.control-deck-disclosure');
+    assert.equal(await disclosure.getAttribute('open'),null,
+     device.name+': offline control deck should be collapsed');
+    await disclosure.locator('summary').click();
+    assert.equal(await disclosure.evaluate(el=>el.hasAttribute('open')),true);
+    assert.equal(await page.locator('.control-tile button').first().isDisabled(),true,
+     device.name+': opening offline deck must never enable a command');
+    const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+    assert.ok(expandedWidth<=device.width+2,device.name+': expanded controls overflow');
+    const expandedFile=device.name+'--controls-expanded.png';
+    await page.screenshot({path:new URL(expandedFile,out).pathname,
+     fullPage:true,animations:'disabled'});
+    manifest.push({file:expandedFile,...device,panel:'controls-expanded',
+     note:'offline control deck expanded; buttons must remain disabled'});
+   }
   }
   assert.deepEqual(runtimeErrors,[],device.name+': unhandled browser errors');
   await context.close();
