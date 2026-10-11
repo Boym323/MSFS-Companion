@@ -64,3 +64,18 @@
 .a320-ui-wasm-details>p{font-size:11px;line-height:1.6;
  padding:0 13px 12px;margin:0;color:#a7bace}
 @media(max-width:500px){.a320-ui-wasm-details dl{grid-template-columns:1fr}}
+
+/* UX-2026-10: keep the first mobile viewport for the instrument, with
+   optional LAN setup instructions one deliberate tap away. */
+.a320-ui-remote-help{border:1px solid #395468;border-radius:6px;
+ margin-top:10px;background:#142536}
+.a320-ui-remote-help summary{display:flex;align-items:center;min-height:44px;
+ padding:10px 13px;cursor:pointer;font-size:12px;font-weight:650;color:#d8e8f6}
+.a320-ui-remote-help p{margin:0;padding:0 13px 12px;
+ color:#b8cce0;font-size:12px;line-height:1.6}
+.a320-ui-remote-help code{overflow-wrap:anywhere}
+@media(max-width:470px){
+ .a320-ui-topline{gap:8px;margin-bottom:9px}
+ .a320-ui-flags{gap:4px}
+ .a320-ui-flags span{padding:5px 6px;font-size:9px}
+}
