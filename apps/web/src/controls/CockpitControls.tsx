@@ -181,10 +181,13 @@ export default function CockpitControls({ live }: { live: boolean }) {
   return <div className="cockpit-controls">
     <section className="control-security">
       <h2>Zabezpečení v důvěryhodné LAN</h2>
-      <p>Ve výchozím nastavení je <strong>párování vypnuté</strong> a zařízení ve stejné
-        důvěryhodné domácí podsíti mohou ovládat kokpit přímo. Volitelnou ochranu lze zapnout
-        přímo na Windows PC na adrese <code>http://127.0.0.1:8765/controls</code>.
-        Omezení na lokální síť, povolené příkazy a kontrola hodnot zůstávají aktivní.</p>
+      <details className="control-security-help">
+        <summary>Jak funguje ochrana a párování</summary>
+        <p>Ve výchozím nastavení je <strong>párování vypnuté</strong> a zařízení ve stejné
+          důvěryhodné domácí podsíti mohou ovládat kokpit přímo. Volitelnou ochranu lze zapnout
+          přímo na Windows PC na adrese <code>http://127.0.0.1:8765/controls</code>.
+          Omezení na lokální síť, povolené příkazy a kontrola hodnot zůstávají aktivní.</p>
+      </details>
       <p><strong>Ochrana:</strong> {!access ? 'Bridge nedostupný'
         : !access.enabled ? 'Vypnuta · bez párování'
         : access.paired ? 'Zapnuta · zařízení spárováno'
@@ -208,6 +211,11 @@ export default function CockpitControls({ live }: { live: boolean }) {
       {!live && <p>MSFS 2020 není živě připojen. V mock režimu nelze odesílat příkazy.</p>}
       {message && <p role="status" className="control-message">{message}</p>}
     </section>
+    <details className="control-deck-disclosure" key={live?'sim-live':'sim-offline'} open={live}>
+      <summary>{live?'Ovládací prvky rádia, autopilota a systémů':'Zobrazit ovládací prvky i bez připojeného MSFS'}
+        <span>{live?'Dostupnost povelů určuje bridge':'Příkazy zůstanou neaktivní'}</span>
+      </summary>
+      <div className="control-deck-content">
     <h2>C1 · COM/NAV a transpondér</h2>
     <div className="control-grid">{radios}</div>
     <section className="control-tile">
@@ -312,5 +320,7 @@ export default function CockpitControls({ live }: { live: boolean }) {
     </section>
     <p className="control-disclaimer">Pouze simulátor. Standardní události nemusí fungovat ve všech letadlech;
       aktuální stav je vždy nutné ověřit ve skutečné telemetrii MSFS, nikoliv podle stisku tlačítka.</p>
+      </div>
+    </details>
   </div>;
 }
