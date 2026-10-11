@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const app=readFileSync(new URL('../App.tsx',import.meta.url),'utf8');
 const style=readFileSync(new URL('../style.css',import.meta.url),'utf8');
 test('compact cockpit shell avoids duplicating the global status cards on every instrument',()=>{
- assert.match(app,/const isOverview = pathname === '\\/admin' \\|\\| pathname === '\\/'/);
- assert.match(app,/\\{isOverview&&<section className="summary">/);
+ assert.ok(app.includes("const isOverview = pathname === '/admin' || pathname === '/';"));
+ assert.ok(app.includes('{isOverview&&<section className="summary">'));
  assert.match(app,/<section className="overview-live"/);
  assert.match(app,/<details className="overview-maintenance">/);
  assert.match(app,/\{!isA320&&<div className="intro">/);
