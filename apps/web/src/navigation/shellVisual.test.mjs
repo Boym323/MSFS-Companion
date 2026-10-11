@@ -4,9 +4,12 @@ import {readFileSync} from 'node:fs';
 const app=readFileSync(new URL('../App.tsx',import.meta.url),'utf8');
 const style=readFileSync(new URL('../style.css',import.meta.url),'utf8');
 test('compact cockpit shell avoids duplicating the global status cards on every instrument',()=>{
- assert.match(app,/\(pathname==='\/admin'\|\|pathname==='\/'\)&&<section className="summary">/);
+ assert.match(app,/const isOverview = pathname === '\\/admin' \\|\\| pathname === '\\/'/);
+ assert.match(app,/\\{isOverview&&<section className="summary">/);
+ assert.match(app,/<section className="overview-live"/);
+ assert.match(app,/<details className="overview-maintenance">/);
  assert.match(app,/\{!isA320&&<div className="intro">/);
- assert.match(app,/\(isHealth\|\|pathname==='\/admin'\|\|pathname==='\/'\)/);
+ assert.match(app,/isHealth&&sourceIsLive && sourceStatus/);
 });
 test('top level navigation stays one horizontal accessible scrolling row on mobile',()=>{
  assert.match(style,/\.cockpit-primary-nav,\.cockpit-secondary-nav\{[\s\S]*?flex-wrap:nowrap;overflow-x:auto/);
