@@ -137,3 +137,13 @@
  .moving-map-layers-content{padding-inline:11px}
  .moving-map-layers>summary{padding-inline:11px}
 }
+
+/* C54: airport surface mode intentionally requires an explicit pilot action. */
+.moving-map-surface{position:absolute;z-index:8;left:82px;top:12px;
+  min-height:44px;max-width:calc(100% - 160px);padding:8px 12px;
+  border:1px solid #5b8ea8;border-radius:9px;background:#0e2b44e9;
+  color:#e7f5ff;font-size:12px;font-weight:650;cursor:pointer}
+.moving-map-surface[aria-pressed="true"]{background:#27607b;border-color:#a0dcec}
+.moving-map-surface:disabled{opacity:.45;cursor:not-allowed}
+.moving-map-surface:focus-visible{outline:3px solid #b6e5ff;outline-offset:2px}
+@media(max-width:620px){.moving-map-surface{top:10px;left:77px;max-width:calc(100% - 150px);padding:7px;font-size:11px}}
