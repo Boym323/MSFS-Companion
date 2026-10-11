@@ -80,3 +80,60 @@
 .moving-map-relative-traffic li{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#d2eddc;font-size:12px;background:#173443;padding:10px;border-radius:8px}
 .moving-map-relative-traffic li strong{color:#a1f0b9}
 .moving-map-relative-traffic p{color:#a7c7be;font-size:12px;line-height:1.5;margin:0}
+
+/* Map controls belong to the map, not to the page title or layer form. */
+.moving-map-header{margin-bottom:12px}
+.moving-map-zoom{
+ position:absolute;z-index:8;top:12px;left:12px;
+ display:grid;grid-template-columns:48px;gap:3px;padding:5px;
+ border:1px solid #547c99;border-radius:11px;
+ background:#091c2df0;box-shadow:0 5px 18px #0008;
+}
+.moving-map-zoom button{
+ min-width:48px;min-height:44px;border:1px solid #547c99;
+ border-radius:7px;background:#203e58;color:#f7fcff;
+ font-size:23px;font-weight:700;line-height:1;cursor:pointer;
+ touch-action:manipulation;
+}
+.moving-map-zoom button:hover:not(:disabled){background:#315b78}
+.moving-map-zoom button:disabled{opacity:.38;cursor:not-allowed}
+.moving-map-zoom output{
+ display:block;padding:4px 0;text-align:center;
+ color:#d1e7f6;font-size:11px;font-variant-numeric:tabular-nums;
+}
+.moving-map-zoom button:focus-visible,.moving-map-clear:focus-visible,
+.moving-map-layers>summary:focus-visible{
+ outline:3px solid #b6e5ff;outline-offset:2px;
+}
+.moving-map-clear{
+ margin-left:auto;padding:9px 14px;min-height:44px;
+ border:1px solid #56758e;border-radius:8px;
+ background:#183046;color:#dfeffb;font:inherit;cursor:pointer;
+}
+.moving-map-clear:disabled{opacity:.45;cursor:not-allowed}
+.moving-map-stats{align-items:center}
+.moving-map-layers{
+ margin:12px 0 18px;border:1px solid #36536b;
+ border-radius:11px;background:#0f2132;min-width:0;
+}
+.moving-map-layers>summary{
+ cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;
+ gap:7px 12px;min-height:48px;padding:12px 15px;
+ color:#e5f3ff;font-size:14px;font-weight:700;
+}
+.moving-map-layers>summary span{font-size:12px;font-weight:400;color:#9fb8ce}
+.moving-map-layers-content{padding:4px 15px 16px;min-width:0}
+.moving-map-layers-content h3{
+ margin:18px 0 10px;font-size:13px;color:#d3eaff;
+ border-bottom:1px solid #2b4760;padding-bottom:7px;
+}
+.moving-map-layers-content .moving-map-background{margin-bottom:11px;line-height:1.5}
+.moving-map-layers-content .moving-map-background input,
+.moving-map-layers-content .moving-map-aviation-options input{min-width:19px;min-height:19px}
+@media(max-width:620px){
+ .moving-map-zoom{top:10px;left:10px}
+ .moving-map-stats{gap:8px 12px}
+ .moving-map-clear{margin-left:0;width:100%}
+ .moving-map-layers-content{padding-inline:11px}
+ .moving-map-layers>summary{padding-inline:11px}
+}
