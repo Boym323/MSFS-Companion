@@ -18,6 +18,8 @@ screenshoty a ověřuje rozložení; nejde pouze o kontrolu JSX a CSS.
 - Rozbalené offline ovládání rádia a autopilota – dalších 7.
 - Dva screenshoty rozbalených mapových vrstev (desktop, mobil),
   dva rozbalené správy Windows a dva rozbalené zálohy historie.
+- Tři snímky Historie s deterministickým MOCK letem (desktop, iPad,
+  mobil): přehrávač, metriky, grafy a mapa v požadovaném pořadí.
 - manifest.json s velikostí viewportu, názvy snímků a měřením přetečení.
 
 ## Automatické kontroly
