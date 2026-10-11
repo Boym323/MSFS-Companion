@@ -118,7 +118,8 @@ public static class AirRadarService
                 return Results.BadRequest(new{error="Neplatné souřadnice nebo poloměr."});
             await RefreshAsync(ct);
             var stale=_fetched==DateTimeOffset.MinValue||
-                DateTimeOffset.UtcNow-_fetched>TimeSpan.FromSeconds(90);
+                DateTimeOffset.UtcNow-_fetched>TimeSpan.FromSeconds(90)||
+                _error is not null; // A failed refresh must never look live.
             var targets=stale?[]:_cached
                 .Select(p=>(p,km:DistanceKm(lat,lon,p.Latitude,p.Longitude)))
                 .Where(p=>p.km<=radiusKm).OrderBy(p=>p.km).Take(40)
