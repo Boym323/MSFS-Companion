@@ -25,6 +25,8 @@ const corePages=[
  {route:'/pfd',name:'pfd'},
  {route:'/map',name:'map'},
  {route:'/flights',name:'flights'},
+ {route:'/flight-plan',name:'flight-plan'},
+ {route:'/briefing',name:'airport-briefing'},
  {route:'/controls',name:'controls'},
  {route:'/health',name:'health'},
  {route:'/pilot',name:'pilot-assistant'}
@@ -165,6 +167,62 @@ try{
    await page.screenshot({path:new URL(file,out).pathname,
     fullPage:true,animations:'disabled'});
    manifest.push({file,...device,panel:screen.name,geometry,note:'offline core-page UX audit'});
+   if(screen.name==='overview'){
+    const main=page.locator('.overview-screen');
+    assert.equal(await main.locator('.overview-live').count(),1,
+      device.name+': primary telemetry section must exist');
+    const maintenance=main.locator('.overview-maintenance');
+    assert.equal(await maintenance.getAttribute('open'),null,
+      device.name+': Windows maintenance starts collapsed');
+    assert.equal(await main.locator('.telemetry-offline').count(),0,
+      device.name+': overview must not duplicate offline status');
+    assert.equal(await main.evaluate(el=>{
+      const a=el.querySelector('.overview-live'),b=el.querySelector('.overview-maintenance');
+      return !!a&&!!b&&!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
+    }),true,device.name+': telemetry must come before maintenance');
+    if(device.name==='desktop'||device.name==='phone'){
+      await maintenance.locator('summary').click();
+      assert.equal(await maintenance.evaluate(el=>el.hasAttribute('open')),true);
+      assert.equal(await maintenance.locator('.update-panel').isVisible(),true);
+      const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+      assert.ok(expandedWidth<=device.width+2,device.name+': maintenance disclosure overflow');
+      const expandedFile=device.name+'--overview-maintenance-expanded.png';
+      await page.screenshot({path:new URL(expandedFile,out).pathname,fullPage:true,animations:'disabled'});
+      manifest.push({file:expandedFile,...device,panel:'overview-maintenance-expanded',
+        note:'offline maintenance disclosure regression'});
+    }
+   }
+   if(screen.name==='flights'){
+    const history=page.locator('.flight-history');
+    const backup=history.locator('.flight-history-backup');
+    assert.equal(await backup.getAttribute('open'),null,
+      device.name+': optional archive operations start collapsed');
+    assert.equal(await history.evaluate(el=>{
+      const a=el.querySelector('.flight-history-layout'),b=el.querySelector('.flight-history-backup');
+      return !!a&&!!b&&!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
+    }),true,device.name+': flights before backup form');
+    if(device.name==='desktop'||device.name==='phone'){
+      await backup.locator('summary').click();
+      assert.equal(await backup.locator('.flight-history-backup-actions').isVisible(),true);
+      const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+      assert.ok(expandedWidth<=device.width+2,device.name+': archive form overflow');
+      const expandedFile=device.name+'--flights-backup-expanded.png';
+      await page.screenshot({path:new URL(expandedFile,out).pathname,fullPage:true,animations:'disabled'});
+      manifest.push({file:expandedFile,...device,panel:'flights-backup-expanded',
+        note:'offline archive operations regression'});
+    }
+   }
+   if(screen.name==='flight-plan'){
+    assert.equal(await page.locator('.flight-planner-import').count(),1);
+    assert.equal(await page.locator('.flight-planner-next a[href="/map"]').isVisible(),true);
+    assert.equal(await page.locator('.flight-planner-next a[href="/briefing"]').isVisible(),true);
+   }
+   if(screen.name==='airport-briefing'){
+    const picker=page.locator('.airport-briefing-selection');
+    assert.equal(await picker.locator('input[placeholder="LKPR"]').count(),1,
+      device.name+': ICAO and airport search must share the selection area');
+    assert.equal(await page.locator('.airport-briefing-conditions').count(),1);
+   }
    if(screen.name==='map'){
     const canvas=page.locator('.moving-map-canvas');
     assert.equal(await canvas.locator('.moving-map-zoom').count(),1,
