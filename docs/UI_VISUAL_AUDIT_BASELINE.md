@@ -10,12 +10,19 @@ screenshoty a ověřuje rozložení; nejde pouze o kontrolu JSX a CSS.
 - Šest Airbus záložek: FCU, EFIS/ND, Overhead, ECAM, MCDU,
   Diagnostika – celkem 30 screenshotů.
 - Kompaktní Airbus Workspace v každém viewportu – dalších 5.
+- Sedm hlavních obrazovek (přehled, PFD, mapa, historie, ovládání,
+  diagnostika a letový asistent) v každém viewportu – dalších 35.
+- Dvě zkoušky celoobrazovkového zobrazení FCU – další 2.
 - manifest.json s velikostí viewportu, názvy snímků a měřením přetečení.
 
 ## Automatické kontroly
 
 Každá záložka musí mít přesně jednu aktivní navigační položku,
 jeden montovaný přístroj a žádný horizontální overflow celé stránky.
+Nově se stejný horizontální overflow a viditelnost aktivní hlavní
+navigace kontroluje i na sedmi běžných obrazovkách.
+A320 nesmí duplikovat globální offline hlášku; při offline stavu
+zůstává stav MSFS v hlavičce, detaily povolení jsou sbalené.
 Přímé odkazy a historie prohlížeče musí fungovat. Workspace nesmí
 montovat celý Airbus dashboard. Po otevření stránka nesmí mít
 neošetřené chyby JavaScriptu.
