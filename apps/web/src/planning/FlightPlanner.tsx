@@ -60,9 +60,11 @@ export default function FlightPlanner() {
   };
 
   return <section className="flight-planner">
-    <h2>Poslední letový plán ze SimBrief</h2>
-    <p>Vložte svůj SimBrief Pilot ID a klikněte na načtení. Není potřeba heslo.
-      Načítáme pouze na požádání, automatické dotazování není zapnuté.</p>
+    <h2>Letový plán ze SimBrief</h2>
+    <section className="flight-planner-import" aria-label="Import letového plánu">
+      <h3>Načtení posledního plánu</h3>
+      <p>Zadejte SimBrief Pilot ID. Není potřeba heslo;
+        načítáme pouze na požádání a neprovádíme automatické dotazy.</p>
     <div className="flight-planner-actions">
       <label>SimBrief Pilot ID
         <input type="text" inputMode="numeric" value={pilotId} maxLength={7}
@@ -73,14 +75,21 @@ export default function FlightPlanner() {
         onClick={() => void load()}>{busy ? 'Načítám…' : 'Importovat poslední OFP'}</button>
     </div>
     {error && <p role="alert">{error}</p>}
+    </section>
     {plan && <div className="flight-planner-summary">
       <h3>{plan.origin || '—'} → {plan.destination || '—'}</h3>
       <p>Typ letadla: {plan.aircraft || 'neuveden'}</p>
       <p>Trasa: {plan.route || 'bez textové trasy'}</p>
       <p>GPS souřadnice: {plan.waypoints.length} bodů z navigačního logu.</p>
-      {plan.waypoints.length >= 2 ? <a href="/map">Zobrazit plánovanou trasu na mapě</a>
+      {plan.waypoints.length >= 2 ? <a className="flight-planner-map-link" href="/map">Zobrazit trasu na mapě →</a>
         : <p>Není dostatek bodů se souřadnicemi pro vykreslení celé trasy.</p>}
     </div>}
+    <nav className="flight-planner-next" aria-label="Navazující navigační nástroje">
+      <span>Další krok</span>
+      <a href="/map">Mapa letu</a>
+      <a href="/briefing">Letištní briefing</a>
+      <a href="/progress">Aktivní GPS úsek</a>
+    </nav>
     <p className="flight-planner-note">Importovaná trasa zůstane pouze v relaci tohoto
       prohlížeče. Nezasahuje do flight planu uvnitř MSFS ani nepřepisuje GPS waypoint.</p>
   </section>;
