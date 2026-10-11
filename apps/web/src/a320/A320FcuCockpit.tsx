@@ -171,7 +171,6 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
     <h3>Flight Control Unit <span>FCU</span></h3>
    </div>
    <div className="a320-ui-flags" aria-live="polite">
-    <span className={live?'is-on':''}>MSFS {live?'ONLINE':'OFFLINE'}</span>
     <span className={fresh?'is-on':''}>FCU {fresh?'ŽIVÁ DATA':'NEDOSTUPNÉ'}</span>
     <span className={wasm?.moduleReady?'is-on':''}>
      WASM {wasmHeartbeatLabel(wasm?.state,wasm?.moduleReady===true)}
@@ -186,7 +185,7 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
    onStep={step} onDraft={(field,value)=>setDrafts(previous=>({
     ...previous,[field]:value
    }))} onSubmit={submit} onMode={sendMode}/>
-  <div className="a320-ui-access">
+  {live&&<div className="a320-ui-access">
    <div>
     <strong>{!live?'Čekám na MSFS 2020':
      !fresh?'Čekám na čerstvé hodnoty FCU':
@@ -202,7 +201,7 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
       onClick={()=>void arm(false)} disabled={busy}
       className="a320-ui-access-button">Zamknout ovládání</button>}
    </div>
-  </div>
+  </div>}
   <details className="a320-ui-wasm-details">
    <summary>Diagnostika WASM · {wasmHeartbeatLabel(wasm?.state,wasm?.moduleReady===true)}
     <small>{wasm?.autoProbe?'Automatická kontrola každých '+wasm.probeIntervalSeconds+' s':
@@ -229,8 +228,11 @@ export default function A320FcuCockpit({live,aircraft,readbackAircraft,fcu,fcuAg
      onClick={()=>void arm(true)}>Povolit ovládání na 30 minut</button>
    </div>}
   {!controls?.local&&!controls?.armed&&
-   <p className="a320-ui-remote">Povolení ovládání a bezpečný ping WASM modulu proveď
-    nejprve na PC s MSFS přes <code>http://127.0.0.1:8765/a320</code>.</p>}
+   <details className="a320-ui-remote-help">
+    <summary>Jak povolit ovládání na PC</summary>
+    <p>Povolení ovládání a bezpečný ping WASM modulu proveď
+     nejprve na PC s MSFS přes <code>http://127.0.0.1:8765/a320</code>.</p>
+   </details>}
   {controls?.evidence?.state!=='none'&&controls?.evidence&&
    <p className="a320-ui-evidence" role="status">Referenční povel:
     {' '}{controls.evidence.state==='pending'?'čekám na novější SimVar':controls.evidence.state==='simvar_observed'
