@@ -9,7 +9,7 @@ Mapa používá aktuální zeměpisnou šířku a délku z již
 existujícího SimConnect spojení. **Není nutný další odběr**
 ani žádné ovládací příkazy. Letadlo zůstává uprostřed
 zobrazení, sever je vždy nahoře a symbol se natáčí podle
-magnetického kurzu. Tlačítky +/− lze změnit přiblížení.
+magnetického kurzu. Tlačítka **+ / − jsou přímo v levém horním rohu mapy** a mění zoom 6–15.\nČíselná úroveň přiblížení se zobrazuje mezi tlačítky.\nPod mapou jsou GPS údaje, délka stopy a tlačítko **Smazat stopu**.\nDoplňkové vrstvy (počasí, provoz, letiště, vzdušné prostory,\npojezdové cesty) i import letového plánu jsou seskupené v\nrozbalovací sekci **Vrstvy a nastavení mapy**. Mapa je vidět ihned\npo otevření stránky bez procházení dlouhého bloku přepínačů.
 
 ### Podklad a ochrana soukromí
 
@@ -51,7 +51,7 @@ předstírat novou polohu.
 1. Na Windows spusťte MSFS a načtěte let.
 2. Otevřete `/map` z Macu a ověřte polohu proti simulátoru.
 3. Vyznačená stopa se musí prodlužovat přibližně 1× za sekundu.
-4. Změňte kurz, přibližujte a oddalujte mapu.
+4. Změňte kurz, přibližujte a oddalujte mapu tlačítky přímo na mapě.\n   Ověřte hranice zoomu 6–15 a to, že ovládání zůstává viditelné na iPadu i mobilu.\n   Rozbalte nastavení vrstev a ověřte, že nevyvolá horizontální posouvání.
 5. Bez internetu musí zůstat dostupná mřížka a vlastní stopa.
 6. OSM podklad musí být automaticky zapnutý; ověřte atribuci,
    dostupnost bez internetu i možnost jej vypnout a opět zapnout.
