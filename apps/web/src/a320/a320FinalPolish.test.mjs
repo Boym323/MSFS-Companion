@@ -30,3 +30,12 @@ test('A320 diagnostics no longer claims testing is further down a long page',()=
 test('navigation diagnostics keeps the GPS reader when its own tab is open',()=>{
  assert.match(dash,/activeTab==='nd'\|\|activeTab==='diagnostics'/);
 });
+
+test('mobile A320 has no redundant global offline banner or FCU offline card',()=>{
+ assert.match(app,/!sourceIsLive && !isA320 &&/);
+ assert.match(dash,/activeTab==='diagnostics'&&<p className="a320-footer">/);
+ const cockpit=readFileSync(new URL('./A320FcuCockpit.tsx',import.meta.url),'utf8');
+ assert.match(cockpit,/\{live&&<div className="a320-ui-access">/);
+ assert.match(cockpit,/className="a320-ui-remote-help"/);
+ assert.doesNotMatch(cockpit,/MSFS \{live\?'ONLINE':'OFFLINE'\}/);
+});
