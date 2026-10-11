@@ -212,6 +212,52 @@ try{
         note:'offline archive operations regression'});
     }
    }
+   if(screen.name==='flights' && (device.name==='desktop'||device.name==='phone'||device.name==='ipad-portrait')){
+    // Reproducible, explicitly MOCK flight: checks layout with populated charts/map.
+    const summary={id:'visual-flight',mode:'mock',aircraft:'Cessna 172',
+      startedAtUtc:'2026-10-10T09:00:00Z',endedAtUtc:'2026-10-10T09:05:00Z',
+      lastAtUtc:'2026-10-10T09:05:00Z',samples:3,
+      distanceMeters:12500,maxAirspeedKnots:110,maxAltitudeFeet:4000,active:false};
+    const samples=[
+      [49.20,17.60,85,2900,'2026-10-10T09:00:00Z'],
+      [49.24,17.66,105,3450,'2026-10-10T09:02:30Z'],
+      [49.29,17.71,110,4000,'2026-10-10T09:05:00Z']
+    ].map(([latitude,longitude,airspeedKnots,altitudeFeet,timestampUtc])=>({
+      timestampUtc,aircraft:summary.aircraft,latitude,longitude,airspeedKnots,
+      altitudeFeet,verticalSpeedFeetPerMinute:250,headingDegrees:30,
+      pitchDegrees:2,bankDegrees:0,onGround:false,altitudeAglFeet:1800
+    }));
+    await page.route('**/api/flights',route=>route.fulfill({
+      status:200,contentType:'application/json',body:JSON.stringify([summary])
+    }));
+    await page.route('**/api/flights/*',route=>route.fulfill({
+      status:200,contentType:'application/json',body:JSON.stringify({summary,samples})
+    }));
+    await page.goto(base+'/flights',{waitUntil:'domcontentloaded'});
+    await page.locator('.flight-history-player').waitFor({state:'visible'});
+    assert.equal(await page.locator('.flight-history-summary').count(),1);
+    assert.equal(await page.locator('.flight-history-tools').getAttribute('open'),null);
+    const related=await page.evaluate(()=>{
+      const player=document.querySelector('.flight-history-player');
+      const values=document.querySelector('.flight-history-values');
+      const map=document.querySelector('.flight-route-map');
+      const archive=document.querySelector('.flight-history-backup');
+      const chart=document.querySelector('.flight-history-chart');
+      if(!player||!values||!map||!archive||!chart)return false;
+      const before=(a,b)=>!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
+      return before(player,values)&&before(values,chart)&&before(chart,map)&&before(map,archive);
+    });
+    assert.ok(related,device.name+': player, values, chart, map and backup must follow flight workflow order');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+      device.name+': populated flight workflow overflow');
+    const recordFile=device.name+'--flights-recorded-mock.png';
+    await page.screenshot({path:new URL(recordFile,out).pathname,
+      fullPage:true,animations:'disabled'});
+    manifest.push({file:recordFile,...device,panel:'flights-recorded-mock',
+      note:'deterministic mocked flight layout; not real MSFS data'});
+    await page.unroute('**/api/flights');
+    await page.unroute('**/api/flights/*');
+   }
    if(screen.name==='flight-plan'){
     assert.equal(await page.locator('.flight-planner-import').count(),1);
     assert.equal(await page.locator('.flight-planner-next a[href="/map"]').isVisible(),true);
