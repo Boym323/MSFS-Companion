@@ -6,7 +6,10 @@ import { analyzePerformance } from './performance';
 const order: FlightPhase[] = ['ground', 'climb', 'level', 'descent', 'approach'];
 const duration = (seconds: number) => seconds > 0 ? `${Math.round(seconds / 60)} min` : '—';
 
-export default function FlightInsights({ samples, mode }: { samples: TelemetrySnapshot[]; mode: 'mock' | 'simconnect' }) {
+export default function FlightInsights({ samples, mode, onJump }: {
+  samples: TelemetrySnapshot[]; mode: 'mock' | 'simconnect';
+  onJump?: (eventAt:string)=>void;
+}) {
   const result = analyzeFlight(samples);
   const landings = result.events.filter(event => event.kind === 'touchdown');
   const metrics = analyzePerformance(samples);
@@ -62,6 +65,10 @@ export default function FlightInsights({ samples, mode }: { samples: TelemetrySn
           <li key={`${event.at}-${event.kind}-${i}`}>
             <time dateTime={event.at}>{new Date(event.at).toLocaleTimeString('cs-CZ')}</time>
             <span>{event.label}</span>
+            {onJump && <button type="button" onClick={()=>onJump(event.at)}
+              aria-label={'Přejít v přehrávání na '+event.label}>
+              Přejít na bod →
+            </button>}
           </li>
         ))}</ol>}
       <p className="flight-insights-note">
