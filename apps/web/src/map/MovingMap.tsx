@@ -200,7 +200,9 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   }
   function toggleSurfaceMode(){
     if(surfaceEnabled){
-      setSurfaceEnabled(false);setShowGround(false);setZoom(surfaceZoomBefore.current);
+      setSurfaceEnabled(false);setShowGround(false);
+      const before=surfaceZoomBefore.current;
+      if(before!==null)setZoom(before);
       surfaceZoomBefore.current=null;
     }else{
       if(!telemetry)return;
