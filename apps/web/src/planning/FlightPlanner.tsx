@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import type { ImportedWaypoint } from '../map/pln';
 import './FlightPlanner.css';
+import {safeSimBriefNumber,saveFlightBrief} from './flightBrief';
 
 export const SESSION_KEY = 'msfs-companion-simbrief-route';
 type FlightPlan = {
   origin: string; destination: string; aircraft: string; route: string;
   waypoints: ImportedWaypoint[];
+  alternate: string | null; cruiseAltitudeFt: number | null;
+  plannedFuel: number | null; fuelUnit: 'KG' | 'LB' | null;
 };
 export function validCoord(lat: number, lon: number): boolean {
   return Number.isFinite(lat) && Number.isFinite(lon) &&
@@ -29,7 +32,18 @@ export function parseSimBrief(xml: string): FlightPlan {
       continue;
     points.push({ id: /^[\w -]{1,24}$/.test(id) ? id : 'WPT', latitude, longitude });
   }
+  // SimBrief fuel is intentionally shown only with verified OFP units.
+  const unitText = field(document.querySelector('params'), 'units').toUpperCase();
+  const fuelUnit = unitText === 'KGS' || unitText === 'KG' ? 'KG'
+    : unitText === 'LBS' || unitText === 'LB' ? 'LB' : null;
+  const alternateText = field(document.querySelector('alternate'), 'icao_code').toUpperCase();
+  const altitudeText = field(summary, 'initial_altitude');
+  const planFuelText = field(document.querySelector('fuel'), 'plan_ramp');
   return {
+    alternate: /^[A-Z]{4}$/.test(alternateText) ? alternateText : null,
+    cruiseAltitudeFt: safeSimBriefNumber(altitudeText,60000),
+    plannedFuel: safeSimBriefNumber(planFuelText,1000000),
+    fuelUnit,
     origin: field(document.querySelector('origin'), 'icao_code'),
     destination: field(document.querySelector('destination'), 'icao_code'),
     aircraft: field(document.querySelector('aircraft'), 'icaocode'),
@@ -52,6 +66,9 @@ export default function FlightPlanner() {
       if (!response.ok) throw new Error('SimBrief OFP nelze načíst (HTTP ' + response.status + ').');
       const parsed = parseSimBrief(await response.text());
       setPlan(parsed);
+      saveFlightBrief({origin:parsed.origin.toUpperCase(),destination:parsed.destination.toUpperCase(),
+        alternate:parsed.alternate,aircraft:parsed.aircraft.slice(0,24),
+        cruiseAltitudeFt:parsed.cruiseAltitudeFt,plannedFuel:parsed.plannedFuel,fuelUnit:parsed.fuelUnit});
       if (parsed.waypoints.length >= 2)
         window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed.waypoints));
       else window.sessionStorage.removeItem(SESSION_KEY);
@@ -80,7 +97,15 @@ export default function FlightPlanner() {
       <h3>{plan.origin || '—'} → {plan.destination || '—'}</h3>
       <p>Typ letadla: {plan.aircraft || 'neuveden'}</p>
       <p>Trasa: {plan.route || 'bez textové trasy'}</p>
+      <div className="flight-planner-ofp">
+        <div><small>Alternativní letiště</small><strong>{plan.alternate ?? '—'}</strong></div>
+        <div><small>Plánovaná cestovní výška</small><strong>{plan.cruiseAltitudeFt != null ? plan.cruiseAltitudeFt.toLocaleString('cs-CZ')+' ft' : '—'}</strong></div>
+        <div><small>Plánované palivo (OFP)</small><strong>{plan.plannedFuel != null && plan.fuelUnit
+          ? plan.plannedFuel.toLocaleString('cs-CZ')+' '+plan.fuelUnit : '— (neznámá jednotka / údaj)'}</strong></div>
+      </div>
       <p>GPS souřadnice: {plan.waypoints.length} bodů z navigačního logu.</p>
+      <p>Plánované údaje z importovaného OFP, nikoli skutečné hodnoty z MSFS.
+        Automatický výpočet rezervy bez potvrzené aktuální spotřeby neprovádíme.</p>
       {plan.waypoints.length >= 2 ? <a className="flight-planner-map-link" href="/map">Zobrazit trasu na mapě →</a>
         : <p>Není dostatek bodů se souřadnicemi pro vykreslení celé trasy.</p>}
     </div>}
