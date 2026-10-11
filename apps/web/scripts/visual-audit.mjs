@@ -132,7 +132,7 @@ try{
   }
   // Workspace should never mount the whole Airbus dashboard into a half-column.
   await page.goto(base+'/workspace',{waitUntil:'domcontentloaded'});
-  const toggle=page.getByLabel('Airbus A320 readback');
+  const toggle=page.getByRole('checkbox',{name:'Airbus A320 readback'});
   await toggle.check();
   assert.equal(await page.locator('.a320-compact').count(),1,
    device.name+': expected compact Airbus Workspace tile');
