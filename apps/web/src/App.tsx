@@ -63,6 +63,7 @@ const values = [
 export default function App() {
   const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
+  const isOverview = pathname === '/admin' || pathname === '/';
   const page = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta['/admin'];
   const isPilot = pathname === '/pilot';
   const isValidation = pathname === '/validation';
@@ -105,14 +106,14 @@ export default function App() {
         sourceStatus={sourceStatus} sourceIsLive={sourceIsLive}
         aircraft={sourceIsLive ? telemetry?.aircraft ?? null : null} />
 
-      <main>
+      <main className={isOverview ? 'overview-screen' : undefined}>
         {!isA320&&<div className="intro">
           <div className="eyebrow">{page.eyebrow}</div>
           <h1>{page.heading}</h1>
           <p>{page.description}</p>
         </div>}
 
-        {(pathname==='/admin'||pathname==='/')&&<section className="summary">
+        {isOverview&&<section className="summary">
           <article>
             <span className="label">Zdroj dat</span>
             <strong>{sourceLabel}</strong>
@@ -132,7 +133,7 @@ export default function App() {
           </article>
         </section>}
 
-        {(isHealth||pathname==='/admin'||pathname==='/')&&sourceIsLive && sourceStatus && (
+        {isHealth&&sourceIsLive && sourceStatus && (
           <details className="telemetry-diagnostics">
             <summary>Diagnostika přenosu · {sourceStatus?.incomingRateHz.toFixed(1)} / {sourceStatus?.sampleRateHz.toFixed(1)} Hz</summary>
             <div className="telemetry-diagnostics-body">
@@ -145,9 +146,8 @@ export default function App() {
           </details>
         )}
 
-        {!isPilot && !isValidation && !isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isA320 && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
-        {!sourceIsLive && !isA320 && (
+        {!sourceIsLive && !isA320 && !isOverview && !isFlights && !isMap && !isFlightPlan && (
           <p className="telemetry-offline" role="status">
             {sourceMode === 'simconnect'
               ? 'SimConnect není připojený nebo neposílá čerstvá data. Zobrazované hodnoty nejsou platné.'
@@ -199,6 +199,7 @@ export default function App() {
           <AdvancedAvionics live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
           <>
+          <section className="overview-live" aria-label="Aktuální letová telemetrie">
           <h2>Aktuální telemetrie</h2>
           <section className="metrics">
             {values.map((metric) => (
@@ -216,6 +217,29 @@ export default function App() {
             <span>GPS: {telemetry && sourceIsLive ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
             <span>Ovládání je dostupné pouze po lokálním zapnutí a spárování na záložce Ovládání.</span>
           </div>
+          </section>
+        {isOverview&&sourceIsLive && sourceStatus && (
+          <details className="telemetry-diagnostics">
+            <summary>Diagnostika přenosu · {sourceStatus?.incomingRateHz.toFixed(1)} / {sourceStatus?.sampleRateHz.toFixed(1)} Hz</summary>
+            <div className="telemetry-diagnostics-body">
+            <span><strong>Příjem ze simulátoru:</strong> {sourceStatus.incomingRateHz.toFixed(1)} Hz</span>
+            <span><strong>Předávání do webu:</strong> {sourceStatus.sampleRateHz.toFixed(1)} Hz</span>
+            <span><strong>Zpoždění ve frontě:</strong> {sourceStatus.publicationLagMs?.toFixed(0) ?? '—'} ms</span>
+            <span><strong>Přijaté / předané:</strong> {sourceStatus.samplesReceived} / {sourceStatus.samplesPublished}</span>
+            <span><strong>Přeskočené při převzorkování:</strong> {sourceStatus.framesSkipped}</span>
+            </div>
+          </details>
+        )}
+
+          <details className="overview-maintenance">
+            <summary>
+              <strong>Správa Windows aplikace</strong>
+              <span>Verze, aktualizace a správa Companionu</span>
+            </summary>
+            <div className="overview-maintenance-content">
+              <PanelAktualizaci />
+            </div>
+          </details>
           </>
         )}
       </main>

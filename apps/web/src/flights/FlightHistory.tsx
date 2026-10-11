@@ -209,8 +209,115 @@ export default function FlightHistory() {
         <p>Bridge ukládá body letu na Windows PC automaticky, i když není otevřený web.</p>
       </div>
       {error && <p className="telemetry-offline" role="status">{error}</p>}
-      <section className="flight-history-backup">
-        <h3>C49 · Záloha letového deníku</h3>
+      <div className="flight-history-layout">
+        <aside className="flight-history-list" aria-label="Zaznamenané lety">
+          {flights.length === 0 && <p>Zatím nebyl zaznamenán žádný let.</p>}
+          {flights.map((flight) => (
+            <button key={flight.id} type="button" className={flight.id === selected ? 'selected' : ''}
+              onClick={() => { setSelected(flight.id); setDetail(null); setCursor(0); setPlaying(false); setComparison(null); }}>
+              <strong>{flight.aircraft}</strong>
+              <span>{timestamp(flight.startedAtUtc)}</span>
+              <small>{flight.active ? '● Právě se zaznamenává' : elapsed(flight)}
+                {flight.mode === 'mock' ? ' · TESTOVACÍ DATA' : ''}</small>
+            </button>
+          ))}
+        </aside>
+        <div className="flight-history-main">
+          {!detail ? (
+            <p className="flight-history-empty">Vyberte let v historii. Záznamy vznikají přibližně jednou za sekundu.</p>
+          ) : (
+            <>
+              <div className="flight-history-summary">
+                <div><span>Letadlo</span><strong>{detail.summary.aircraft}</strong></div>
+                <div><span>Délka letu</span><strong>{elapsed(detail.summary)}</strong></div>
+                <div><span>Vzdálenost</span><strong>{(detail.summary.distanceMeters / 1000).toFixed(1)} km</strong></div>
+                <div><span>Vzorky</span><strong>{detail.summary.samples}</strong></div>
+                <div><span>Max. IAS</span><strong>{Math.round(detail.summary.maxAirspeedKnots)} KT</strong></div>
+                <div><span>Max. výška</span><strong>{Math.round(detail.summary.maxAltitudeFeet)} FT</strong></div>
+              </div>
+
+              <div className="flight-history-player">
+                <button type="button" disabled={samples.length < 2} onClick={() => {
+                  if (!playing && cursor >= samples.length - 1) setCursor(0);
+                  setPlaying((v) => !v);
+                }}>{playing ? 'Pozastavit' : '▶ Přehrát let'}</button>
+                <input type="range" min="0" max={Math.max(samples.length - 1, 0)}
+                  value={index} onChange={(event) => { setCursor(Number(event.target.value)); setPlaying(false); }}
+                  aria-label="Poloha v záznamu letu" />
+                <label className="flight-player-speed">Přehrávání
+                  <select value={speed} onChange={event=>setSpeed(Number(event.target.value))}>
+                    <option value={1}>1 vzorek/s</option>
+                    <option value={2}>2 vzorky/s</option>
+                    <option value={4}>4 vzorky/s</option>
+                  </select>
+                </label>
+                <span>{point ? timestamp(point.timestampUtc) : 'Žádná data'}</span>
+              </div>
+
+              <div className="flight-history-values">
+                <span>IAS <strong>{point ? point.airspeedKnots.toFixed(0) : '—'} KT</strong></span>
+                <span>ALT <strong>{point ? point.altitudeFeet.toFixed(0) : '—'} FT</strong></span>
+                <span>HDG <strong>{point ? point.headingDegrees.toFixed(0) : '—'}°</strong></span>
+                <span>GPS <strong>{point ? `${point.latitude.toFixed(4)}°, ${point.longitude.toFixed(4)}°` : '—'}</strong></span>
+              </div>
+              <FlightInsights samples={samples} mode={detail.summary.mode} />
+              <h3>Průběh výšky a rychlosti</h3>
+              <FlightReplayCharts samples={samples} index={index} />
+
+              <h3>Schéma proletěné trasy</h3>
+              <FlightRouteMap samples={samples} selectedIndex={index} />
+
+              <details className="flight-history-tools">
+                <summary><strong>Export a porovnání letů</strong>
+                  <span>CSV, GPX, KML a porovnání dvou záznamů</span></summary>
+                <div className="flight-history-tools-content">
+              <div className="flight-history-export">
+                <button type="button" disabled={!samples.length} onClick={()=>download('csv')}>Export CSV</button>
+                <button type="button" disabled={!samples.length} onClick={()=>download('gpx')}>Export GPX</button>
+                <button type="button" disabled={!samples.length} onClick={()=>download('kml')}>Export KML</button>
+                <span>Soubor zůstává v prohlížeči. Nedochází k odeslání do externí služby.</span>
+              </div>
+              <div className="flight-history-compare">
+                <h3>Porovnání letů</h3>
+                <label>Druhý let
+                  <select value={compareId} onChange={e=>{setCompareId(e.target.value);setComparison(null);}}>
+                    <option value="">Vyberte let…</option>
+                    {flights.filter(f=>f.id!==detail.summary.id).map(f=>
+                      <option key={f.id} value={f.id}>{f.aircraft} · {timestamp(f.startedAtUtc)}</option>)}
+                  </select>
+                </label>
+                <button type="button" disabled={!compareId||compareBusy} onClick={()=>void compare()}>
+                  {compareBusy?'Porovnávám…':'Porovnat'}
+                </button>
+                {comparison && <div className="flight-history-comparison">
+                  {[detail,comparison].map(row=>{
+                    const report=analyzeFlight(row.samples);
+                    const touchdowns=report.events.filter(e=>e.kind==='touchdown');
+                    const last=touchdowns.at(-1);
+                    return <article key={row.summary.id}>
+                      <strong>{row.summary.aircraft} · {timestamp(row.summary.startedAtUtc)}</strong>
+                      <p>Délka: {(row.summary.distanceMeters/1000).toFixed(1)} km</p>
+                      <p>Max. IAS: {row.summary.maxAirspeedKnots.toFixed(0)} KT</p>
+                      <p>Dosednutí (SimVar): {touchdowns.length||'bez potvrzení'}</p>
+                      <p>Poslední touchdown rate: {last?.touchdownRateFpm!=null
+                        ? last.touchdownRateFpm.toFixed(0)+' FPM':'nezjištěna'}</p>
+                      <p>Důvěryhodných onGround vzorků: {report.reliableGroundSamples}/{report.totalSamples}</p>
+                    </article>;
+                  })}
+                </div>}
+                <p>Porovnáváme lokální záznamy, nikoli kvalitu pilota. Zkrácené a starší lety
+                  mohou mít chybějící údaje nebo nepřesné časy.</p>
+              </div>
+                </div>
+              </details>
+
+            </>
+          )}
+        </div>
+      </div>
+      <details className="flight-history-backup">
+        <summary><strong>Záloha a obnova letového deníku</strong>
+          <span>Export, kontrola archivu a obnova na Windows</span></summary>
         <p>Exportujte všechny dokončené záznamy letů z Windows bridge do
           jednoho místního JSON souboru. Archiv může obsahovat GPS souřadnice,
           názvy letadel a časy letů. Neposílá se žádné externí službě.</p>
@@ -248,106 +355,7 @@ export default function FlightHistory() {
         <p>Obnova vyžaduje volné místo do limitu 30 letů/100 MiB;
           při překročení se odmítne, nesmaže starší záznamy. Archiv má limit 20 MB.
           Již promazané lety lze vrátit pouze z dříve vytvořené zálohy.</p>
-      </section>
-      <div className="flight-history-layout">
-        <aside className="flight-history-list" aria-label="Zaznamenané lety">
-          {flights.length === 0 && <p>Zatím nebyl zaznamenán žádný let.</p>}
-          {flights.map((flight) => (
-            <button key={flight.id} type="button" className={flight.id === selected ? 'selected' : ''}
-              onClick={() => { setSelected(flight.id); setDetail(null); setCursor(0); setPlaying(false); setComparison(null); }}>
-              <strong>{flight.aircraft}</strong>
-              <span>{timestamp(flight.startedAtUtc)}</span>
-              <small>{flight.active ? '● Právě se zaznamenává' : elapsed(flight)}
-                {flight.mode === 'mock' ? ' · TESTOVACÍ DATA' : ''}</small>
-            </button>
-          ))}
-        </aside>
-        <div className="flight-history-main">
-          {!detail ? (
-            <p className="flight-history-empty">Vyberte let v historii. Záznamy vznikají přibližně jednou za sekundu.</p>
-          ) : (
-            <>
-              <div className="flight-history-summary">
-                <div><span>Letadlo</span><strong>{detail.summary.aircraft}</strong></div>
-                <div><span>Délka letu</span><strong>{elapsed(detail.summary)}</strong></div>
-                <div><span>Vzdálenost</span><strong>{(detail.summary.distanceMeters / 1000).toFixed(1)} km</strong></div>
-                <div><span>Vzorky</span><strong>{detail.summary.samples}</strong></div>
-                <div><span>Max. IAS</span><strong>{Math.round(detail.summary.maxAirspeedKnots)} KT</strong></div>
-                <div><span>Max. výška</span><strong>{Math.round(detail.summary.maxAltitudeFeet)} FT</strong></div>
-              </div>
-
-              <div className="flight-history-export">
-                <button type="button" disabled={!samples.length} onClick={()=>download('csv')}>Export CSV</button>
-                <button type="button" disabled={!samples.length} onClick={()=>download('gpx')}>Export GPX</button>
-                <button type="button" disabled={!samples.length} onClick={()=>download('kml')}>Export KML</button>
-                <span>Soubor zůstává v prohlížeči. Nedochází k odeslání do externí služby.</span>
-              </div>
-              <div className="flight-history-compare">
-                <h3>C39 · Porovnání letů</h3>
-                <label>Druhý let
-                  <select value={compareId} onChange={e=>{setCompareId(e.target.value);setComparison(null);}}>
-                    <option value="">Vyberte let…</option>
-                    {flights.filter(f=>f.id!==detail.summary.id).map(f=>
-                      <option key={f.id} value={f.id}>{f.aircraft} · {timestamp(f.startedAtUtc)}</option>)}
-                  </select>
-                </label>
-                <button type="button" disabled={!compareId||compareBusy} onClick={()=>void compare()}>
-                  {compareBusy?'Porovnávám…':'Porovnat'}
-                </button>
-                {comparison && <div className="flight-history-comparison">
-                  {[detail,comparison].map(row=>{
-                    const report=analyzeFlight(row.samples);
-                    const touchdowns=report.events.filter(e=>e.kind==='touchdown');
-                    const last=touchdowns.at(-1);
-                    return <article key={row.summary.id}>
-                      <strong>{row.summary.aircraft} · {timestamp(row.summary.startedAtUtc)}</strong>
-                      <p>Délka: {(row.summary.distanceMeters/1000).toFixed(1)} km</p>
-                      <p>Max. IAS: {row.summary.maxAirspeedKnots.toFixed(0)} KT</p>
-                      <p>Dosednutí (SimVar): {touchdowns.length||'bez potvrzení'}</p>
-                      <p>Poslední touchdown rate: {last?.touchdownRateFpm!=null
-                        ? last.touchdownRateFpm.toFixed(0)+' FPM':'nezjištěna'}</p>
-                      <p>Důvěryhodných onGround vzorků: {report.reliableGroundSamples}/{report.totalSamples}</p>
-                    </article>;
-                  })}
-                </div>}
-                <p>Porovnáváme lokální záznamy, nikoli kvalitu pilota. Zkrácené a starší lety
-                  mohou mít chybějící údaje nebo nepřesné časy.</p>
-              </div>
-              <FlightInsights samples={samples} mode={detail.summary.mode} />
-              <h3>Průběh výšky a rychlosti</h3>
-              <FlightReplayCharts samples={samples} index={index} />
-
-              <h3>Schéma proletěné trasy</h3>
-              <FlightRouteMap samples={samples} selectedIndex={index} />
-
-              <div className="flight-history-player">
-                <button type="button" disabled={samples.length < 2} onClick={() => {
-                  if (!playing && cursor >= samples.length - 1) setCursor(0);
-                  setPlaying((v) => !v);
-                }}>{playing ? 'Pozastavit' : '▶ Přehrát let'}</button>
-                <input type="range" min="0" max={Math.max(samples.length - 1, 0)}
-                  value={index} onChange={(event) => { setCursor(Number(event.target.value)); setPlaying(false); }}
-                  aria-label="Poloha v záznamu letu" />
-                <label className="flight-player-speed">Přehrávání
-                  <select value={speed} onChange={event=>setSpeed(Number(event.target.value))}>
-                    <option value={1}>1 vzorek/s</option>
-                    <option value={2}>2 vzorky/s</option>
-                    <option value={4}>4 vzorky/s</option>
-                  </select>
-                </label>
-                <span>{point ? timestamp(point.timestampUtc) : 'Žádná data'}</span>
-              </div>
-
-              <div className="flight-history-values">
-                <span>IAS <strong>{point ? point.airspeedKnots.toFixed(0) : '—'} KT</strong></span>
-                <span>ALT <strong>{point ? point.altitudeFeet.toFixed(0) : '—'} FT</strong></span>
-                <span>HDG <strong>{point ? point.headingDegrees.toFixed(0) : '—'}°</strong></span>
-                <span>GPS <strong>{point ? `${point.latitude.toFixed(4)}°, ${point.longitude.toFixed(4)}°` : '—'}</strong></span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      </details>
       <p className="flight-history-note">
         Historie je dostupná každému zařízení ve stejné důvěryhodné domácí podsíti.
         Záznamy se uchovávají na Windows PC (max. 30 letů / 100 MB) a obsahují polohu.

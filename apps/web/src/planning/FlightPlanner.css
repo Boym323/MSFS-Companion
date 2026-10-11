@@ -9,3 +9,26 @@
 .flight-planner-summary h3 { font-size:20px; margin:0; }
 .flight-planner-summary a { color:#9bdcf9; }
 .flight-planner-note { border-top:1px solid #29415b; padding-top:12px; }
+/* Navigation: import and its result stay together; linked tools follow. */
+.flight-planner{gap:14px}
+.flight-planner>h2{margin:0}
+.flight-planner-import{border:1px solid #385874;background:#10243a;border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+.flight-planner-import h3{font-size:15px;margin:0;color:#e0f0ff}
+.flight-planner-import p{margin:0}
+.flight-planner-actions{gap:9px}
+.flight-planner-actions label{flex:1 1 180px;max-width:260px;min-width:0}
+.flight-planner-actions input{width:100%;min-width:0}
+.flight-planner-actions button{flex:0 1 auto}
+.flight-planner-summary{display:grid;gap:10px}
+.flight-planner-summary p{margin:0;overflow-wrap:anywhere}
+.flight-planner-map-link{display:inline-flex;align-items:center;min-height:44px;width:fit-content;padding:9px 13px;border:1px solid #608bac;border-radius:8px;background:#1a425b;font-weight:650}
+.flight-planner-next{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.flight-planner-next span{color:#9bbad1;font-size:12px;margin-right:4px}
+.flight-planner-next a{display:inline-flex;align-items:center;min-height:44px;padding:9px 13px;border:1px solid #3f607d;border-radius:8px;background:#142c43;color:#d5eaf8;font-size:13px}
+.flight-planner-next a:hover,.flight-planner-map-link:hover{border-color:#9bdcf9}
+@media(max-width:470px){
+ .flight-planner-import{padding:12px}
+ .flight-planner-actions label{max-width:none;flex-basis:100%}
+ .flight-planner-actions button{width:100%}
+ .flight-planner-next a{flex:1 1 130px;justify-content:center}
+}

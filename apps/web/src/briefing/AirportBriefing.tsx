@@ -29,19 +29,25 @@ export default function AirportBriefing(){
   const assessments=wind&&detail?.airport.ident===airport
     ?calculateRunwayWind(detail.runways,wind):[];
   return <section className="airport-briefing">
-    <h2>C23 · Letištní briefing</h2>
+    <h2>Letištní briefing</h2>
     <p>Na jednom místě otevřená data OurAirports (dráhy, letištní frekvence)
       a NOAA METAR/TAF. Údaje se mohou lišit od MSFS a nejsou
       podkladem pro skutečnou leteckou navigaci.</p>
-    <AirportSearch onSelect={setAirport}/>
-    <label>ICAO pro briefing
-      <input value={airport} maxLength={4}
-        onChange={e=>setAirport(e.target.value.toUpperCase().replace(/[^A-Z]/g,''))}
-        placeholder="LKPR"/>
-    </label>
+    <section className="airport-briefing-selection" aria-label="Výběr letiště">
+      <h3>Vyberte letiště</h3>
+      <div className="airport-briefing-selection-controls">
+        <AirportSearch onSelect={setAirport}/>
+        <label>ICAO pro briefing
+          <input value={airport} maxLength={4}
+            onChange={e=>setAirport(e.target.value.toUpperCase().replace(/[^A-Z]/g,''))}
+            placeholder="LKPR"/>
+        </label>
+      </div>
+    </section>
     {/^[A-Z]{4}$/.test(airport)&&<>
       <AviationAirportDetails ident={airport} onClose={()=>setAirport('')}
         onDetail={setDetail}/>
+      <div className="airport-briefing-conditions" aria-label="Počasí a vítr na letišti">
       <section className="airport-briefing-weather">
         <h3>Aktuální počasí – {airport}</h3>
         {error&&<p role="alert">{error}</p>}
@@ -54,7 +60,7 @@ export default function AirportBriefing(){
         </>}
       </section>
       <section className="airport-briefing-wind">
-        <h3>C47 · Vítr vzhledem k drahám</h3>
+        <h3>Vítr vzhledem k drahám</h3>
         {wind&&detail?.airport.ident===airport?<p>
           METAR: {wind.calm?'klid':wind.direction===null?'proměnlivý směr':
           wind.direction.toString().padStart(3,'0')+'° skutečný'} ·
@@ -81,6 +87,7 @@ export default function AirportBriefing(){
           OurAirports a směr větru z NOAA METAR. Nezohledňuje aktivní dráhu,
           NOTAM, limity konkrétního letadla ani ATC. Pouze pro simulátor.</p>
       </section>
+      </div>
     </>}
   </section>;
 }

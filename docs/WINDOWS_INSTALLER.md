@@ -69,7 +69,9 @@ zkopírovanou z Windows, například:
 http://192.168.1.25:8765/admin
 ```
 
-Panel **Správa Windows aplikace** automaticky zobrazí stav a verzi.
+Na stránce **Přehled systému** otevřete rozbalovací sekci
+**Správa Windows aplikace** pod letovou telemetrií. Panel automaticky
+zobrazí stav a verzi.
 Klikněte na **Vynutit kontrolu a instalaci nové verze**. Pokud na
 GitHubu existuje novější vydání, Windows Companion jej stáhne,
 nainstaluje a krátce restartuje. Simulátor zůstane spuštěný.

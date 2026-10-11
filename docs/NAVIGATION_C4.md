@@ -27,3 +27,13 @@ s MSFS 2020. CI testuje převody, invalidaci a mock, ne reálné GPS.
 ## Import úplného flight planu
 
 Mapa umožňuje vybrat lokální soubor `.PLN` (MSFS XML, DMS souřadnice). Parsování probíhá v prohlížeči, soubor se neodesílá na server. Fialová čára je **ručně importovaná plánovaná trasa**, nikoli automaticky synchronizovaná skutečná avionika. Velikost souboru je omezena na 2 MB a maximálně 200 waypointů; plán lze odebrat.
+
+## Přehlednější plánování a briefing
+
+Na `/flight-plan` je SimBrief Pilot ID a načtení OFP v jedné kartě.
+Po úspěšném importu je odkaz na mapu přímo u výsledku; pod plánem
+jsou také odkazy na mapu, letištní briefing a aktivní GPS úsek.
+V `/briefing` sdílí vyhledání letiště a ruční ICAO jedno místo,
+METAR/TAF a přepočet větru pro dráhy jsou vedle sebe na desktopu
+a pod sebou na mobilu. Údaje zůstávají informační a nejsou
+pokynem pro skutečný let.

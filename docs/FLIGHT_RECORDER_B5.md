@@ -50,6 +50,12 @@ se přizpůsobí celé trase, při přehrávání se po ní pohybuje
 značka aktuální polohy. Přelet datové hranice ±180° nevyvolá
 chybné protažení trasy přes celou mapu.
 
+Ovládací tlačítko přehrávání, posuvník a hodnoty vybraného bodu
+jsou společně nad grafy a mapou. **Export CSV/GPX/KML,
+porovnání letů a záloha/obnova** jsou dostupné v samostatných
+rozbalovacích částech až pod hlavním záznamem, takže na mobilu
+nepřekážejí běžnému prohlížení historie.
+
 Tlačítko **Přehrát let** přejde zaznamenané body přibližně
 po jedné sekundě. U delších záznamů může být časová osa
 pro účely zobrazení převzorkovaná.
