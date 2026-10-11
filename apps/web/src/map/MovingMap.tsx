@@ -9,6 +9,7 @@ import { parsePln, type ImportedWaypoint } from './pln';
 import { SESSION_KEY } from '../planning/FlightPlanner';
 import { useAviationFeatures } from './useAviationFeatures';
 import { useVatsimMapLayer } from './useVatsimMapLayer';
+import {useAirRadarMapLayer} from './useAirRadarMapLayer';
 import useSigmet from './useSigmet';
 import {useSimTraffic} from './useSimTraffic';
 import {relativeTraffic} from './relativeTraffic';
@@ -37,6 +38,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [showRunways, setShowRunways] = useState(true);
   const [showNavaids, setShowNavaids] = useState(true);
   const [showVatsim, setShowVatsim] = useState(false);
+  const [showAirRadar,setShowAirRadar]=useState(false);
   const [showSigmet, setShowSigmet] = useState(false);
   const [showSimTraffic, setShowSimTraffic] = useState(false);
   const [airspaces,setAirspaces] = useState<Airspace[]>([]);
@@ -83,6 +85,8 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
     telemetry?.longitude ?? null, zoom);
   const vatsim = useVatsimMapLayer(showVatsim,
     telemetry?.latitude ?? null, telemetry?.longitude ?? null, zoom);
+  const airradar=useAirRadarMapLayer(showAirRadar,
+    telemetry?.latitude??null,telemetry?.longitude??null,zoom);
   const sigmet = useSigmet(showSigmet,telemetry?.latitude??null,telemetry?.longitude??null);
   const simTraffic = useSimTraffic(showSimTraffic&&!!telemetry);
   const navigation = useFlightNavigation(!!telemetry);
@@ -329,6 +333,21 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
                 fontSize="11">{pilot.callsign}</text>}
             </g>;
           })}
+          {showAirRadar && airradar.available && airradar.aircraft.map(aircraft=>{
+            const pt=mapPosition(aircraft);
+            if(!pt||pt.x<-30||pt.x>width+30||pt.y<-30||pt.y>height+30)return null;
+            return <g key={'airradar-'+aircraft.hex}>
+              <path d={'M '+pt.x+' '+(pt.y-7)+' L '+(pt.x+7)+' '+pt.y+
+                ' L '+pt.x+' '+(pt.y+7)+' L '+(pt.x-7)+' '+pt.y+' Z'}
+                fill="#f4bf7a" stroke="#442c18" strokeWidth="2" />
+              {zoom>=11&&<text x={pt.x+10} y={pt.y-7}
+                fill="#ffe4b9" stroke="#302214" strokeWidth="2"
+                paintOrder="stroke" fontSize="11">{aircraft.callsign||aircraft.hex}</text>}
+              <title>AirRadar · skutečný externí provoz · {aircraft.hex}
+                {' · '}{aircraft.distanceNm} NM · aktualizace polohy před
+                {' '}{Math.round(aircraft.seenPosSeconds)} s</title>
+            </g>;
+          })}
           {importedPath && <path d={importedPath} stroke="#bca5ff" strokeWidth="2.5"
             strokeDasharray="4 6" fill="none" />}
           {importedPlan.map((point, index) => {
@@ -447,6 +466,18 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         {vatsim.error ? ` · ${vatsim.error}` : ''}
       </p>}
         <h3>Navigace a letiště</h3>
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showAirRadar}
+          onChange={event=>setShowAirRadar(event.target.checked)} />
+        AirRadar · skutečný externí provoz (volitelné)
+      </label>
+      {showAirRadar&&<p className="moving-map-airradar-status" role="status">
+        {airradar.available
+          ?'AirRadar: '+airradar.aircraft.length+' čerstvých letadel v okolí'
+          :'AirRadar: živé údaje nejsou potvrzené'}
+        {airradar.updatedAt?' · '+new Date(airradar.updatedAt).toLocaleTimeString('cs-CZ'):''}
+        {airradar.error?' · '+airradar.error:''}
+      </p>}
       <label className="moving-map-background"><input type="checkbox" checked={showLeg}
         onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
       <label className="moving-map-background">
@@ -538,6 +569,12 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         <span aria-hidden="true">▲</span> Růžové značky = síť VATSIM (nikoli MSFS AI/provoz v simulátoru).
         Poloha i výška se mohou oproti skutečné scéně lišit.
         {' '}<a href="/vatsim">Otevřít přehled VATSIM</a>
+      </p>}
+      {showAirRadar&&<p className="moving-map-airradar-legend">
+        <span aria-hidden="true">◆</span> Oranžové kosočtverce: čerstvé polohy
+        z veřejného API <a href="https://airradar.pomykal.cz/"
+          target="_blank" rel="noopener noreferrer">AirRadar</a>.
+        Nejde o objekty MSFS ani piloty VATSIM; pokrytí není úplné.
       </p>}
       {showAviation && <AirportSearch onSelect={setSelectedAirport} />}
       {showAviation && aviation.available && <>
