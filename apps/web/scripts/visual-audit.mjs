@@ -24,6 +24,8 @@ const corePages=[
  {route:'/admin',name:'overview'},
  {route:'/pfd',name:'pfd'},
  {route:'/map',name:'map'},
+ {route:'/radio-assistant',name:'radio-assistant'},
+ {route:'/vatsim',name:'vatsim'},
  {route:'/flights',name:'flights'},
  {route:'/flight-plan',name:'flight-plan'},
  {route:'/briefing',name:'airport-briefing'},
@@ -282,7 +284,14 @@ try{
       device.name+': ICAO and airport search must share the selection area');
     assert.equal(await page.locator('.airport-briefing-conditions').count(),1);
    }
+   if(screen.name==='radio-assistant'){
+    assert.equal(await page.locator('.smart-radio-vatsim').count(),1,
+      device.name+': online ATC must be separate from static airport frequencies');
+   }
    if(screen.name==='map'){
+    const surface=page.getByRole('button',{name:'Detail pojíždění'});
+    assert.equal(await surface.isDisabled(),true,
+      device.name+': airport surface mode must never show synthetic offline position');
     const canvas=page.locator('.moving-map-canvas');
     assert.equal(await canvas.locator('.moving-map-zoom').count(),1,
      device.name+': zoom buttons must live inside map canvas');

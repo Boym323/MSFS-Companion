@@ -5,9 +5,17 @@ const key='msfs-companion-control-session';
 type Airport={frequencies:AirportFrequency[];airport:{name:string;ident:string}};
 type ControlStatus={canControl:boolean;enabled:boolean;paired:boolean};
 type Radio={connected:boolean;radios:{com1StandbyMHz:number}|null};
+type VatsimAtc={callsign:string;frequency:string;facility:number};
+type VatsimAtcState={available:boolean;stale:boolean;updatedAt:string|null;
+  controllers:VatsimAtc[]};
+const selectedAirport=()=>{
+  const value=new URLSearchParams(window.location.search).get('icao')?.toUpperCase();
+  return value&&/^[A-Z]{4}$/.test(value)?value:'LKPR';
+};
 export default function SmartRadio({live}:{live:boolean}){
-  const [input,setInput]=useState('LKPR');
-  const [icao,setIcao]=useState('LKPR');
+  const [input,setInput]=useState(selectedAirport);
+  const [icao,setIcao]=useState(selectedAirport);
+  const [onlineAtc,setOnlineAtc]=useState<VatsimAtcState|null>(null);
   const [airport,setAirport]=useState<Airport|null>(null);
   const [access,setAccess]=useState<ControlStatus|null>(null);
   const [radio,setRadio]=useState<Radio|null>(null);
@@ -22,6 +30,24 @@ export default function SmartRadio({live}:{live:boolean}){
       .then(d=>{if(!abort.signal.aborted)setAirport(d);})
       .catch(()=>{if(!abort.signal.aborted)setMessage('Letištní katalog se načítá nebo nemá tento kód.');});
     return()=>abort.abort();
+  },[icao]);
+  useEffect(()=>{
+    const controller=new AbortController();
+    let timer:number|undefined;
+    setOnlineAtc(null);
+    const load=async()=>{
+      try {
+        const query=new URLSearchParams({lat:'0',lon:'0',radiusKm:'50',airport:icao});
+        const response=await fetch('/api/vatsim/nearby?'+query.toString(),
+          {cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw Error('Feed unavailable');
+        const data=await response.json() as VatsimAtcState;
+        if(!controller.signal.aborted)setOnlineAtc(data);
+      }catch{if(!controller.signal.aborted)setOnlineAtc(null);}
+      finally{if(!controller.signal.aborted)timer=window.setTimeout(()=>void load(),35000);}
+    };
+    void load();
+    return()=>{controller.abort();if(timer!==undefined)window.clearTimeout(timer);};
   },[icao]);
   useEffect(()=>{
     let closed=false;
@@ -71,6 +97,28 @@ export default function SmartRadio({live}:{live:boolean}){
       ?radio.radios.com1StandbyMHz.toFixed(3)+' MHz':'—'}
       {' · '}Ovládání: {live&&access?.canControl?'Povoleno':'Nedostupné'}</p>
     {message&&<p role="status">{message}</p>}
+    <section className="smart-radio-vatsim" aria-label="Aktuální online frekvence VATSIM">
+      <h3>VATSIM ATC · {icao}</h3>
+      <p>{onlineAtc?.available
+        ?onlineAtc.stale?'Feed VATSIM je starší, ladění z tohoto seznamu je zakázáno.'
+          :'Online stanoviště VATSIM podle volacího prefixu letiště.'
+        :'Online ATC není potvrzené. Lze použít samostatný katalog OurAirports.'}</p>
+      <div className="smart-radio-grid">
+        {(onlineAtc?.available&&!onlineAtc.stale?onlineAtc.controllers:[]).map(atc=>{
+          const freq=Number(atc.frequency);
+          const canTune=allowedComStandby(freq)!==null;
+          return <article key={atc.callsign}>
+            <strong>{atc.callsign}</strong>
+            <span>{atc.frequency} MHz · online VATSIM</span>
+            <button type="button" disabled={!live||!access?.canControl||busy||!canTune}
+              onClick={()=>void tune(freq)}>Nastavit COM1 standby</button>
+          </article>;
+        })}
+      </div>
+      <p>Stanoviště se může změnit. VATSIM není interní ATC MSFS.
+        Každé naladění vyžaduje vaše kliknutí a povolené ovládání.</p>
+    </section>
+    <h3>Letištní frekvence OurAirports</h3>
     <div className="smart-radio-grid">
       {freqs.map((frequency,index)=><article key={index}>
         <strong>{frequency.type} · {frequency.frequencyMhz.toFixed(3)} MHz</strong>
