@@ -13,6 +13,7 @@ screenshoty a ověřuje rozložení; nejde pouze o kontrolu JSX a CSS.
 - Sedm hlavních obrazovek (přehled, PFD, mapa, historie, ovládání,
   diagnostika a letový asistent) v každém viewportu – dalších 35.
 - Dvě zkoušky celoobrazovkového zobrazení FCU – další 2.
+- Rozbalené offline ovládání rádia a autopilota – dalších 5.
 - manifest.json s velikostí viewportu, názvy snímků a měřením přetečení.
 
 ## Automatické kontroly
@@ -40,3 +41,11 @@ pro další verzi budou sloužit jako schválená baseline.
 
 Artifact na stránce Actions se jmenuje kokpit-ui-visual-baseline.
 Snímky jsou rozdělené podle názvu zařízení a sekce.
+
+## Následná oprava ovládání
+
+Na stránce `/controls` je stále vidět zabezpečení, aktuální stav
+spojení a případné párování. Když není MSFS živě připojený, celý
+obsáhlý formulář s neaktivními příkazy je standardně sbalený,
+ale lze ho rozbalit pro prohlížení. Při živém MSFS je rozbalený.
+CI ověřuje, že po otevření offline zůstávají příkazy neaktivní.
