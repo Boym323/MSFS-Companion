@@ -54,3 +54,48 @@
 .flight-history-restore label{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
 .flight-history-restore input{width:19px;height:19px;flex-shrink:0}
 .flight-history-restore button{min-height:44px;max-width:300px;background:#225b6a;color:#e7faf3;border:1px solid #83afa9;border-radius:8px}
+
+/* Playback is the primary activity; backup and comparison are secondary. */
+.flight-history-heading p{margin-bottom:14px}
+.flight-history-main{padding:clamp(12px,2vw,20px)}
+.flight-history-summary{margin-bottom:12px;gap:9px}
+.flight-history-summary>div{padding:9px 11px;background:#152b40;border:1px solid #2e4a61;border-radius:9px;min-width:0}
+.flight-history-player{
+ margin:10px 0 0;padding:12px;
+ background:#142c41;border:1px solid #41627e;border-radius:11px
+}
+.flight-history-player button{min-height:44px}
+.flight-history-player input[type="range"]{min-height:44px;accent-color:#8ecbfa}
+.flight-history-player .flight-player-speed select{min-height:44px}
+.flight-history-values{padding:8px 4px 15px;gap:7px 17px}
+.flight-history-tools,.flight-history-backup{
+ margin:18px 0 0;border:1px solid #385670;border-radius:11px;
+ background:#101f31;min-width:0;display:block;padding:0
+}
+.flight-history-tools>summary,.flight-history-backup>summary{
+ display:flex;flex-wrap:wrap;align-items:center;gap:5px 13px;
+ cursor:pointer;padding:13px 15px;min-height:48px;color:#e1f1ff
+}
+.flight-history-tools>summary strong,.flight-history-backup>summary strong{font-size:14px}
+.flight-history-tools>summary span,.flight-history-backup>summary span{color:#9db8d2;font-size:12px}
+.flight-history-tools-content{padding:0 14px 13px}
+.flight-history-tools .flight-history-export{margin:8px 0 12px}
+.flight-history-tools .flight-history-compare{margin:8px 0 0}
+.flight-history-backup>summary{margin:0}
+.flight-history-backup>p,.flight-history-backup>.flight-history-backup-actions,
+.flight-history-backup>.flight-history-restore{margin-left:14px;margin-right:14px}
+.flight-history-backup>p:last-child{margin-bottom:15px}
+.flight-history-list button{min-height:64px}
+@media(max-width:850px){
+ .flight-history-layout{gap:12px}
+ .flight-history-list{padding-bottom:5px}
+ .flight-history-list button{min-height:60px}
+}
+@media(max-width:460px){
+ .flight-history-summary{gap:7px}
+ .flight-history-summary>div{padding:8px}
+ .flight-history-player{gap:7px;padding:9px}
+ .flight-history-player input[type="range"]{flex-basis:100%;order:3}
+ .flight-history-tools-content{padding-inline:9px}
+ .flight-history-backup>summary{padding-inline:11px}
+}
