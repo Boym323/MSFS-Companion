@@ -134,12 +134,25 @@ try{
   }
   // Workspace should never mount the whole Airbus dashboard into a half-column.
   await page.goto(base+'/workspace',{waitUntil:'domcontentloaded'});
-  const toggle=page.getByLabel('Airbus A320 readback');
+  const toggle=page.getByRole('checkbox',{name:'Airbus A320 readback'});
   await toggle.check();
   assert.equal(await page.locator('.a320-compact').count(),1,
    device.name+': expected compact Airbus Workspace tile');
   assert.equal(await page.locator('.a320-ui-shell').count(),0,
    device.name+': large FCU must never mount in Workspace');
+  const lock=page.locator('.cockpit-workspace-lock input[type="checkbox"]');
+  await lock.check();
+  assert.equal(await toggle.isDisabled(),true,
+    device.name+': locked tablet layout must disable instrument selection');
+  if(device.name==='ipad-portrait'){
+    const lockedFile=device.name+'--workspace-locked.png';
+    await page.screenshot({path:new URL(lockedFile,out).pathname,
+      fullPage:true,animations:'disabled'});
+    manifest.push({file:lockedFile,...device,panel:'workspace-locked',
+      note:'iPad layout lock must protect instrument choices'});
+  }
+  await lock.uncheck();
+  assert.equal(await toggle.isDisabled(),false);
   const workspaceFile=device.name+'--workspace.png';
   await page.screenshot({path:new URL(workspaceFile,out).pathname,
    fullPage:true,animations:'disabled'});

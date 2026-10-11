@@ -12,3 +12,12 @@
 .flight-insights time { color: #87c4ee; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .flight-insights p { font-size: 12px; color: #abc0d4; line-height: 1.65; }
 .flight-insights-note { margin-bottom: 0; }
+
+/* C56: events become touch-sized timeline navigation, never MSFS commands. */
+.flight-insights li{align-items:center;flex-wrap:wrap}
+.flight-insights li span{flex:1 1 170px}
+.flight-insights li button{min-height:44px;padding:9px 12px;
+ background:#204d66;color:#e4f5ff;border:1px solid #598fad;
+ border-radius:8px;cursor:pointer;font-size:12px}
+.flight-insights li button:hover{background:#2c607e}
+.flight-insights li button:focus-visible{outline:3px solid #b1e5ff;outline-offset:2px}

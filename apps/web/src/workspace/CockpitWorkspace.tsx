@@ -26,6 +26,7 @@ const presets: Record<string, PanelId[]> = {
   'IFR avionika': ['pfd','controls','g1000'],
 };
 const storageKey = 'msfs-companion-workspace-v1';
+const lockKey = 'kokpit-workspace-layout-lock-v1';
 function saved(): Layout {
   try {
     const raw = window.localStorage.getItem(storageKey);
@@ -38,6 +39,10 @@ export default function CockpitWorkspace({ telemetry, live }: {
 }) {
   const [layout, setLayout] = useState<Layout>(saved);
   const [fullscreen, setFullscreen] = useState(false);
+  const [locked,setLocked]=useState(()=>{
+    try{return window.localStorage.getItem(lockKey)==='true';}catch{return false;}
+  });
+  useEffect(()=>{try{window.localStorage.setItem(lockKey,String(locked));}catch{/* local only */}},[locked]);
   const [aircraftMessage,setAircraftMessage]=useState('');
   const aircraftKey=live?aircraftLayoutStorageKey(telemetry?.aircraft):null;
   const recommended=live?recommendedAircraftLayout(telemetry?.aircraft):null;
@@ -50,7 +55,7 @@ export default function CockpitWorkspace({ telemetry, live }: {
     } catch {setAircraftMessage('Rozložení nelze uložit (úložiště prohlížeče není dostupné).');}
   }
   function loadForAircraft(){
-    if(!aircraftKey)return;
+    if(!aircraftKey||locked)return;
     try {
       const data=window.localStorage.getItem(aircraftKey);
       if(!data){setAircraftMessage('Pro toto letadlo ještě nemáte vlastní uložené rozložení.');return;}
@@ -72,6 +77,7 @@ export default function CockpitWorkspace({ telemetry, live }: {
   }, [layout]);
 
   function toggle(id: PanelId) {
+    if(locked)return;
     setLayout(old => {
       const visible = old.visible.includes(id) ? old.visible.filter(v => v !== id)
         : [...old.visible, id].slice(0,3);
@@ -79,6 +85,7 @@ export default function CockpitWorkspace({ telemetry, live }: {
     });
   }
   function move(id: PanelId, direction: -1 | 1) {
+    if(locked)return;
     setLayout(old => {
       const visible = [...old.visible], pos = visible.indexOf(id), to = pos + direction;
       if (pos < 0 || to < 0 || to >= visible.length) return old;
@@ -104,12 +111,18 @@ export default function CockpitWorkspace({ telemetry, live }: {
       </button>
       <p>Vyberte až tři panely, jejich pořadí a rozložení. Nastavení se ukládá
         pouze v tomto prohlížeči. Na iPadu se sloupce automaticky skládají pod sebe.</p>
+      <label className="cockpit-workspace-lock">
+        <input type="checkbox" checked={locked} onChange={e=>setLocked(e.target.checked)} />
+        Zamknout rozložení pro iPad · zabránit nechtěným změnám panelů
+      </label>
       <div className="cockpit-workspace-choices">
         {Object.entries(presets).map(([name, visible]) =>
-          <button key={name} type="button" onClick={() => setLayout(old => ({ ...old, visible }))}>
+          <button key={name} type="button" disabled={locked}
+            onClick={() => setLayout(old => ({ ...old, visible }))}>
             {name}
           </button>)}
-        <button type="button" onClick={() => setLayout({ columns:1, visible:['pfd','map'] })}>
+        <button type="button" disabled={locked}
+          onClick={() => setLayout({ columns:1, visible:['pfd','map'] })}>
           Obnovit výchozí
         </button>
       </div>
@@ -120,7 +133,7 @@ export default function CockpitWorkspace({ telemetry, live }: {
         <p>Výběr je vždy ruční: změna letadla sama nepřepne žádný panel.
           Kandidátní avionika nemusí být v MSFS dostupná.</p>
         <div className="cockpit-workspace-choices">
-          <button type="button" disabled={!recommended}
+          <button type="button" disabled={!recommended||locked}
             onClick={()=>{if(recommended){setLayout(recommended.layout);
               setAircraftMessage('Načten návrh: '+recommended.name+'. Ovladače je nutné ověřit v MSFS.');}}}>
             Použít doporučené panely
@@ -128,13 +141,13 @@ export default function CockpitWorkspace({ telemetry, live }: {
           <button type="button" disabled={!aircraftKey} onClick={saveForAircraft}>
             Uložit pro toto letadlo
           </button>
-          <button type="button" disabled={!aircraftKey} onClick={loadForAircraft}>
+          <button type="button" disabled={!aircraftKey||locked} onClick={loadForAircraft}>
             Načíst uložené
           </button>
         </div>
         {aircraftMessage&&<p role="status">{aircraftMessage}</p>}
       </section>
-      <fieldset>
+      <fieldset disabled={locked}>
         <legend>Aktivní panely (max. 3)</legend>
         {panels.map(panel =>
           <label key={panel.id}>
@@ -144,7 +157,7 @@ export default function CockpitWorkspace({ telemetry, live }: {
           </label>)}
       </fieldset>
       <label>Rozložení na širší obrazovce
-        <select value={layout.columns} onChange={e =>
+        <select value={layout.columns} disabled={locked} onChange={e =>
           setLayout(old => ({ ...old, columns:e.target.value === '2' ? 2 : 1 }))}>
           <option value="1">Jeden sloupec</option>
           <option value="2">Dva sloupce</option>
@@ -158,9 +171,9 @@ export default function CockpitWorkspace({ telemetry, live }: {
           <header className="cockpit-workspace-panel-head">
             <strong>{metadata.name}</strong>
             <div>
-              <button type="button" disabled={index === 0} onClick={() => move(id,-1)}
+              <button type="button" disabled={locked||index === 0} onClick={() => move(id,-1)}
                 aria-label={'Posunout '+metadata.name+' výše'}>↑</button>
-              <button type="button" disabled={index === layout.visible.length-1} onClick={() => move(id,1)}
+              <button type="button" disabled={locked||index === layout.visible.length-1} onClick={() => move(id,1)}
                 aria-label={'Posunout '+metadata.name+' níže'}>↓</button>
               <a href={metadata.path}>Celá obrazovka ↗</a>
             </div>
