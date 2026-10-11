@@ -165,6 +165,41 @@ try{
    await page.screenshot({path:new URL(file,out).pathname,
     fullPage:true,animations:'disabled'});
    manifest.push({file,...device,panel:screen.name,geometry,note:'offline core-page UX audit'});
+   if(screen.name==='map'){
+    const canvas=page.locator('.moving-map-canvas');
+    assert.equal(await canvas.locator('.moving-map-zoom').count(),1,
+     device.name+': zoom buttons must live inside map canvas');
+    const layers=page.locator('.moving-map-layers');
+    assert.equal(await layers.getAttribute('open'),null,
+     device.name+': advanced layers should start collapsed');
+    assert.equal(await page.locator('.moving-map-clear').isDisabled(),true,
+     device.name+': no track to clear while MSFS is offline');
+    const mapOrder=await page.evaluate(()=>{
+     const map=document.querySelector('.moving-map-canvas');
+     const panel=document.querySelector('.moving-map-layers');
+     return !!map&&!!panel&&map.compareDocumentPosition(panel)&Node.DOCUMENT_POSITION_FOLLOWING;
+    });
+    assert.ok(mapOrder,device.name+': map must precede its settings');
+    const zoomIn=canvas.getByRole('button',{name:'Přiblížit mapu'});
+    const zoomOut=canvas.getByRole('button',{name:'Oddálit mapu'});
+    assert.match(await canvas.locator('.moving-map-zoom output').innerText(),/Zoom 11/);
+    await zoomIn.click();
+    assert.match(await canvas.locator('.moving-map-zoom output').innerText(),/Zoom 12/);
+    await zoomOut.click();
+    assert.match(await canvas.locator('.moving-map-zoom output').innerText(),/Zoom 11/);
+    await layers.locator('summary').click();
+    assert.equal(await layers.evaluate(el=>el.hasAttribute('open')),true);
+    assert.equal(await layers.getByText('Základní podklad').isVisible(),true);
+    const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+    assert.ok(expandedWidth<=device.width+2,device.name+': expanded map layers overflow');
+    if(device.name==='desktop'||device.name==='phone'){
+     const expandedFile=device.name+'--map-layers-expanded.png';
+     await page.screenshot({path:new URL(expandedFile,out).pathname,
+      fullPage:true,animations:'disabled'});
+     manifest.push({file:expandedFile,...device,panel:'map-layers-expanded',
+      note:'offline settings disclosure and zoom interaction audit'});
+    }
+   }
    if(screen.name==='controls'){
     const disclosure=page.locator('.control-deck-disclosure');
     assert.equal(await disclosure.getAttribute('open'),null,
