@@ -12,9 +12,11 @@ const base=process.env.VISUAL_BASE_URL??'http://127.0.0.1:4173';
 const out=new URL('../visual-artifacts/',import.meta.url);
 const targets=[
  {name:'desktop',width:1440,height:900},
+ {name:'compact-desktop',width:1280,height:800},
  {name:'ipad-landscape',width:1024,height:768},
  {name:'ipad-portrait',width:768,height:1024},
  {name:'phone',width:390,height:844},
+ {name:'phone-375',width:375,height:812},
  {name:'small-phone',width:320,height:700}
 ];
 const manifest=[];
@@ -28,6 +30,7 @@ try{
   });
   const page=await context.newPage();
   const runtimeErrors=[];
+  // Audit keyboard navigation alongside touch and mouse behavior.
   page.on('pageerror',error=>runtimeErrors.push(error.message));
   for(const tab of A320_TABS){
    await page.goto(base+'/a320?panel='+tab.id,{waitUntil:'domcontentloaded'});
@@ -65,6 +68,7 @@ try{
    assert.ok(geometry.body<=geometry.viewport+2,
     device.name+'/'+tab.id+': viewport overflow '+JSON.stringify(geometry));
    assert.ok(geometry.stagePresent&&geometry.stageWidth>0);
+   assert.ok(geometry.stageTop>=0,device.name+'/'+tab.id+': instrument stage clipped above viewport');
    assert.ok(geometry.activeTabHeight>=43&&geometry.primaryHeight>=43,
     device.name+'/'+tab.id+': navigation touch targets below 44 px '+JSON.stringify(geometry));
    if(device.width<=768){
