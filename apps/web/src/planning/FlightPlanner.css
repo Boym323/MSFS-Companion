@@ -32,3 +32,8 @@
  .flight-planner-actions button{width:100%}
  .flight-planner-next a{flex:1 1 130px;justify-content:center}
 }
+
+.flight-planner-ofp{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}
+.flight-planner-ofp>div{display:grid;gap:5px;min-width:0;padding:12px;border:1px solid #34536d;border-radius:9px;background:#172d43}
+.flight-planner-ofp small{color:#adc4d9;font-size:11px}
+.flight-planner-ofp strong{font-size:14px;color:#e7f4ff;overflow-wrap:anywhere}

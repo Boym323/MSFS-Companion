@@ -9,7 +9,10 @@ type Weather = {airport:string;metar:string|null;taf:string|null;
   available:boolean;fetchedAt:string;stale:boolean;error:string|null};
 
 export default function AirportBriefing(){
-  const [airport,setAirport]=useState('LKPR');
+  const [airport,setAirport]=useState(()=>{
+    const fromLink=new URLSearchParams(window.location.search).get('icao')?.toUpperCase();
+    return fromLink && /^[A-Z]{4}$/.test(fromLink) ? fromLink : 'LKPR';
+  });
   const [weather,setWeather]=useState<Weather|null>(null);
   const [detail,setDetail]=useState<AirportDetail|null>(null);
   const [error,setError]=useState('');

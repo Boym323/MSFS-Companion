@@ -1,0 +1,11 @@
+.departure-arrival-assistant{padding:15px;border:1px solid #3b5976;border-radius:12px;background:#102339;min-width:0;display:grid;gap:12px}
+.departure-arrival-title{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.departure-arrival-title h3,.departure-arrival-assistant>h3{font-size:15px;margin:0}
+.departure-arrival-title small,.departure-arrival-assistant>p{color:#adc6dd;font-size:12px;line-height:1.5;margin:0}
+.departure-arrival-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.departure-arrival-grid article{padding:12px;background:#162e43;border:1px solid #355b75;border-radius:10px;min-width:0}
+.departure-arrival-grid span{font-size:12px;color:#9dbed6;display:block}
+.departure-arrival-grid strong{font-size:21px;color:#edf7ff;letter-spacing:.05em}
+.departure-arrival-grid p{font-size:12px;color:#c6d9e9;overflow-wrap:anywhere;line-height:1.5;min-height:28px}
+.departure-arrival-assistant a{display:inline-flex;align-items:center;min-height:44px;color:#a4dafa;text-decoration:underline;text-underline-offset:3px;font-size:13px}
+@media(max-width:600px){.departure-arrival-grid{grid-template-columns:minmax(0,1fr)}}
