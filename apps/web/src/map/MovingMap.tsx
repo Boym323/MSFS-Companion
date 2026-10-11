@@ -76,6 +76,8 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [groundMessage,setGroundMessage] = useState('');
   const [groundLoading,setGroundLoading] = useState(false);
   const [showGround,setShowGround] = useState(false);
+  const surfaceZoomBefore=useRef<number|null>(null);
+  const [surfaceEnabled,setSurfaceEnabled]=useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
     telemetry?.longitude ?? null, zoom);
@@ -177,8 +179,8 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const planCheck=comparePlan(importedPlan,navigation);
   const groundValid=!!(ground&&groundOrigin&&telemetry
     && metersBetween(groundOrigin,telemetry)<3500);
-  async function loadGround(){
-    if(!telemetry||groundLoading||zoom<13)return;
+  async function loadGround(force=false){
+    if(!telemetry||groundLoading||(!force&&zoom<13))return;
     setGroundLoading(true);setGroundMessage('Načítám mapované pojezdové cesty z OSM…');
     const origin={latitude:telemetry.latitude,longitude:telemetry.longitude};
     const cancel=new AbortController();
@@ -195,6 +197,20 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
       setGroundMessage('OSM: '+parsed.ways.length+' úseků pojíždění, '+parsed.holding.length+' vyčkávacích pozic. Neověřená komunitní data.');
     }catch{setGroundMessage('OSM pojezdové cesty se nepodařilo načíst. Zkuste později.');}
     finally{window.clearTimeout(timeout);setGroundLoading(false);}
+  }
+  function toggleSurfaceMode(){
+    if(surfaceEnabled){
+      setSurfaceEnabled(false);setShowGround(false);
+      const before=surfaceZoomBefore.current;
+      if(before!==null)setZoom(before);
+      surfaceZoomBefore.current=null;
+    }else{
+      if(!telemetry)return;
+      surfaceZoomBefore.current=zoom;setSurfaceEnabled(true);
+      setZoom(Math.max(14,zoom));
+      if(groundValid)setShowGround(true);
+      else void loadGround(true);
+    }
   }
   const nearbyTraffic=showSimTraffic && telemetry && simTraffic.available && !simTraffic.stale
     ? relativeTraffic(telemetry,simTraffic.targets) : [];
@@ -222,6 +238,11 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
           <button type="button" onClick={() => setZoom((z) => Math.max(6, z - 1))}
             aria-label="Oddálit mapu" title="Oddálit mapu" disabled={zoom <= 6}>−</button>
         </div>
+        <button type="button" className="moving-map-surface"
+          aria-pressed={surfaceEnabled} disabled={!telemetry}
+          onClick={toggleSurfaceMode}>
+          {surfaceEnabled?'Zavřít letištní detail':'Detail pojíždění'}
+        </button>
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
           {showAviation && aviation.features.map((feature, index) => {

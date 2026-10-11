@@ -72,6 +72,8 @@ export default function VatsimCenter({ telemetry }: { telemetry: TelemetrySnapsh
       <div className="vatsim-cards">
         {data.controllers.map(c => <article key={c.callsign}>
           <strong>{c.callsign}</strong><span>{c.frequency} MHz · stanoviště {c.facility}</span>
+          <a href={'/radio-assistant?icao='+encodeURIComponent(airport)}>
+            Otevřít frekvence v Smart Radio →</a>
         </article>)}
         {!data.controllers.length && <p>Pro tento prefix nejsou online stanoviště.</p>}
       </div>
