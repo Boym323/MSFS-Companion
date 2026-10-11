@@ -218,7 +218,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         <div className="moving-map-zoom" role="group" aria-label="Přiblížení mapy">
           <button type="button" onClick={() => setZoom((z) => Math.min(15, z + 1))}
             aria-label="Přiblížit mapu" title="Přiblížit mapu" disabled={zoom >= 15}>+</button>
-          <output aria-live="polite" aria-label="Aktuální přiblížení mapy">{zoom}×</output>
+          <output aria-live="polite" aria-label="Aktuální přiblížení mapy">Zoom {zoom}</output>
           <button type="button" onClick={() => setZoom((z) => Math.max(6, z - 1))}
             aria-label="Oddálit mapu" title="Oddálit mapu" disabled={zoom <= 6}>−</button>
         </div>
