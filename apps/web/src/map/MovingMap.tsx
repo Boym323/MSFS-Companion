@@ -77,6 +77,7 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   const [groundLoading,setGroundLoading] = useState(false);
   const [showGround,setShowGround] = useState(false);
   const surfaceZoomBefore=useRef<number|null>(null);
+  const [surfaceEnabled,setSurfaceEnabled]=useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null);
   const aviation = useAviationFeatures(showAviation, telemetry?.latitude ?? null,
     telemetry?.longitude ?? null, zoom);
@@ -198,12 +199,12 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
     finally{window.clearTimeout(timeout);setGroundLoading(false);}
   }
   function toggleSurfaceMode(){
-    if(surfaceZoomBefore.current!==null){
-      setShowGround(false);setZoom(surfaceZoomBefore.current);
+    if(surfaceEnabled){
+      setSurfaceEnabled(false);setShowGround(false);setZoom(surfaceZoomBefore.current);
       surfaceZoomBefore.current=null;
     }else{
       if(!telemetry)return;
-      surfaceZoomBefore.current=zoom;
+      surfaceZoomBefore.current=zoom;setSurfaceEnabled(true);
       setZoom(Math.max(14,zoom));
       if(groundValid)setShowGround(true);
       else void loadGround(true);
@@ -236,9 +237,9 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
             aria-label="Oddálit mapu" title="Oddálit mapu" disabled={zoom <= 6}>−</button>
         </div>
         <button type="button" className="moving-map-surface"
-          aria-pressed={surfaceZoomBefore.current!==null} disabled={!telemetry}
+          aria-pressed={surfaceEnabled} disabled={!telemetry}
           onClick={toggleSurfaceMode}>
-          {surfaceZoomBefore.current!==null?'Zavřít letištní detail':'Detail pojíždění'}
+          {surfaceEnabled?'Zavřít letištní detail':'Detail pojíždění'}
         </button>
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
