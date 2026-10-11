@@ -91,6 +91,20 @@ export default function AirportBriefing(){
           NOTAM, limity konkrétního letadla ani ATC. Pouze pro simulátor.</p>
       </section>
       </div>
+      <nav className="airport-briefing-charts" aria-label="Externí oficiální letecké publikace">
+        <h3>Oficiální AIP a letištní mapy · {airport}</h3>
+        <p>Dokumenty otevíráme pouze na webu vydavatele; nic nepřebíráme
+          ani dále nešíříme. Na externím webu vyhledejte aktuální ICAO letiště.</p>
+        {airport.startsWith('LK') ?
+          <a href="https://aim.rlp.cz/" target="_blank" rel="noopener noreferrer">
+            AIM ŘLP ČR · oficiální AIP a letištní mapy ↗
+          </a> :
+          <a href="https://www.ead.eurocontrol.int/" target="_blank" rel="noopener noreferrer">
+            EUROCONTROL EAD Basic · vyhledat AIP / chart ↗
+          </a>}
+        <p>EAD Basic může vyžadovat registraci a není určen pro operativní
+          rozhodování. V Kokpitu nejde o zobrazení licencované navigační mapy.</p>
+      </nav>
     </>}
   </section>;
 }

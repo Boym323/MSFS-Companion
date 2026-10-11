@@ -26,3 +26,13 @@
  .airport-briefing-selection{padding:12px}
  .airport-briefing-weather,.airport-briefing-wind{padding:12px}
 }
+
+.airport-briefing-charts{padding:15px;border:1px solid #41647b;background:#11283b;
+ border-radius:11px;display:grid;gap:10px;min-width:0}
+.airport-briefing-charts h3{font-size:15px;margin:0;color:#e1f2fd}
+.airport-briefing-charts p{color:#b3cadb;font-size:12px;line-height:1.55;margin:0}
+.airport-briefing-charts a{display:inline-flex;align-items:center;min-height:44px;
+ padding:9px 12px;border:1px solid #547e9a;border-radius:8px;width:fit-content;
+ color:#b8e6ff;background:#18364d;text-decoration:underline}
+@media(max-width:460px){.airport-briefing-charts{padding:11px}
+ .airport-briefing-charts a{width:100%}}
