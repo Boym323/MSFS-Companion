@@ -125,3 +125,17 @@
  .a320-tabs-hint{display:block;margin:2px 2px 5px;
   color:#a9bfd4;font-size:11px;line-height:1.4}
 }
+
+/* UX: readably grouped FCU inputs and visible keyboard focus on narrow devices. */
+@media(max-width:600px){
+ .a320-fcu-action-grid{grid-template-columns:minmax(0,1fr)}
+ .a320-fcu-action-row{flex-wrap:nowrap}
+ .a320-fcu-action input{min-width:0}
+ .a320-fcu-action button{min-height:44px;min-width:44px}
+}
+.a320-instrument-tabs a:focus-visible,
+.a320-diagnostics>summary:focus-visible,
+.a320-fcu-action input:focus-visible,
+.a320-fcu-action button:focus-visible{
+ outline:3px solid #aadfff;outline-offset:2px
+}

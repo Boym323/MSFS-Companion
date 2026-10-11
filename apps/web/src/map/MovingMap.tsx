@@ -211,156 +211,17 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
           <h2>Poloha a proletěná trasa</h2>
           <p>Letadlo je uprostřed, mapa zůstává orientovaná na sever.</p>
         </div>
-        <div className="moving-map-controls">
-          <button type="button" onClick={() => setZoom((z) => Math.max(6, z - 1))}
-            aria-label="Oddálit mapu">−</button>
-          <strong>ZOOM {zoom}</strong>
-          <button type="button" onClick={() => setZoom((z) => Math.min(15, z + 1))}
-            aria-label="Přiblížit mapu">+</button>
-          <button type="button" className="moving-map-clear" onClick={() => {
-            setTrack([]);
-            lastPoint.current = null;
-          }}>Smazat stopu</button>
-        </div>
       </div>
 
-      <label className="moving-map-background">
-        <input type="checkbox" checked={tilesEnabled}
-          onChange={(event) => setTilesEnabled(event.target.checked)} />
-        Podklad OpenStreetMap (automaticky zapnutý, lze vypnout)
-      </label>
-
-      <label className="moving-map-background">
-        <input type="checkbox" checked={showSigmet}
-          onChange={event=>setShowSigmet(event.target.checked)} />
-        SIGMET počasí NOAA (informativní výstrahy)
-      </label>
-      {showSigmet && <p role="status" className="moving-map-sigmet-status">
-        {sigmet.available ? `SIGMET: ${sigmet.hazards.length} polygonů v okolí` : 'SIGMET se načítají nebo nejsou dostupné'}
-        {sigmet.stale?' · Starší údaje':''}
-        {sigmet.error?' · '+sigmet.error:''}
-      </p>}
-      <label className="moving-map-background">
-        <input type="checkbox" checked={showSimTraffic}
-          onChange={event=>setShowSimTraffic(event.target.checked)} />
-        Letadla z MSFS (nativní SimConnect · experimentální)
-      </label>
-      {showSimTraffic&&<>
-        <p className="moving-map-traffic-status" role="status">
-          {simTraffic.available&&!simTraffic.stale
-            ? `MSFS: ${simTraffic.targets.length} potvrzených objektů v okolí`
-            : 'MSFS provoz nepotvrzen – čekám na odpověď SimConnectu.'}
-          {simTraffic.stale?' · Starší data byla skryta':''}
-          {' · '}{simTraffic.status}
-        </p>
-        {nearbyTraffic.length>0&&<section className="moving-map-relative-traffic"
-          aria-label="Nejbližší provoz v MSFS">
-          <h3>C46 · Nejbližší provoz</h3>
-          <ul>{nearbyTraffic.map(target=><li key={target.objectId}>
-            <strong>AI #{target.objectId}</strong>
-            <span>{target.distanceNm.toFixed(1)} NM</span>
-            <span>{target.side} · {target.bearingTrue}° zeměpisně</span>
-            <span>{target.altitudeDifferenceFeet>=0?'+':''}{target.altitudeDifferenceFeet} ft</span>
-            {target.onGround&&<span>Na zemi</span>}
-          </li>)}</ul>
-          <p>Pouze orientační pozice z MSFS. Není to TCAS, predikce srážek
-            ani potvrzení všech multiplayerových objektů.</p>
-        </section>}
-      </>}
-      <label className="moving-map-background">
-        <input type="checkbox" checked={showVatsim}
-          onChange={event => setShowVatsim(event.target.checked)} />
-        VATSIM online letadla (volitelně, NEJSOU to letadla v MSFS)
-      </label>
-      {showVatsim && <p className="moving-map-vatsim-status" role="status">
-        {vatsim.available
-          ? `VATSIM: ${vatsim.pilots.length} online pilotů v okolí`
-          : 'VATSIM se načítá nebo není dostupný.'}
-        {vatsim.stale ? ' · Starší data' : ''}
-        {vatsim.updatedAt ? ` · ${new Date(vatsim.updatedAt).toLocaleTimeString('cs-CZ')}` : ''}
-        {vatsim.error ? ` · ${vatsim.error}` : ''}
-      </p>}
-      <label className="moving-map-background"><input type="checkbox" checked={showLeg}
-        onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
-      <label className="moving-map-background">
-        <input type="checkbox" checked={showAviation} onChange={e => setShowAviation(e.target.checked)} />
-        Letiště / VOR / NDB z OurAirports (internet, bez další instalace)
-      </label>
-      {showAviation && <>
-        <div className="moving-map-aviation-options">
-          <label><input type="checkbox" checked={showRunways}
-            onChange={event => setShowRunways(event.target.checked)} /> Dráhy</label>
-          <label><input type="checkbox" checked={showNavaids}
-            onChange={event => setShowNavaids(event.target.checked)} /> VOR / NDB / DME</label>
-        </div>
-        <p className="moving-map-layer-status" role="status">
-          {aviation.loading && !aviation.available ? 'Načítám leteckou databázi OurAirports. První stažení může chvíli trvat…'
-            : aviation.available ? `Zobrazuji ${aviation.features.length} leteckých objektů z OurAirports`
-            : 'Letecká databáze zatím není dostupná. Mapa a GPS fungují dál.'}
-          {aviation.stale ? ' · Offline cache (starší data)' : ''}
-          {aviation.available && aviation.updatedAt
-            ? ` · Data: ${new Date(aviation.updatedAt).toLocaleDateString('cs-CZ')}` : ''}
-        </p>
-      </>}
-      <div className="moving-map-airspace-import">
-        <button type="button" disabled={czechLoading} onClick={()=>void loadCzechAirspace()}>
-          {czechLoading?'Načítám…':'Načíst české vzdušné prostory (Aeroklub ČR)'}
-        </button>
-        <label>Vzdušné prostory · ruční import OpenAir (C35)
-          <input type="file" accept=".txt,.openair,text/plain" onChange={event=>{
-            const file=event.currentTarget.files?.[0];if(!file)return;
-            if(file.size>2_000_000){setAirspaceMessage('Soubor je větší než 2 MB.');return;}
-            void file.text().then(text=>{
-              const result=parseOpenAir(text);
-              setPendingOldAirspace(null);
-              setAirspaces(result.regions);setShowAirspaces(true);
-              setAirspaceMessage('Import: '+result.regions.length+' polygonů; '+result.skipped+
-                ' neúplných nebo nepodporovaných. Datum účinnosti ručně importovaného souboru nebylo ověřeno.');
-            }).catch(()=>setAirspaceMessage('Soubor OpenAir nelze načíst.'));
-          }}/>
-        </label>
-        {pendingOldAirspace&&<button type="button" onClick={()=>{
-          setAirspaces(pendingOldAirspace);setShowAirspaces(true);
-          setPendingOldAirspace(null);
-          setAirspaceMessage('C45 · Ručně povoleno orientační zobrazení staršího zdroje. Není určeno pro skutečnou navigaci.');
-        }}>Rozumím stáří zdroje – zobrazit pouze v simulátoru</button>}
-        <label><input type="checkbox" checked={showAirspaces} onChange={e=>setShowAirspaces(e.target.checked)}
-          disabled={!airspaces.length}/> Zobrazit načtené prostory ({airspaces.length})</label>
-        {airspaceMessage&&<p role="status">{airspaceMessage}</p>}
-        <p>Podklady nejsou automaticky aktuální. Exporty ve formátu OpenAir lze získat
-          například z <a href="https://openflightmaps.org/" target="_blank" rel="noreferrer">open flightmaps</a>.
-          Podporované oblouky a kružnice se aproximují; neplatné tvary se vynechají.</p>
-      </div>
-      <div className="moving-map-ground-tools">
-        <button type="button" disabled={!telemetry||groundLoading||zoom<13}
-          onClick={()=>void loadGround()}>{groundLoading?'Načítám…':'Načíst pojezdové cesty OSM (C36)'}</button>
-        <label><input type="checkbox" checked={showGround} disabled={!groundValid}
-          onChange={e=>setShowGround(e.target.checked)}/> Zobrazit pojezdové cesty</label>
-        <p role="status">{zoom<13?'Pro zobrazení pojezdových cest přibližte na zoom 13–15.':groundMessage}</p>
-      </div>
-      <div className="moving-map-pln">
-        <label>Volitelně načíst kompletní plán ze souboru .PLN
-          <input type="file" accept=".pln,.xml,text/xml,application/xml" onChange={event => {
-            const file = event.currentTarget.files?.[0];
-            if (!file) return;
-            void file.text().then(text => {
-              const points = parsePln(text);
-              setImportedPlan(points);
-              window.sessionStorage.removeItem(SESSION_KEY);
-              setPlanMessage(`Načteno ${points.length} waypointů ze souboru. Plán se automaticky nesynchronizuje s MSFS.`);
-            }).catch(error => {
-              setImportedPlan([]);
-              setPlanMessage(error instanceof Error ? error.message : 'PLN soubor nelze načíst.');
-            });
-          }} />
-        </label>
-        {importedPlan.length > 0 && <button type="button" onClick={() => {
-          setImportedPlan([]); setPlanMessage('Importovaná trasa smazána.');
-        }}>Odebrat importovanou trasu</button>}
-        {planMessage && <p role="status">{planMessage}</p>}
-      </div>
       <div ref={viewport} className="moving-map-canvas" aria-label="Mapa centrovaná na aktuální GPS polohu">
         <MapTileLayer center={world} zoom={zoom} width={width} height={height} enabled={tilesEnabled} />
+        <div className="moving-map-zoom" role="group" aria-label="Přiblížení mapy">
+          <button type="button" onClick={() => setZoom((z) => Math.min(15, z + 1))}
+            aria-label="Přiblížit mapu" title="Přiblížit mapu" disabled={zoom >= 15}>+</button>
+          <output aria-live="polite" aria-label="Aktuální přiblížení mapy">Zoom {zoom}</output>
+          <button type="button" onClick={() => setZoom((z) => Math.max(6, z - 1))}
+            aria-label="Oddálit mapu" title="Oddálit mapu" disabled={zoom <= 6}>−</button>
+        </div>
         <svg className="moving-map-track" viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none" aria-hidden="true">
           {showAviation && aviation.features.map((feature, index) => {
@@ -490,6 +351,164 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         )}
 
       </div>
+      <div className="moving-map-stats">
+        <span><strong>GPS:</strong> {telemetry
+          ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°`
+          : 'čekám'}</span>
+        <span><strong>Směr:</strong> {telemetry ? `${telemetry.headingDegrees.toFixed(0)}°` : '—'}</span>
+        <span><strong>Délka stopy:</strong> {(distance / 1000).toFixed(1)} km</span>
+        <span><strong>Uložené body:</strong> {track.length} / {MAX_POINTS}</span>
+        <button type="button" className="moving-map-clear"
+          disabled={track.length === 0} onClick={() => {
+            setTrack([]);
+            lastPoint.current = null;
+          }}>Smazat stopu</button>
+      </div>
+      <details className="moving-map-layers">
+        <summary>Vrstvy a nastavení mapy <span>Podklad, provoz, letiště a letový plán</span></summary>
+        <div className="moving-map-layers-content">
+        <h3>Základní podklad</h3>
+      <label className="moving-map-background">
+        <input type="checkbox" checked={tilesEnabled}
+          onChange={(event) => setTilesEnabled(event.target.checked)} />
+        Podklad OpenStreetMap (automaticky zapnutý, lze vypnout)
+      </label>
+
+        <h3>Počasí a provoz</h3>
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showSigmet}
+          onChange={event=>setShowSigmet(event.target.checked)} />
+        SIGMET počasí NOAA (informativní výstrahy)
+      </label>
+      {showSigmet && <p role="status" className="moving-map-sigmet-status">
+        {sigmet.available ? `SIGMET: ${sigmet.hazards.length} polygonů v okolí` : 'SIGMET se načítají nebo nejsou dostupné'}
+        {sigmet.stale?' · Starší údaje':''}
+        {sigmet.error?' · '+sigmet.error:''}
+      </p>}
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showSimTraffic}
+          onChange={event=>setShowSimTraffic(event.target.checked)} />
+        Letadla z MSFS (nativní SimConnect · experimentální)
+      </label>
+      {showSimTraffic&&<>
+        <p className="moving-map-traffic-status" role="status">
+          {simTraffic.available&&!simTraffic.stale
+            ? `MSFS: ${simTraffic.targets.length} potvrzených objektů v okolí`
+            : 'MSFS provoz nepotvrzen – čekám na odpověď SimConnectu.'}
+          {simTraffic.stale?' · Starší data byla skryta':''}
+          {' · '}{simTraffic.status}
+        </p>
+        {nearbyTraffic.length>0&&<section className="moving-map-relative-traffic"
+          aria-label="Nejbližší provoz v MSFS">
+          <h3>C46 · Nejbližší provoz</h3>
+          <ul>{nearbyTraffic.map(target=><li key={target.objectId}>
+            <strong>AI #{target.objectId}</strong>
+            <span>{target.distanceNm.toFixed(1)} NM</span>
+            <span>{target.side} · {target.bearingTrue}° zeměpisně</span>
+            <span>{target.altitudeDifferenceFeet>=0?'+':''}{target.altitudeDifferenceFeet} ft</span>
+            {target.onGround&&<span>Na zemi</span>}
+          </li>)}</ul>
+          <p>Pouze orientační pozice z MSFS. Není to TCAS, predikce srážek
+            ani potvrzení všech multiplayerových objektů.</p>
+        </section>}
+      </>}
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showVatsim}
+          onChange={event => setShowVatsim(event.target.checked)} />
+        VATSIM online letadla (volitelně, NEJSOU to letadla v MSFS)
+      </label>
+      {showVatsim && <p className="moving-map-vatsim-status" role="status">
+        {vatsim.available
+          ? `VATSIM: ${vatsim.pilots.length} online pilotů v okolí`
+          : 'VATSIM se načítá nebo není dostupný.'}
+        {vatsim.stale ? ' · Starší data' : ''}
+        {vatsim.updatedAt ? ` · ${new Date(vatsim.updatedAt).toLocaleTimeString('cs-CZ')}` : ''}
+        {vatsim.error ? ` · ${vatsim.error}` : ''}
+      </p>}
+        <h3>Navigace a letiště</h3>
+      <label className="moving-map-background"><input type="checkbox" checked={showLeg}
+        onChange={event => setShowLeg(event.target.checked)} /> Zobrazit aktivní GPS úsek a waypoint</label>
+      <label className="moving-map-background">
+        <input type="checkbox" checked={showAviation} onChange={e => setShowAviation(e.target.checked)} />
+        Letiště / VOR / NDB z OurAirports (internet, bez další instalace)
+      </label>
+      {showAviation && <>
+        <div className="moving-map-aviation-options">
+          <label><input type="checkbox" checked={showRunways}
+            onChange={event => setShowRunways(event.target.checked)} /> Dráhy</label>
+          <label><input type="checkbox" checked={showNavaids}
+            onChange={event => setShowNavaids(event.target.checked)} /> VOR / NDB / DME</label>
+        </div>
+        <p className="moving-map-layer-status" role="status">
+          {aviation.loading && !aviation.available ? 'Načítám leteckou databázi OurAirports. První stažení může chvíli trvat…'
+            : aviation.available ? `Zobrazuji ${aviation.features.length} leteckých objektů z OurAirports`
+            : 'Letecká databáze zatím není dostupná. Mapa a GPS fungují dál.'}
+          {aviation.stale ? ' · Offline cache (starší data)' : ''}
+          {aviation.available && aviation.updatedAt
+            ? ` · Data: ${new Date(aviation.updatedAt).toLocaleDateString('cs-CZ')}` : ''}
+        </p>
+      </>}
+        <h3>Vzdušné prostory a pojíždění</h3>
+      <div className="moving-map-airspace-import">
+        <button type="button" disabled={czechLoading} onClick={()=>void loadCzechAirspace()}>
+          {czechLoading?'Načítám…':'Načíst české vzdušné prostory (Aeroklub ČR)'}
+        </button>
+        <label>Vzdušné prostory · ruční import OpenAir (C35)
+          <input type="file" accept=".txt,.openair,text/plain" onChange={event=>{
+            const file=event.currentTarget.files?.[0];if(!file)return;
+            if(file.size>2_000_000){setAirspaceMessage('Soubor je větší než 2 MB.');return;}
+            void file.text().then(text=>{
+              const result=parseOpenAir(text);
+              setPendingOldAirspace(null);
+              setAirspaces(result.regions);setShowAirspaces(true);
+              setAirspaceMessage('Import: '+result.regions.length+' polygonů; '+result.skipped+
+                ' neúplných nebo nepodporovaných. Datum účinnosti ručně importovaného souboru nebylo ověřeno.');
+            }).catch(()=>setAirspaceMessage('Soubor OpenAir nelze načíst.'));
+          }}/>
+        </label>
+        {pendingOldAirspace&&<button type="button" onClick={()=>{
+          setAirspaces(pendingOldAirspace);setShowAirspaces(true);
+          setPendingOldAirspace(null);
+          setAirspaceMessage('C45 · Ručně povoleno orientační zobrazení staršího zdroje. Není určeno pro skutečnou navigaci.');
+        }}>Rozumím stáří zdroje – zobrazit pouze v simulátoru</button>}
+        <label><input type="checkbox" checked={showAirspaces} onChange={e=>setShowAirspaces(e.target.checked)}
+          disabled={!airspaces.length}/> Zobrazit načtené prostory ({airspaces.length})</label>
+        {airspaceMessage&&<p role="status">{airspaceMessage}</p>}
+        <p>Podklady nejsou automaticky aktuální. Exporty ve formátu OpenAir lze získat
+          například z <a href="https://openflightmaps.org/" target="_blank" rel="noreferrer">open flightmaps</a>.
+          Podporované oblouky a kružnice se aproximují; neplatné tvary se vynechají.</p>
+      </div>
+      <div className="moving-map-ground-tools">
+        <button type="button" disabled={!telemetry||groundLoading||zoom<13}
+          onClick={()=>void loadGround()}>{groundLoading?'Načítám…':'Načíst pojezdové cesty OSM (C36)'}</button>
+        <label><input type="checkbox" checked={showGround} disabled={!groundValid}
+          onChange={e=>setShowGround(e.target.checked)}/> Zobrazit pojezdové cesty</label>
+        <p role="status">{zoom<13?'Pro zobrazení pojezdových cest přibližte na zoom 13–15.':groundMessage}</p>
+      </div>
+        <h3>Letový plán</h3>
+      <div className="moving-map-pln">
+        <label>Volitelně načíst kompletní plán ze souboru .PLN
+          <input type="file" accept=".pln,.xml,text/xml,application/xml" onChange={event => {
+            const file = event.currentTarget.files?.[0];
+            if (!file) return;
+            void file.text().then(text => {
+              const points = parsePln(text);
+              setImportedPlan(points);
+              window.sessionStorage.removeItem(SESSION_KEY);
+              setPlanMessage(`Načteno ${points.length} waypointů ze souboru. Plán se automaticky nesynchronizuje s MSFS.`);
+            }).catch(error => {
+              setImportedPlan([]);
+              setPlanMessage(error instanceof Error ? error.message : 'PLN soubor nelze načíst.');
+            });
+          }} />
+        </label>
+        {importedPlan.length > 0 && <button type="button" onClick={() => {
+          setImportedPlan([]); setPlanMessage('Importovaná trasa smazána.');
+        }}>Odebrat importovanou trasu</button>}
+        {planMessage && <p role="status">{planMessage}</p>}
+      </div>
+        </div>
+      </details>
       {showSimTraffic && <p className="moving-map-traffic-legend">
         <span aria-hidden="true">●</span> Zelené značky = objekty skutečně
         vrácené SimConnectem. Nemusí zahrnovat veškerý multiplayer ani AI provoz.
@@ -523,14 +542,6 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
         <strong>Importovaný plán .PLN / SimBrief ({importedPlan.length} waypointů):</strong>
         <span>{importedPlan.map(point => point.id).join(' → ')}</span>
       </div>}
-      <div className="moving-map-stats">
-        <span><strong>GPS:</strong> {telemetry
-          ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°`
-          : 'čekám'}</span>
-        <span><strong>Směr:</strong> {telemetry ? `${telemetry.headingDegrees.toFixed(0)}°` : '—'}</span>
-        <span><strong>Délka stopy:</strong> {(distance / 1000).toFixed(1)} km</span>
-        <span><strong>Uložené body:</strong> {track.length} / {MAX_POINTS}</span>
-      </div>
       <p className="moving-map-note">
         Podklad OpenStreetMap se načítá automaticky, pokud je dostupný internet.
         Bez internetu zůstane viditelná souřadnicová mřížka a stopa letu. Mapový server

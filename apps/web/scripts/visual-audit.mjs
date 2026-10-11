@@ -12,9 +12,11 @@ const base=process.env.VISUAL_BASE_URL??'http://127.0.0.1:4173';
 const out=new URL('../visual-artifacts/',import.meta.url);
 const targets=[
  {name:'desktop',width:1440,height:900},
+ {name:'compact-desktop',width:1280,height:800},
  {name:'ipad-landscape',width:1024,height:768},
  {name:'ipad-portrait',width:768,height:1024},
  {name:'phone',width:390,height:844},
+ {name:'phone-375',width:375,height:812},
  {name:'small-phone',width:320,height:700}
 ];
 const manifest=[];
@@ -76,6 +78,7 @@ try{
    assert.ok(geometry.body<=geometry.viewport+2,
     device.name+'/'+tab.id+': viewport overflow '+JSON.stringify(geometry));
    assert.ok(geometry.stagePresent&&geometry.stageWidth>0);
+   assert.ok(geometry.stageTop>=0,device.name+'/'+tab.id+': instrument stage clipped above viewport');
    assert.ok(geometry.activeTabHeight>=43&&geometry.primaryHeight>=43,
     device.name+'/'+tab.id+': navigation touch targets below 44 px '+JSON.stringify(geometry));
    if(device.width<=768){
@@ -162,6 +165,41 @@ try{
    await page.screenshot({path:new URL(file,out).pathname,
     fullPage:true,animations:'disabled'});
    manifest.push({file,...device,panel:screen.name,geometry,note:'offline core-page UX audit'});
+   if(screen.name==='map'){
+    const canvas=page.locator('.moving-map-canvas');
+    assert.equal(await canvas.locator('.moving-map-zoom').count(),1,
+     device.name+': zoom buttons must live inside map canvas');
+    const layers=page.locator('.moving-map-layers');
+    assert.equal(await layers.getAttribute('open'),null,
+     device.name+': advanced layers should start collapsed');
+    assert.equal(await page.locator('.moving-map-clear').isDisabled(),true,
+     device.name+': no track to clear while MSFS is offline');
+    const mapOrder=await page.evaluate(()=>{
+     const map=document.querySelector('.moving-map-canvas');
+     const panel=document.querySelector('.moving-map-layers');
+     return !!map&&!!panel&&map.compareDocumentPosition(panel)&Node.DOCUMENT_POSITION_FOLLOWING;
+    });
+    assert.ok(mapOrder,device.name+': map must precede its settings');
+    const zoomIn=canvas.getByRole('button',{name:'Přiblížit mapu'});
+    const zoomOut=canvas.getByRole('button',{name:'Oddálit mapu'});
+    assert.match(await canvas.locator('.moving-map-zoom output').innerText(),/Zoom 11/);
+    await zoomIn.click();
+    assert.match(await canvas.locator('.moving-map-zoom output').innerText(),/Zoom 12/);
+    await zoomOut.click();
+    assert.match(await canvas.locator('.moving-map-zoom output').innerText(),/Zoom 11/);
+    await layers.locator('summary').click();
+    assert.equal(await layers.evaluate(el=>el.hasAttribute('open')),true);
+    assert.equal(await layers.getByText('Základní podklad').isVisible(),true);
+    const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+    assert.ok(expandedWidth<=device.width+2,device.name+': expanded map layers overflow');
+    if(device.name==='desktop'||device.name==='phone'){
+     const expandedFile=device.name+'--map-layers-expanded.png';
+     await page.screenshot({path:new URL(expandedFile,out).pathname,
+      fullPage:true,animations:'disabled'});
+     manifest.push({file:expandedFile,...device,panel:'map-layers-expanded',
+      note:'offline settings disclosure and zoom interaction audit'});
+    }
+   }
    if(screen.name==='controls'){
     const disclosure=page.locator('.control-deck-disclosure');
     assert.equal(await disclosure.getAttribute('open'),null,
