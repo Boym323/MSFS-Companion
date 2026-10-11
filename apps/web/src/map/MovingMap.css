@@ -147,3 +147,9 @@
 .moving-map-surface:disabled{opacity:.45;cursor:not-allowed}
 .moving-map-surface:focus-visible{outline:3px solid #b6e5ff;outline-offset:2px}
 @media(max-width:620px){.moving-map-surface{top:10px;left:77px;max-width:calc(100% - 150px);padding:7px;font-size:11px}}
+
+.moving-map-airradar-status,.moving-map-airradar-legend{
+ color:#e8c99b;font-size:12px;line-height:1.6;margin:7px 0
+}
+.moving-map-airradar-legend span{font-size:15px;color:#f4bf7a}
+.moving-map-airradar-legend a{color:#b1e1ff;text-decoration:underline}

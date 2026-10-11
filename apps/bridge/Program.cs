@@ -162,6 +162,7 @@ app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
+app.MapAirRadar();
 AviationHazardsService.Map(app);
 app.MapGet("/api/airspace/czechia", async (CzechAirspaceService service, CancellationToken ct) =>
     Results.Ok(await service.GetAsync(ct)));
