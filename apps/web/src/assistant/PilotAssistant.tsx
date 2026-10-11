@@ -9,6 +9,7 @@ import AircraftChecklists from '../checklists/AircraftChecklists';
 import { pilotHints, pilotPhase, phaseTitles } from './pilotLogic';
 import { readPhaseEvidence, type PhaseEvidence } from './systemsPhase';
 import './PilotAssistant.css';
+import DepartureArrivalAssistant from './DepartureArrivalAssistant';
 
 type Tab = 'map' | 'progress' | 'fuel' | 'radio' | 'checklists' | 'pfd';
 const tabs: { id: Tab; title: string }[] = [
@@ -16,10 +17,21 @@ const tabs: { id: Tab; title: string }[] = [
   {id:'fuel',title:'Palivo'}, {id:'radio',title:'Rádio'},
   {id:'checklists',title:'Checklisty'}, {id:'pfd',title:'PFD'},
 ];
+const autoKey='kokpit-smart-flight-deck-v1';
+function suggestedTab(phase: keyof typeof phaseTitles):Tab|null{
+  if(phase==='ground')return 'checklists';
+  if(phase==='climb'||phase==='descent')return 'progress';
+  if(phase==='cruise')return 'fuel';
+  if(phase==='approach')return 'map';
+  return null; // Never automatically infer unknown flight phase.
+}
 export default function PilotAssistant({telemetry, live}: {
   telemetry: TelemetrySnapshot | null; live: boolean;
 }) {
   const [tab, setTab] = useState<Tab>('map');
+  const [automatic,setAutomatic]=useState(()=>{
+    try{return window.localStorage.getItem(autoKey)==='true';}catch{return false;}
+  });
   const [evidence, setEvidence] = useState<PhaseEvidence | null>(null);
   const aircraft = telemetry?.aircraft ?? '';
   useEffect(() => {
@@ -54,6 +66,17 @@ export default function PilotAssistant({telemetry, live}: {
     onGround: currentEvidence?.onGround ?? null,
     altitudeAglFeet: currentEvidence?.altitudeAglFeet ?? null,
   } : null);
+  const recommended=suggestedTab(phase);
+  useEffect(()=>{if(automatic && live && recommended)setTab(recommended);},[automatic,live,recommended]);
+  function changeAuto(value:boolean){
+    setAutomatic(value);
+    try{window.localStorage.setItem(autoKey,String(value));}catch{/* session only */}
+  }
+  function selectTab(next:Tab){
+    setTab(next);
+    // An explicit manual choice always takes precedence until re-enabled.
+    if(automatic)changeAuto(false);
+  }
   const display = (n: number | undefined, unit: string) =>
     n != null && Number.isFinite(n) && live ? Math.round(n).toLocaleString('cs-CZ') + ' ' + unit : '—';
   return <section className="pilot-assistant">
@@ -69,9 +92,18 @@ export default function PilotAssistant({telemetry, live}: {
     <div className="pilot-assistant-tips" aria-label="Orientační připomínky pro fázi letu">
       {pilotHints(phase).map(hint => <p key={hint}>{hint}</p>)}
     </div>
+    <DepartureArrivalAssistant />
+    <div className="pilot-assistant-mode">
+      <label><input type="checkbox" checked={automatic}
+        onChange={event=>changeAuto(event.target.checked)} />
+        Automaticky doporučovat a otevírat panel podle potvrzené fáze letu
+      </label>
+      <span>{recommended && live?'Doporučeno: '+(tabs.find(t=>t.id===recommended)?.title??'—')
+        :'Fáze letu není spolehlivě určena.'} Ruční přepnutí automatiku vypne.</span>
+    </div>
     <nav className="pilot-assistant-tabs" aria-label="Nástroje za letu">
       {tabs.map(item => <button type="button" key={item.id}
-        aria-pressed={tab===item.id} onClick={()=>setTab(item.id)}>{item.title}</button>)}
+        aria-pressed={tab===item.id} onClick={()=>selectTab(item.id)}>{item.title}</button>)}
     </nav>
     <div className="pilot-assistant-tool">
       {tab==='map' ? <MovingMap telemetry={live?telemetry:null}/> :
