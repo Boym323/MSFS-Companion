@@ -130,10 +130,10 @@ export default function A320Dashboard({telemetry,live}:{
     <p>Přístroje a referenční data původního Asobo A320neo.
        Neověřené funkce zůstávají zamčené; testy jsou v záložce Diagnostika.</p>
    </div>
-   <span className="a320-status" role="status">
+   {(status||live)&&<span className="a320-status" role="status">
     {status?'Referenční SimConnect data · Airbus FMA neověřeno':
-      live?'Čekám na identitu a diagnostiku A320':'MSFS offline'}
-   </span>
+      'Čekám na identitu a diagnostiku A320'}
+   </span>}
   </div>
   {error&&<p className="a320-alert" role="status">{error}</p>}
   {!status&&live&&<p className="a320-alert">Zobrazí se pouze rozpoznaný kandidát
@@ -148,6 +148,7 @@ export default function A320Dashboard({telemetry,live}:{
       {tab.label}
    </a>)}
   </nav>
+  <p className="a320-tabs-hint">← Další přístroje zobrazíte posunutím záložek →</p>
   <div className="a320-tab-summary">
    <strong>{A320_TABS.find(tab=>tab.id===activeTab)?.description}</strong>
    <span>ASOBO A320NEO V1 · {status?.aircraft??'čekám na letadlo'}</span>
@@ -273,11 +274,11 @@ export default function A320Dashboard({telemetry,live}:{
     </div>
    </section>}
   </div>
-  <p className="a320-footer">Typ: {status?.aircraft??'—'} ·
+  {activeTab==='diagnostics'&&<p className="a320-footer">Typ: {status?.aircraft??'—'} ·
     FCU {f&&status?.fcuAgeMs!=null&&Number.isFinite(status.fcuAgeMs)?
       Math.round(status.fcuAgeMs)+' ms':'nedostupné'} ·
     ENG {e&&status?.enginesAgeMs!=null&&Number.isFinite(status.enginesAgeMs)?
       Math.round(status.enginesAgeMs)+' ms':'nedostupné'}.
-    Nedostupné hodnoty jsou „—“, ne falešná nula.</p>
+    Nedostupné hodnoty jsou „—“, ne falešná nula.</p>}
  </section>;
 }

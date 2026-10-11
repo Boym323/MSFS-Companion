@@ -147,7 +147,7 @@ export default function App() {
 
         {!isPilot && !isValidation && !isHealth && !isMap && !isPfd && !isFlights && !isAircraft && !isA320 && !isCapabilities && !isWeather && !isVatsim && !isControls && !isG1000 && !isAvionics && !isBriefing && !isProgress && !isFuel && !isRadioAssistant && !isChecklists && !isFlightPlan && !isWorkspace && <PanelAktualizaci />}
 
-        {!sourceIsLive && (
+        {!sourceIsLive && !isA320 && (
           <p className="telemetry-offline" role="status">
             {sourceMode === 'simconnect'
               ? 'SimConnect není připojený nebo neposílá čerstvá data. Zobrazované hodnoty nejsou platné.'

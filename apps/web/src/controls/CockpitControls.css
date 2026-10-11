@@ -24,3 +24,27 @@
 
 .control-system-line { display:grid; gap:5px; border:1px solid #273f59; border-radius:9px; padding:12px; background:#0b1728; min-width:0; }
 .control-system-line strong { color:#e1edfc; font-size:13px; }
+
+/* UX-2026-10: retain pairing/status above the fold; only live controls
+   open by default. Offline controls remain inspectable and safely disabled. */
+.control-security-help{margin:9px 0 13px;border:1px solid #33506b;
+ border-radius:9px;background:#13253a}
+.control-security-help>summary{display:flex;align-items:center;cursor:pointer;
+ min-height:44px;padding:10px 13px;font-size:13px;color:#cfdfed;font-weight:650}
+.control-security-help>p{margin:0;padding:0 13px 13px}
+.control-deck-disclosure{min-width:0;border:1px solid #31526d;
+ border-radius:13px;background:#101d30}
+.control-deck-disclosure>summary{display:flex;align-items:center;
+ justify-content:space-between;flex-wrap:wrap;gap:8px;
+ min-height:54px;cursor:pointer;padding:14px 18px;
+ font-weight:700;font-size:14px;color:#eaf4ff}
+.control-deck-disclosure>summary span{font-size:12px;font-weight:400;
+ color:#a6bed5}
+.control-deck-content{display:grid;gap:22px;border-top:1px solid #31526d;
+ padding:16px;min-width:0}
+@media(max-width:470px){
+ .cockpit-controls{gap:14px}
+ .control-security{padding:15px}
+ .control-deck-disclosure>summary{padding:12px}
+ .control-deck-content{padding:10px;gap:17px}
+}

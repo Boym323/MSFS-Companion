@@ -18,6 +18,15 @@ const targets=[
  {name:'small-phone',width:320,height:700}
 ];
 const manifest=[];
+const corePages=[
+ {route:'/admin',name:'overview'},
+ {route:'/pfd',name:'pfd'},
+ {route:'/map',name:'map'},
+ {route:'/flights',name:'flights'},
+ {route:'/controls',name:'controls'},
+ {route:'/health',name:'health'},
+ {route:'/pilot',name:'pilot-assistant'}
+];
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true});
 try{
@@ -46,6 +55,8 @@ try{
     device.name+'/'+tab.id+': active page must be unique');
    assert.equal(await page.locator('.a320-instrument-stage > section').count(),1,
     device.name+'/'+tab.id+': exactly one instrument is mounted');
+   assert.equal(await page.locator('.telemetry-offline').count(),0,
+    device.name+'/'+tab.id+': A320 must not repeat the global offline banner');
    if(tab.id!=='diagnostics'){
     assert.equal(await page.locator('.a320-diagnostic-content').count(),0,
      device.name+'/'+tab.id+': evidence controls must stay outside flight deck');
@@ -127,6 +138,47 @@ try{
    fullPage:true,animations:'disabled'});
   manifest.push({file:workspaceFile,...device,panel:'workspace',
    note:'compact Airbus workspace; offline'});
+  for(const screen of corePages){
+   await page.goto(base+screen.route,{waitUntil:'domcontentloaded'});
+   const selected=page.locator('.cockpit-primary-nav a[aria-current="location"]');
+   await selected.waitFor({state:'visible'});
+   await page.waitForFunction(()=>{
+    const nav=document.querySelector('.cockpit-primary-nav');
+    const link=nav?.querySelector('a[aria-current="location"]');
+    if(!nav||!link)return false;
+    const a=link.getBoundingClientRect(),n=nav.getBoundingClientRect();
+    return a.left>=n.left-3&&a.right<=n.right+3;
+   },null,{timeout:5000});
+   const geometry=await page.evaluate(()=>{
+    const nav=document.querySelector('.cockpit-primary-nav a[aria-current="location"]');
+    return {viewport:innerWidth,body:document.documentElement.scrollWidth,
+      navHeight:nav?.getBoundingClientRect().height??0};
+   });
+   assert.ok(geometry.body<=geometry.viewport+2,
+    device.name+'/'+screen.name+': horizontal document overflow '+JSON.stringify(geometry));
+   assert.ok(geometry.navHeight>=43,
+    device.name+'/'+screen.name+': main navigation touch target below 44 px');
+   const file=device.name+'--'+screen.name+'.png';
+   await page.screenshot({path:new URL(file,out).pathname,
+    fullPage:true,animations:'disabled'});
+   manifest.push({file,...device,panel:screen.name,geometry,note:'offline core-page UX audit'});
+   if(screen.name==='controls'){
+    const disclosure=page.locator('.control-deck-disclosure');
+    assert.equal(await disclosure.getAttribute('open'),null,
+     device.name+': offline control deck should be collapsed');
+    await disclosure.locator('summary').click();
+    assert.equal(await disclosure.evaluate(el=>el.hasAttribute('open')),true);
+    assert.equal(await page.locator('.control-tile button').first().isDisabled(),true,
+     device.name+': opening offline deck must never enable a command');
+    const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+    assert.ok(expandedWidth<=device.width+2,device.name+': expanded controls overflow');
+    const expandedFile=device.name+'--controls-expanded.png';
+    await page.screenshot({path:new URL(expandedFile,out).pathname,
+     fullPage:true,animations:'disabled'});
+    manifest.push({file:expandedFile,...device,panel:'controls-expanded',
+     note:'offline control deck expanded; buttons must remain disabled'});
+   }
+  }
   assert.deepEqual(runtimeErrors,[],device.name+': unhandled browser errors');
   await context.close();
  }
