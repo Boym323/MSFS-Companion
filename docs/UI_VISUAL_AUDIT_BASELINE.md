@@ -5,11 +5,11 @@ screenshoty a ověřuje rozložení; nejde pouze o kontrolu JSX a CSS.
 
 ## Co se zachytí
 
-- Pět šířek: desktop 1440×900, iPad landscape 1024×768,
-  iPad portrait 768×1024, telefon 390×844 a 320×700.
+- Sedm šířek: desktop 1440×900, menší desktop 1280×800, iPad landscape 1024×768,
+  iPad portrait 768×1024, telefony 390×844, 375×812 a 320×700.
 - Šest Airbus záložek: FCU, EFIS/ND, Overhead, ECAM, MCDU,
-  Diagnostika – celkem 30 screenshotů.
-- Kompaktní Airbus Workspace v každém viewportu – dalších 5.
+  Diagnostika – celkem 42 screenshotů.
+- Kompaktní Airbus Workspace v každém viewportu – dalších 7.
 - manifest.json s velikostí viewportu, názvy snímků a měřením přetečení.
 
 ## Automatické kontroly
@@ -26,6 +26,9 @@ Snímky jsou offline baseline: bez skutečného MSFS a bridge,
 proto zobrazují pouze odpojené či nedostupné stavy.
 Neprokazují živou funkčnost WASM, MCDU nebo FMA ani úplnou
 vizuální shodu s originálním kokpitem Airbus.
+
+Na telefonech do 600 px zůstává formulář FCU v jediném sloupci,
+aby hodnoty a ovládací tlačítka měly dostatečnou šířku.
 
 Workflow zatím nezavádí automatický pixelový diff.
 První referenční obrázky musí být nejdříve skutečně zkontrolovány;
