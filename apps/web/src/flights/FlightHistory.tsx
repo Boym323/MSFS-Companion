@@ -8,6 +8,7 @@ import { exportFlightGpx, exportFlightKml } from './logbookExport';
 import {createLogbookArchive,inspectLogbookArchive,ARCHIVE_LIMIT_BYTES,
   type ArchivedFlight} from './logbookBackup';
 import { analyzeFlight } from './analysis';
+import {eventSampleIndex} from './replayEvents';
 import './FlightHistory.css';
 
 type FlightSummary = {
@@ -260,7 +261,11 @@ export default function FlightHistory() {
                 <span>HDG <strong>{point ? point.headingDegrees.toFixed(0) : '—'}°</strong></span>
                 <span>GPS <strong>{point ? `${point.latitude.toFixed(4)}°, ${point.longitude.toFixed(4)}°` : '—'}</strong></span>
               </div>
-              <FlightInsights samples={samples} mode={detail.summary.mode} />
+              <FlightInsights samples={samples} mode={detail.summary.mode}
+                onJump={eventAt=>{
+                  const target=eventSampleIndex(samples,eventAt);
+                  if(target!==null){setPlaying(false);setCursor(target);}
+                }} />
               <h3>Průběh výšky a rychlosti</h3>
               <FlightReplayCharts samples={samples} index={index} />
 
