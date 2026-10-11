@@ -242,7 +242,7 @@ try{
       const values=document.querySelector('.flight-history-values');
       const map=document.querySelector('.flight-route-map');
       const archive=document.querySelector('.flight-history-backup');
-      const chart=document.querySelector('.flight-history-chart');
+      const chart=document.querySelector('.flight-replay-charts');
       if(!player||!values||!map||!archive||!chart)return false;
       const before=(a,b)=>!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
       return before(player,values)&&before(values,chart)&&before(chart,map)&&before(map,archive);
