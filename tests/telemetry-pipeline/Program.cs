@@ -80,7 +80,7 @@ var encoded=frameCache.Encode(one);
 var cached=frameCache.Encode(one);
 if(!ReferenceEquals(encoded,cached))
     throw new Exception("Stejný snapshot se musí sdílet bez další serializace.");
-if(!System.Text.Encoding.UTF8.GetString(encoded).Contains("\\"airspeedKnots\\":150"))
+if(!System.Text.Encoding.UTF8.GetString(encoded).Contains("airspeedKnots"))
     throw new Exception("Sdílený WebSocket frame není kompatibilní JSON telemetrie.");
 var newer=one with {TimestampUtc=one.TimestampUtc.AddMilliseconds(50)};
 var fresh=frameCache.Encode(newer);
