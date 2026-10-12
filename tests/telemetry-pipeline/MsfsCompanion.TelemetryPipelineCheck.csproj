@@ -8,6 +8,8 @@
   <ItemGroup>
     <!-- Testujeme stejné produkční zdrojové soubory, bez NuGet test frameworku. -->
     <Compile Include="../../apps/bridge/Telemetry/LatestFrameBuffer.cs" Link="LatestFrameBuffer.cs" />
+    <Compile Include="../../apps/bridge/Telemetry/TelemetrySnapshot.cs" Link="TelemetrySnapshot.cs" />
+    <Compile Include="../../apps/bridge/Telemetry/TelemetryWebSocketFrameCache.cs" Link="TelemetryWebSocketFrameCache.cs" />
     <Compile Include="../../apps/bridge/Telemetry/TelemetryHealth.cs" Link="TelemetryHealth.cs" />
     <Compile Include="../../apps/bridge/Telemetry/SimConnectRetryPolicy.cs" Link="SimConnectRetryPolicy.cs" />
   </ItemGroup>
