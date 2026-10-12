@@ -128,6 +128,12 @@ internal static class Program
             or InvalidOperationException){return false;}
     }
 
+    // Pure fail-closed release guard. Its self-test never writes or installs files.
+    private static bool MayAttemptRollback(bool matchingJournal,bool hostRunning,
+        bool bridgeRunning,bool verifiedPackage,bool installedTargetMatches) =>
+        matchingJournal && !hostRunning && !bridgeRunning &&
+        verifiedPackage && installedTargetMatches;
+
     private static async Task<int> Watch(string target,string previous,int originalPid,string updater)
     {
         if(!Version(target)||!Version(previous)||Same(target,previous)||
@@ -152,10 +158,11 @@ internal static class Program
             {Write("new host confirmed; stale failed marker ignored");return 0;}
             await Task.Delay(3000);
         }
-        if(ReadAttempt(PendingPath,target,previous) is null &&
-             ReadAttempt(FailedPath,target,previous) is null || HostRunning() || BridgeRunning() ||
-            !ValidBackup(previous) ||
-            !NewVersionActuallyInstalled(Path.GetDirectoryName(updater)!,target))
+        var matchingJournal=ReadAttempt(PendingPath,target,previous) is not null ||
+            ReadAttempt(FailedPath,target,previous) is not null;
+        if(!MayAttemptRollback(matchingJournal,HostRunning(),BridgeRunning(),
+             ValidBackup(previous),
+             NewVersionActuallyInstalled(Path.GetDirectoryName(updater)!,target)))
         {Write("host running, source changed or installed target not proven; abort");return 5;}
 
         var marker=Path.Combine(Recovery,"attempt-"+target+".json");
@@ -189,7 +196,13 @@ internal static class Program
         if(args is ["--self-test"])
         {
             var valid=Version("0.2.128")&&!Version("../unsafe")&&
-                !Version("v0.2.128")&&!Same("0.2.128","0.2.127");
+                !Version("v0.2.128")&&!Same("0.2.128","0.2.127")
+                &&MayAttemptRollback(true,false,false,true,true)
+                &&!MayAttemptRollback(false,false,false,true,true)
+                &&!MayAttemptRollback(true,true,false,true,true)
+                &&!MayAttemptRollback(true,false,true,true,true)
+                &&!MayAttemptRollback(true,false,false,false,true)
+                &&!MayAttemptRollback(true,false,false,true,false);
             Console.WriteLine(valid?"C42 supervisor PASS":"C42 supervisor FAIL");
             return valid?0:1;
         }

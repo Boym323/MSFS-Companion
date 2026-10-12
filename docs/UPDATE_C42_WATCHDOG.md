@@ -7,6 +7,23 @@ instalovat. Při aktualizaci se tato malá konzolová aplikace
 kopíruje do lokální uživatelské složky mimo adresář Velopack
 `current`, aby ji samotná aktualizace nevyměnila.
 
+
+## F1 – Bezpečnostní guard v automatických testech
+
+Nezávislý `recovery-watch` má nově samostatně testovanou,
+**fail-closed** rozhodovací podmínku před pokusem o downgrade.
+`--self-test` požaduje platný journal stejného pokusu,
+nepřítomnost běžícího hostitele i bridge, ověřený předchozí
+balíček a skutečně nainstalovanou cílovou verzi. Každou
+zamítací podmínku testuje zvlášť bez zásahu do souborů.
+
+Windows installer workflow spouští tento self-test na skutečně
+nainstalovaném balíčku. **Nenahrazuje to integrační test dvou
+instalovaných verzí a úmyslně poškozené aktualizace**. Watchdog
+proto zůstává standardně vypnutý (`EnableRecoveryWatchdog=false`)
+a jeho aktivace vyžaduje pilotní akceptaci podle
+`docs/STABILIZATION_ACCEPTANCE.md`.
+
 ## Bezpečnostní zásady
 
 1. **Výchozí nastavení je vypnuto.** Uživatel musí v nabídce
