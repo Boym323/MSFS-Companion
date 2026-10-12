@@ -94,16 +94,20 @@ try{
      device.name+': redundant second nav row must be hidden');
    }
    if(tab.id==='fcu'){
+    const compact=page.getByRole('button',{name:'Kompaktní',exact:true});
     const fit=page.getByRole('button',{name:'Přizpůsobit'});
     const actual=page.getByRole('button',{name:'1:1',exact:true});
     const fullscreen=page.getByRole('button',{name:'Celá obrazovka'});
-    if(device.width>=640){
+    if(device.width>=900){
      assert.equal(await fit.getAttribute('aria-pressed'),'true',
-      device.name+': default iPad/desktop mode should fit the FCU');
+      device.name+': desktop and landscape iPad should fit original FCU');
     }else{
-     assert.equal(await actual.getAttribute('aria-pressed'),'true',
-      device.name+': phones keep usable 1:1 controls by default');
+     assert.equal(await compact.getAttribute('aria-pressed'),'true',
+      device.name+': portrait iPad and phones default to readable references');
     }
+    await compact.click();
+    assert.equal(await page.locator('.a320-hw-compact-readings .a320-hw-compact-metric').count(),4,
+     device.name+': compact FCU has all four reference values');
     await fit.click();
     await page.waitForFunction(()=>{
      const s=document.querySelector('.a320-hw-scroll');
@@ -124,7 +128,7 @@ try{
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('.a320-hw-viewer.is-fullscreen').count(),0,
      device.name+': Escape should dismiss the overlay');
-    if(device.width>=640)await fit.click();
+    if(device.width>=900)await fit.click(); else await compact.click();
    }
    const file=device.name+'--a320-'+tab.id+'.png';
    await page.screenshot({path:new URL(file,out).pathname,
