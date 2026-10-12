@@ -104,6 +104,7 @@ class BridgeSmokeTests(unittest.TestCase):
             request = (
                 "GET /ws HTTP/1.1\r\n"
                 "Host: 127.0.0.1:8765\r\n"
+                "Origin: http://127.0.0.1:8765\r\n"
                 "Upgrade: websocket\r\n"
                 "Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Key: {key}\r\n"
@@ -130,6 +131,34 @@ class BridgeSmokeTests(unittest.TestCase):
             second = read_text_frame(stream)
             self.assertIn("airspeedKnots", first)
             self.assertNotEqual(first["timestampUtc"], second["timestampUtc"])
+
+    def test_websocket_rejects_foreign_or_missing_origin(self):
+        # Host and client IP are local in all cases: Origin is the
+        # additional browser protection before accepting the upgrade.
+        for origin in (
+            None,
+            "http://malicious.example",
+            "http://127.0.0.1:9999",
+            "https://127.0.0.1:8765",
+        ):
+            with self.subTest(origin=origin):
+                key = base64.b64encode(os.urandom(16)).decode("ascii")
+                origin_header = f"Origin: {origin}\r\n" if origin else ""
+                request = (
+                    "GET /ws HTTP/1.1\r\n"
+                    "Host: 127.0.0.1:8765\r\n"
+                    "Upgrade: websocket\r\n"
+                    "Connection: Upgrade\r\n"
+                    f"Sec-WebSocket-Key: {key}\r\n"
+                    "Sec-WebSocket-Version: 13\r\n"
+                    + origin_header + "\r\n"
+                )
+                with socket.create_connection(("127.0.0.1", 8765), timeout=5) as conn:
+                    conn.settimeout(5)
+                    conn.sendall(request.encode("ascii"))
+                    with conn.makefile("rb") as response:
+                        status = response.readline().decode("ascii")
+                    self.assertIn("403", status, status)
 
     def test_websocket_requires_upgrade(self):
         with self.assertRaises(urllib.error.HTTPError) as error:
