@@ -243,6 +243,15 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
         return;
     }
 
+    // WebSocket connections are not protected by CORS. Enforce the same
+    // browser-origin policy as cockpit POST endpoints before the handshake.
+    // Vite's development proxy preserves the browser Host/Origin pair.
+    if (!ControlAccess.SameOrigin(context))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+
     using var socket = await context.WebSockets.AcceptWebSocketAsync();
     using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
     var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
