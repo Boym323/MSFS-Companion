@@ -148,7 +148,7 @@ export default function A320FcuHardware({
  onStep,onDraft,onSubmit,onMode
 }:Props){
  const [altThousand,setAltThousand]=useState(false);
- const [viewMode,setViewMode]=useState<'fit'|'actual'>(()=>window.innerWidth<640?'actual':'fit');
+ const [viewMode,setViewMode]=useState<'compact'|'fit'|'actual'>(()=>window.innerWidth<900?'compact':'fit');
  const [fullscreen,setFullscreen]=useState(false);
  const [viewportWidth,setViewportWidth]=useState(()=>Math.max(240,window.innerWidth-64));
  const viewportRef=useRef<HTMLDivElement|null>(null);
@@ -166,7 +166,7 @@ export default function A320FcuHardware({
   const observer=new ResizeObserver(measure);
   observer.observe(element);
   return()=>observer.disconnect();
- },[fullscreen]);
+ },[fullscreen,viewMode]);
  useEffect(()=>{
   if(!fullscreen)return;
   const previous=document.body.style.overflow;
@@ -240,13 +240,26 @@ export default function A320FcuHardware({
    aria-label={fullscreen?'FCU na celou obrazovku':undefined}>
    <div className="a320-hw-view-modes" role="group" aria-label="Velikost zobrazení FCU">
     <div className="a320-hw-view-options">
+     <button type="button" aria-pressed={viewMode==='compact'} onClick={()=>setViewMode('compact')}>Kompaktní</button>
      <button type="button" aria-pressed={viewMode==='fit'} onClick={()=>setViewMode('fit')}>Přizpůsobit</button>
      <button type="button" aria-pressed={viewMode==='actual'} onClick={()=>setViewMode('actual')}>1:1</button>
     </div>
     <button ref={fullscreenButtonRef} type="button" onClick={()=>{if(!fullscreen)setViewMode('fit');setFullscreen(value=>!value);}}>
      {fullscreen?'Zavřít celé zobrazení':'Celá obrazovka'}</button>
    </div>
-   <div className="a320-hw-scroll" ref={viewportRef} role="region" tabIndex={0}
+   {viewMode==='compact'?<div className="a320-hw-compact" role="group" aria-label="Kompaktní referenční hodnoty FCU">
+    <div className="a320-hw-compact-readings">
+     {([
+       {id:'speed',label:machMode?'MACH':'SPD',value:led(speedField),unit:machMode?'':'KT'},
+       {id:'heading',label:'HDG',value:led('heading'),unit:'°'},
+       {id:'altitude',label:'ALT',value:led('altitude'),unit:'FT'},
+       {id:'vs',label:'V/S',value:led('vs'),unit:'FPM'}
+     ] as const).map(item=><div className="a320-hw-compact-metric" key={item.id}>
+      <span>{item.label}</span><strong>{item.value}</strong><small>{item.unit}</small>
+     </div>)}
+    </div>
+    <p>Referenční SimVars, nikoli ověřené FMA. Pro ovládání rozbalte webové reference níže.</p>
+   </div>:<div className="a320-hw-scroll" ref={viewportRef} role="region" tabIndex={0}
     aria-label={viewMode==='fit'?'Panel Flight Control Unit přizpůsobený šířce':'Panel Flight Control Unit; lze posouvat vodorovně'}>
     <div className="a320-hw-scaled" style={{width:1200*scale,height:400*scale}}>
      <div className="a320-hw-faceplate" data-testid="a320-fcu-faceplate"
@@ -299,10 +312,10 @@ export default function A320FcuHardware({
     </div>
     </div>
    </div>
-  </div>
+  </div>}
   </div>
   <div className="a320-hw-support" role="note">
-   <span>{viewMode==='fit'?'FCU je přizpůsobeno šířce; pro přesnější dotyk použij 1:1.':'⇆ FCU v měřítku 1:1 lze posouvat do stran.'}</span>
+   <span>{viewMode==='compact'?'Čitelné hodnoty pro tablet a mobil. Plný přístroj přepněte přes Přizpůsobit nebo 1:1.':viewMode==='fit'?'FCU je přizpůsobeno šířce; pro přesnější dotyk použij 1:1.':'⇆ FCU v měřítku 1:1 lze posouvat do stran.'}</span>
    <span>Táhni knob doleva/doprava pro návrh hodnoty; pro odeslání otevři webové ovládání.</span>
   </div>
   <details className="a320-hw-service">
