@@ -67,13 +67,18 @@ nikdy libovolný příkaz shellu.
 
 V době aktualizace se restartuje jen Companion/bridge, ne MSFS.
 
-## Další etapy
+## Stav architektury a zbývající omezení
 
-- Skutečná telemetrie ze SimConnect a profily letadel.
-- PFD a pohyblivá mapa.
-- Podepisování vydání a bezpečný rollback.
+- Živá SimConnect telemetrie, profily, PFD a pohyblivá mapa jsou
+  implementované; jejich plná kompatibilita vyžaduje pilotní test.
+- A320 FCU/WASM má experimentální řízení a nezaměňuje ACK ani
+  referenční SimVar za potvrzení skutečné avioniky/FMA.
+- Automatický rollback obsahuje opt-in watchdog, který **zůstává vypnutý**,
+  dokud neprojde reálnou akceptací dvou instalovaných Windows verzí.
+- Podpis instalátorů je volitelný, dokud není zajištěn certifikát.
 - Před případným použitím mimo důvěryhodnou LAN je nutná
   plnohodnotná autentizace a HTTPS.
+- Aktuální přehled implementace: [Stav projektu](PROJECT_STATUS.md).
 
 
 ## Záznam letů B5
