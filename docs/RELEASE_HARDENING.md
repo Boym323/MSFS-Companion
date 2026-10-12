@@ -22,9 +22,11 @@ Referenční návod: https://docs.velopack.io/packaging/signing
 ## Obnova při problémové aktualizaci
 
 Velopack ověřuje hash staženého balíčku a Windows build prochází
-smoke testy. **Není implementovaný automatický rollback při
-neúspěšném spuštění po aktualizaci.** Nelze jej nahrazovat
-prostým restartem hostitele a tvrdit, že jde o rollback.
+smoke testy. Experimentální nezávislý watchdog pro jednorázový
+rollback **je implementovaný jako opt-in, ale standardně vypnutý**.
+Nelze jej vydávat za produkčně ověřenou obnovu: chybí reálný
+destruktivní test vadného vydání a bezpečný návrat mezi dvěma
+instalovanými verzemi. Prostý restart hostitele není rollback.
 
 Postup manuální obnovy:
 1. Zavřete Companion, samotný MSFS není nutné ukončovat.
@@ -42,11 +44,11 @@ Postup manuální obnovy:
    8765 a záznamy letů. Teprve po opraveném vydání automatické
    aktualizace opět zapněte.
 
-Pro skutečný **automatický** rollback bude zapotřebí nezávislá
-kontrola zdraví nově instalované verze, uchování známé funkční
-instalace a detekce, že se nový host vůbec nespustil.
-Tento mechanismus je samostatná bezpečnostní etapa a bez
-reálného Windows testu nesmí být automaticky aktivován.
+Mechanismy ověření skutečně instalované verze, známého předchozího
+balíčku s SHA-256, detekce neúspěšného startu a nezávislý watchdog
+jsou připravené. **Výchozí vypnutí se nesmí měnit**, dokud
+neproběhne reálná Windows akceptace dle
+[stabilizačního protokolu](STABILIZATION_ACCEPTANCE.md).
 
 ## Síťová bezpečnost
 
@@ -66,10 +68,10 @@ se **pozastaví** a záznam se přesune mezi neověřené pokusy
 aktualizace znovu vědomě povolit. Jde o fail-closed ochranu proti tomu,
 aby se neznámý stav vydával za potvrzený úspěch.
 
-Tato změna **neimplementuje rollback** při pádu Windows hostitele ani jeho
-nezávislý watchdog. Nedotýká se procesu MSFS, historii letů nemaže a nemění
-formát dříve vytvořených platných journalů. Nutné ověřit na skutečné Windows
-instalaci simulací poškozeného pending souboru i úspěšného restartu.
+Původní etapa C33 sama o sobě rollback ani watchdog neobsahovala.
+Pozdější C42 přidala experimentální opt-in watchdog. Stále platí,
+že se nedotýká procesu MSFS ani historie letů a reálný test
+poškozeného pending souboru je nutný.
 
 ## C33 – ověření skutečně instalované verze
 
@@ -80,9 +82,10 @@ HTTP health + web smoke. Jiná nebo neznámá verze znamená neověřenou
 aktualizaci, přesun journalu do failed stavu a pozastavení auto-update.
 
 `--self-test` nyní kontroluje i nesoulad verzí a spouští se v CI Windows
-hostu pro každé PR zasahující host/workflow. Stále nejde o nezávislý watchdog
-ani automatický rollback; integrační test chybného restartu Velopack na
-skutečné instalaci nadále zůstává podmínkou jejich aktivace.
+hostu pro každé PR zasahující host/workflow. Jde o test C33,
+nikoliv důkaz funkčnosti později implementovaného C42 watchdogu;
+integrační test chybného restartu Velopack na skutečné instalaci
+nadále zůstává podmínkou jeho aktivace.
 
 ## C33 – smoke test skutečné instalace ve Windows CI
 
