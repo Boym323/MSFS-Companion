@@ -28,7 +28,7 @@ export function buildValidationEvidence(
   const candidate = online && airbus.connected === true &&
     airbus.profileId === 'a320-asobo-candidate';
   const aircraft = candidate && typeof airbus.aircraft === 'string' &&
-    airbus.aircraft.length <= 150 && !/[\\u0000-\\u001f]/.test(airbus.aircraft)
+    airbus.aircraft.length <= 150 && !Array.from(airbus.aircraft).some(c => c.charCodeAt(0) < 32)
       ? airbus.aircraft : null;
   const fcuAgeMs = candidate ? num(airbus.fcuAgeMs, 0, 5000) : null;
   const fcuFresh = aircraft !== null && fcuAgeMs !== null && airbus.fcu !== null &&
