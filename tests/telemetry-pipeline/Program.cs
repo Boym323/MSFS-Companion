@@ -70,4 +70,28 @@ for (var i = 0; i < waits.Length; i++)
 if (SimConnectRetryPolicy.DelayAfter(0) != TimeSpan.FromSeconds(3))
     throw new Exception("Po úspěšném letu musí být další reconnect rychlý.");
 
+// WebSocket JSON is encoded at most once for each immutable snapshot
+// even when multiple browser clients poll the same frame.
+var frameCache=new TelemetryWebSocketFrameCache();
+var one=new TelemetrySnapshot(baseUtc,"Test",49.1,17.2,150,10000,-200,90,2,3);
+frameCache.Connected();
+frameCache.Connected();
+var encoded=frameCache.Encode(one);
+var cached=frameCache.Encode(one);
+if(!ReferenceEquals(encoded,cached))
+    throw new Exception("Stejný snapshot se musí sdílet bez další serializace.");
+if(!System.Text.Encoding.UTF8.GetString(encoded).Contains("\\"airspeedKnots\\":150"))
+    throw new Exception("Sdílený WebSocket frame není kompatibilní JSON telemetrie.");
+var newer=one with {TimestampUtc=one.TimestampUtc.AddMilliseconds(50)};
+var fresh=frameCache.Encode(newer);
+if(ReferenceEquals(encoded,fresh))
+    throw new Exception("Nový snapshot nesmí dostat staré JSON bajty.");
+frameCache.Disconnected();
+var counters=frameCache.Status();
+if(counters.ActiveConnections!=1||counters.EncodedFrames!=2||counters.CacheHits!=1)
+    throw new Exception("Počítadla WebSocket cache nejsou konzistentní.");
+frameCache.Disconnected();
+if(frameCache.Status().ActiveConnections!=0)
+    throw new Exception("Po ukončení spojení nesmí zůstat aktivní klient.");
+
 Console.WriteLine("PASS: 30 FPS -> 20 různých snímků/s; příjem, zpoždění, skip a reconnect jsou korektní.");
