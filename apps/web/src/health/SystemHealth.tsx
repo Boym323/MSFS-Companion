@@ -10,6 +10,7 @@ type Health = {generatedAt:string;indicators:Indicator[];
     incomingRateHz:number;framesSkipped:number;publicationLagMs:number|null;
     samplesPublished:number;connectionAttempts:number;
     lastError:string|null;sampleAgeMs:number|null};
+  webSocket?:{activeConnections:number;encodedFrames:number;cacheHits:number};
   aviation:Cache;weather:Cache;vatsim:Cache;
   radio:{connected?:boolean};navigation:{connected?:boolean}};
 const label=(v:boolean|undefined)=>v===true?'Aktivní':v===false?'Nedostupné':'Neověřeno';
@@ -42,6 +43,7 @@ export default function SystemHealth(){
         incomingRateHz:health.sample.incomingRateHz,
         skipped:health.sample.framesSkipped,
         publicationLagMs:health.sample.publicationLagMs},
+      webSocket:health.webSocket,
       aviation:health.aviation,weather:health.weather,vatsim:health.vatsim
     };
     const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
@@ -80,6 +82,9 @@ export default function SystemHealth(){
         <p>Stav: {health.sample.connectionState} · Počet navázání SimConnect: {health.sample.connectionAttempts}
           {' · '}Stáří telemetrie: {health.sample.sampleAgeMs===null?'—':`${Math.round(health.sample.sampleAgeMs)} ms`}</p>
         {health.sample.lastError && <p role="status">Poslední chyba: {health.sample.lastError}</p>}
+        {health.webSocket&&<p>WebSocket klienti: {health.webSocket.activeConnections}
+          {' · '}Vytvořené JSON snímky: {health.webSocket.encodedFrames}
+          {' · '}Opakované využití snímků: {health.webSocket.cacheHits}</p>}
       </div>
       <button type="button" className="system-health-export" onClick={exportReport}>
         Exportovat anonymizovanou diagnostiku JSON
