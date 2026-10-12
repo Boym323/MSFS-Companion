@@ -199,7 +199,7 @@ jobs:
             exit 1
           fi
           echo "Found ${#tests[@]} web tests:"
-          printf '%s\\n' "${tests[@]}"
+          printf '%s\n' "${tests[@]}"
           node --experimental-strip-types --test "${tests[@]}"
       - name: Build frontend
         working-directory: apps/web
