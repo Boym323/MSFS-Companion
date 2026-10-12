@@ -40,6 +40,14 @@ env:
   APP_VERSION: ${{ github.event_name == 'push' && format('0.2.{0}', github.run_number) || inputs.version || '0.2.0' }}
 
 jobs:
+  # Run the full bridge, web and Windows-host tests for the exact main SHA.
+  # This job executes in parallel with packaging; publication is gated below.
+  release-validation:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   windows-installer:
     runs-on: windows-2022
     timeout-minutes: 35
@@ -425,8 +433,9 @@ jobs:
 
   publish-update:
     name: Publish development release to GitHub Releases
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: windows-installer
+    # `always()` is necessary to evaluate both job results after a failed preflight.
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.windows-installer.result == 'success' && needs.release-validation.result == 'success' }}
+    needs: [windows-installer, release-validation]
     runs-on: windows-2022
     timeout-minutes: 20
     # Keep privileged publish separate from code running in PR builds.
