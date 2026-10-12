@@ -14,6 +14,7 @@ using MsfsCompanion.Bridge.Traffic;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<TelemetryStore>();
+builder.Services.AddSingleton<TelemetryWebSocketFrameCache>();
 builder.Services.AddSingleton<AircraftIdentityGuard>();
 builder.Services.AddSingleton<A320ReadbackStore>();
 builder.Services.AddSingleton<A320FcuControlGate>();
@@ -235,7 +236,8 @@ app.MapWindowsHostLog();
 
 // Read-only telemetry stream. Cockpit commands require a separately
 // authenticated, allow-listed API and are deliberately not exposed yet.
-app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
+app.Map("/ws", async (HttpContext context, TelemetryStore store,
+    TelemetryWebSocketFrameCache frames) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
@@ -253,8 +255,8 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
     }
 
     using var socket = await context.WebSockets.AcceptWebSocketAsync();
+    frames.Connected();
     using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
-    var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
     DateTimeOffset? lastSentTimestamp = null;
 
     try
@@ -268,7 +270,7 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
                 continue;
 
             lastSentTimestamp = snapshot.TimestampUtc;
-            var message = JsonSerializer.SerializeToUtf8Bytes(snapshot, jsonOptions);
+            var message = frames.Encode(snapshot);
             await socket.SendAsync(
                 message,
                 WebSocketMessageType.Text,
@@ -283,6 +285,10 @@ app.Map("/ws", async (HttpContext context, TelemetryStore store) =>
     catch (WebSocketException)
     {
         // Browser disconnected unexpectedly. Reconnection is handled by the UI.
+    }
+    finally
+    {
+        frames.Disconnected();
     }
 });
 
