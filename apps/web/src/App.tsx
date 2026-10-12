@@ -215,7 +215,7 @@ export default function App() {
   
           <div className="footnote">
             <span>GPS: {telemetry && sourceIsLive ? `${telemetry.latitude.toFixed(5)}°, ${telemetry.longitude.toFixed(5)}°` : 'čekám na data'}</span>
-            <span>Ovládání je dostupné pouze po lokálním zapnutí a spárování na záložce Ovládání.</span>
+            <span>Ovládání v důvěryhodné LAN má párování standardně vypnuté; volitelně je zapneš na Windows PC.</span>
           </div>
           </section>
         {isOverview&&sourceIsLive && sourceStatus && (

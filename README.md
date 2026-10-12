@@ -4,9 +4,12 @@ Webový doplněk pro **Microsoft Flight Simulator 2020**.
 Windows aplikace běží na pozadí, automaticky se aktualizuje,
 čte letová data přes SimConnect a poskytuje dashboard v domácí síti.
 
-> **B2 vývojová verze:** Windows instalace používá živá data ze
+> **Pokročilá beta verze:** Windows instalace používá živá data ze
 > SimConnect. Pokud MSFS není připojený, zobrazuje čekání, nikoli
 > vymyšlené údaje. Samostatné spuštění na Macu používá mock data.
+> Část ovládání Asobo A320neo stále vyžaduje pilotní ověření ve
+> skutečném MSFS 2020. Přehled implementace a zbývajících testů:
+> [aktuální stav projektu](docs/PROJECT_STATUS.md).
 
 ## Spuštění při vývoji
 
@@ -51,6 +54,17 @@ Ve Windows tray lze mDNS vypnout nebo změnit krátký název hostitele, napří
 na `simdeck` → `simdeck.local`. Název aplikace a aktualizační mechanismus
 zůstávají **MSFS Companion**. Alternativou je původní adresa podle IP.
 Podrobnosti: [mDNS nastavení](docs/MDNS_C12.md).
+
+## Stabilita a testování
+
+Vývoj prochází víceúrovňovým CI a offline vizuálními testy.
+Publikování Windows instalátoru nyní vyžaduje úspěšné
+kompletní CI pro odpovídající commit. Ochrana telemetrického
+WebSocketu kontroluje `Origin`, nepředstavuje však autentizaci:
+server patří výhradně do důvěryhodné domácí LAN.
+Na tabletu a telefonu je dostupný čitelný kompaktní režim FCU.
+Automatický rollback je pouze experimentální opt-in a zůstává
+standardně vypnutý do reálné akceptace dvou Windows verzí.
 
 ## Navigace Kokpitu
 
