@@ -143,15 +143,15 @@ class BridgeSmokeTests(unittest.TestCase):
         ):
             with self.subTest(origin=origin):
                 key = base64.b64encode(os.urandom(16)).decode("ascii")
-                origin_header = f"Origin: {origin}\\r\\n" if origin else ""
+                origin_header = f"Origin: {origin}\r\n" if origin else ""
                 request = (
-                    "GET /ws HTTP/1.1\\r\\n"
-                    "Host: 127.0.0.1:8765\\r\\n"
-                    "Upgrade: websocket\\r\\n"
-                    "Connection: Upgrade\\r\\n"
-                    f"Sec-WebSocket-Key: {key}\\r\\n"
-                    "Sec-WebSocket-Version: 13\\r\\n"
-                    + origin_header + "\\r\\n"
+                    "GET /ws HTTP/1.1\r\n"
+                    "Host: 127.0.0.1:8765\r\n"
+                    "Upgrade: websocket\r\n"
+                    "Connection: Upgrade\r\n"
+                    f"Sec-WebSocket-Key: {key}\r\n"
+                    "Sec-WebSocket-Version: 13\r\n"
+                    + origin_header + "\r\n"
                 )
                 with socket.create_connection(("127.0.0.1", 8765), timeout=5) as conn:
                     conn.settimeout(5)
