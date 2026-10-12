@@ -40,6 +40,18 @@ export function compareEvidence(baseline: ValidationEvidence, latest: Validation
       metric('Odchylka GPS','NM',baseline.navigation.crossTrackNauticalMiles,latest.navigation.crossTrackNauticalMiles),
     );
   }
+  // Compare reference SimVars only when both readbacks are fresh and
+  // belong to the same candidate TITLE. No FMA or command-effect assertion.
+  if(baseline.a320.fcuReadbackFresh && latest.a320.fcuReadbackFresh &&
+     baseline.a320.aircraft !== null &&
+     baseline.a320.aircraft === latest.a320.aircraft){
+    specs.push(
+      metric('A320 FCU reference SPD','KT',baseline.a320.selectedSpeedKnots,latest.a320.selectedSpeedKnots),
+      metric('A320 FCU reference HDG','°',baseline.a320.selectedHeadingDegrees,latest.a320.selectedHeadingDegrees),
+      metric('A320 FCU reference ALT','FT',baseline.a320.selectedAltitudeFeet,latest.a320.selectedAltitudeFeet),
+      metric('A320 FCU reference V/S','FPM',baseline.a320.selectedVerticalSpeedFpm,latest.a320.selectedVerticalSpeedFpm),
+    );
+  }
   const changes:EvidenceChange[]=specs.flatMap(({name,unit,before,after})=>{
     if(before===null||after===null||before===after)return [];
     return [{label:name,unit,before,after,delta:
