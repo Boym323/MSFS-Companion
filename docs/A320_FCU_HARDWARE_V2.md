@@ -30,11 +30,15 @@ o kopii konkrétních bitmap či chráněných výrobních podkladů.
 
 ## Použití na iPadu
 
-Originální geometrie se **nepřekládá do mobilních karet**.
-FCU zůstává vodorovný fyzický celek s vodorovným posuvem při
-šířce pod 1200 CSS px. Pod ním je oddělený **rozbalitelný** webový ovládací
-panel se čtyřmi poli pro zadání referencí a s
-PUSH/PULL pro tři povolené WASM akce.
+Původní geometrie 1200 × 400 px je zachována v režimech
+**Přizpůsobit** (celý panel přiměřeně zmenšený) a **1:1**
+(vodorovné posouvání repliky). Na iPadu na výšku a na telefonech se
+standardně otevírá **Kompaktní** režim: čtyři dobře čitelné skupiny
+SPD/MACH, HDG, ALT a V/S. Jde pouze o stejné referenční SimVars,
+nikoli o druhou implementaci ovládání nebo o skutečné FMA.
+Uživatel může kdykoli přepnout zpět na originální hardwarový panel.
+Pod vizuálem je oddělený **rozbalitelný** webový ovládací panel se
+čtyřmi poli pro zadání referencí a PUSH/PULL pro tři povolené WASM akce.
 
 Tažení knoflíku doleva/doprava, stejně jako kolečko myši nebo klávesové šipky,
 mění pouze návrh referenční hodnoty. Letadlo dostane povel až
@@ -69,7 +73,7 @@ v simulátoru.
 - [x] Věrné fyzické umístění čtyř oken, knobů a funkčních tlačítek.
 - [x] Vlastní sedmisegmentové SVG zobrazovače; žádné externí fonty.
 - [x] Původní chráněné příkazy zůstávají beze změny.
-- [x] Úzké obrazovky používají vodorovné posouvání celé repliky.
+- [x] Úzké obrazovky mají výchozí čitelný kompaktní panel a volitelné 1:1 posouvání originální repliky.
 - [ ] Snímky V3 z reálného iPadu a vizuální porovnání se skutečným letadlem / původním Asobo A320neo.
 - [ ] Živé ověření změn FCU/FMA po WASM H-events v MSFS 2020.
 - [ ] Samostatná ověřená integrace AP1/AP2 a všech ostatních tlačítek.
