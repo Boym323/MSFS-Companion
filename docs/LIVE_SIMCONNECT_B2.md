@@ -59,6 +59,20 @@ a stáří vzorku. Při ztrátě spojení zobrazí **ČEKÁM NA MSFS**
 a číselné údaje skryje, místo aby je vydával za živé.
 WebSocket `/ws` používá stále stejné pole telemetrie jako v B1.
 
+## D1 – sdílené kódování WebSocket telemetrie
+
+Bridge ukládá pouze **poslední neměnný** JSON snímek telemetrie.
+Každý nový publikovaný snímek se serializuje jednou a stejná pole
+bajtů mohou číst současně otevřené dashboardy na PC, iPadu či mobilu.
+Není zavedena žádná neomezená fronta a nový snímek nahrazuje starý;
+frekvence SimConnect ani datový obsah API se nemění.
+
+Na `/health` jsou v diagnostice nově dostupná procesní počítadla
+`activeConnections`, `encodedFrames` a `cacheHits`. Jde
+o počitadla aktuálního procesu bridge, po restartu se vynulují.
+Nevypovídají o celkové latenci MSFS → iPad. Odezvu, využití CPU,
+paměť a reconnecty je nutné ověřit odděleným provozním měřením.
+
 ## Režimy
 
 | Spuštění | Výchozí režim |

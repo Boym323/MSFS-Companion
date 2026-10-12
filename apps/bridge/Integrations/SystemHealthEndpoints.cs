@@ -21,7 +21,8 @@ public static class SystemHealthEndpoints
         app.MapGet("/api/health/overview", (ITelemetrySource source,
             TelemetryHealth health, AircraftSystemsStore systems,
             RadioStore radios, NavigationStore nav, AviationCatalog aviation,
-            AviationWeatherService weather, VatsimService vatsim) =>
+            AviationWeatherService weather, VatsimService vatsim,
+            TelemetryWebSocketFrameCache frames) =>
         {
             var sample = health.Snapshot(source.Mode);
             var snapshot = systems.Current;
@@ -42,6 +43,7 @@ public static class SystemHealthEndpoints
             return Results.Ok(new {
                 generatedAt = DateTimeOffset.UtcNow,
                 sample,
+                webSocket = frames.Status(),
                 indicators,
                 aviation = aviation.CacheHealth(),
                 weather = weather.CacheHealth(),
