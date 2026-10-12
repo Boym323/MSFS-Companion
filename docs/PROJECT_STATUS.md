@@ -12,7 +12,7 @@ od výsledků automatických testů a od skutečného pilotního ověření MSFS
 | C – Airbus A320 | Pilotní checklist, omezený FCU/WASM export | PR #138, CI a vizuální PASS | Funkce na originálním Asobo V1 musí potvrdit pilot |
 | D – výkon | Sdílené JSON snímky WebSocketu, diagnostická počitadla | PR #139, CI + bezpečnostní audit + vizuální PASS | CPU/RAM/latence vyžadují provozní měření |
 | E – UX | Kompaktní FCU iPad/mobil, zachované originální zobrazení | PR #140, CI a Chromium vizuální PASS | Není doložen fyzický iPad ani živý A320 |
-| F – release bezpečnost | Fail-closed guard a self-testy watchdogu (PR #141) | K datu zápisu otevřený PR, kontroly probíhají | Experimentální watchdog zůstává **default OFF** |
+| F – release bezpečnost | Fail-closed guard a self-testy watchdogu (PR #141) | CI PASS a Windows installer packaging PASS; sloučeno do main | Experimentální watchdog zůstává **default OFF** |
 | G – dokumentace | Aktuální stav, sjednocení popisků a oprava zastaralých tvrzení | Probíhá v samostatném PR | Dokumentace nenahrazuje živou akceptaci |
 
 ## Co neznamená úspěšné CI
