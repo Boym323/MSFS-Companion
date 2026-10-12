@@ -30,6 +30,24 @@ Neexistuje společná garantovaná sada Input Events pro všechny varianty.
    Generické `autopilot.*` Key Events jsou pro Airbus
    na serveru blokované, dokud nemáme skutečné ověření.
 
+## Pilotní evidence ve webu
+
+Na stránce `/validation` se při rozpoznání názvu typu A320/A32NX zobrazí
+rozšířené **ruční** scénáře pro původní Asobo A320neo V1: přesný
+`TITLE`, readback FCU, potvrzení WASM pingu, managed/selected,
+MCDU leg, reconnect a 15minutová stabilita. Seznam je pomůcka pro pilota,
+nikoli automatické prohlášení, že jde o Asobo V1. Pilot musí přesnou
+variantu letadla ověřit a při zkouškách řízení zajistit bezpečné podmínky.
+
+Při kliknutí na „Zachytit výchozí stav“ / „Zachytit stav po změně“
+se kromě dřívějších read-only API načte omezený snapshot
+`/api/aircraft/airbus/a320/status` a `/api/a320/wasm/status`.
+Export JSON obsahuje pouze povolené FCU reference SPD/HDG/ALT/V/S,
+stáří snímku, kandidátní identitu a stav WASM pingu. Neobsahuje GPS,
+raw HTTP odpověď, tokeny ani chybové detaily. Porovnání čísel
+je označeno jako **reference**, nikoli potvrzené vykonání příkazu;
+ověření FMA zůstává vždy ruční.
+
 ## Testy – hlavní cockpit a průběh letu
 
 | Test | Postup v MSFS 2020 | Kritérium PASS |
