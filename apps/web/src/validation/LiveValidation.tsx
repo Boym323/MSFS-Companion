@@ -14,6 +14,16 @@ const scenarios: Scenario[] = [
   {id:'landing',title:'Přistání / vodní dosednutí',instructions:'Porovnej touchdown, G-force a onGround; XCub Floats otestuj i na vodě.'},
   {id:'update',title:'Instalace a LAN aktualizace',instructions:'Ověř start tray, mDNS, firewall a obnovení spojení po aktualizaci; rollback zatím netestuj bez zálohy.'}
 ];
+// Pilotní scénáře jsou výslovně ruční. TITLE ani ACK modulu neověřují FMA.
+const a320Scenarios: Scenario[] = [
+  {id:'a320-identity',title:'A320 V1 · přesná identita',instructions:'Na Windows ověř verzi MSFS, skutečný TITLE a že jde o původní Asobo A320neo V1, nikoliv FBW/Fenix/iniBuilds.'},
+  {id:'a320-fcu',title:'A320 V1 · FCU reference',instructions:'Ručně změň SPD/MACH/HDG/ALT/VS; porovnej FCU v MSFS s diagnostickými hodnotami před a po změně.'},
+  {id:'a320-wasm',title:'A320 V1 · WASM ping',instructions:'V diagnostice Airbusu ověř ACK WASM modulu; zaznamenej verzi a stav. Samotné ACK nepotvrzuje režim managed/selected.'},
+  {id:'a320-managed',title:'A320 V1 · managed/selected',instructions:'Pouze při bezpečném testu na zemi a po lokálním povolení ověř každý H-Event přímo na FCU a PFD/FMA. HTTP 202 ani změna SimVar nejsou důkaz.'},
+  {id:'a320-mcdu',title:'A320 V1 · MCDU a aktivní leg',instructions:'Porovnej naprogramovanou trasu v MCDU s aktivním GPS bodem a mapou. Nezaměňuj obecná GPS data za skutečný stav MCDU.'},
+  {id:'a320-reconnect',title:'A320 V1 · reconnect a změna letadla',instructions:'Při bezpečném testu ověř, že po ztrátě spojení nebo změně letadla se zneplatní ovládání i staré reference.'},
+  {id:'a320-stability',title:'A320 V1 · stabilita 15 minut',instructions:'Po dobu alespoň 15 minut kontroluj aktuálnost FCU, bez neočekávaného SimConnect reconnectu; zaznamenej výsledek.'},
+];
 type Assessment = {result:'pass'|'fail'|'not-tested';note:string};
 type Saved = Record<string,Assessment>;
 function load(key:string):Saved{
@@ -22,6 +32,8 @@ function load(key:string):Saved{
 }
 export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnapshot|null;live:boolean}) {
   const aircraft=live&&telemetry?.aircraft?telemetry.aircraft:'neověřené letadlo';
+  const isA320=/a320|a32nx/i.test(aircraft);
+  const visibleScenarios=isA320?[...scenarios,...a320Scenarios]:scenarios;
   const key='kokpit-c31-validation:'+aircraft.slice(0,100);
   const [checks,setChecks]=useState<Saved>(()=>load(key));
   const [capturing,setCapturing]=useState(false);
@@ -49,15 +61,17 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
     setCapturing(true);
     setCaptureMessage('');
     try {
-      const [status,systems,navigation]=await Promise.all(
-        ['/api/status','/api/aircraft/systems','/api/navigation/current'].map(async url=>{
+      const urls=['/api/status','/api/aircraft/systems','/api/navigation/current'];
+      if(isA320) urls.push('/api/aircraft/airbus/a320/status','/api/a320/wasm/status');
+      const [status,systems,navigation,airbus,wasm]=await Promise.all(
+        urls.map(async url=>{
           const response=await fetch(url,{cache:'no-store',signal:controller.signal});
           if(!response.ok) throw new Error('Diagnostické API není dostupné');
           return await response.json() as unknown;
         }),
       );
       if(sequence!==captureSequence.current) return;
-      const snapshot=buildValidationEvidence(status,systems,navigation,new Date().toISOString());
+      const snapshot=buildValidationEvidence(status,systems,navigation,new Date().toISOString(),airbus,wasm);
       if (!snapshot.telemetry.live) throw Error('SimConnect není živý');
       if(asBaseline){
         setBaseline({aircraft,snapshot});
@@ -85,7 +99,7 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
       evidence:evidence?.aircraft===aircraft?evidence.snapshot:null,
       baseline:baseline?.aircraft===aircraft?baseline.snapshot:null,
       comparison:comparison?.comparable?comparison:null,
-      checks:scenarios.map(s=>({
+      checks:visibleScenarios.map(s=>({
         id:s.id,title:s.title,...(checks[s.id]||{result:'not-tested',note:''})}))};
     const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download='kokpit-c31-validace.json';
@@ -97,7 +111,9 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
       Nejde o automatické tvrzení, že konkrétní avionika funguje.</p>
     <p role="status">Zdroj: <strong>{live?'SIMCONNECT LIVE':'NEOVĚŘENO / OFFLINE'}</strong>
       {' · '}Letadlo: <strong>{aircraft}</strong></p>
-    {scenarios.map(s=><article key={s.id}>
+    {isA320&&<p>Airbus V1: hodnoty jsou pouze referenční; jednotlivé scénáře vyžadují
+      ruční ověření na konkrétním letadle. Žádný příkaz se odtud automaticky neposílá.</p>}
+    {visibleScenarios.map(s=><article key={s.id}>
       <h3>{s.title}</h3><p>{s.instructions}</p>
       <label>Výsledek <select value={checks[s.id]?.result||'not-tested'} onChange={e=>
         update(s.id,{result:e.target.value as Assessment['result'],note:checks[s.id]?.note||''})}>
@@ -132,6 +148,12 @@ export default function LiveValidation({telemetry,live}:{telemetry:TelemetrySnap
           Nemusí to znamenat, že ovladač nefunguje.</p>}
       <p>Číselné změny jsou pouze pozorování telemetrie. Ruční potvrzení účinku v kokpitu zůstává nutné.</p>
     </section>}
+    {evidence?.aircraft===aircraft&&isA320&&<p role="status">
+      A320 identita: {evidence.snapshot.a320.candidate?'kandidát Asobo V1':'nepotvrzená'}
+      {' · '}FCU: {evidence.snapshot.a320.fcuReadbackFresh?'čerstvá reference':'nedostupné'}
+      {' · '}WASM: {evidence.snapshot.a320.wasmModuleReady?'ping potvrzen':'ping nepotvrzen'}
+      {' · '}FMA: neověřeno.
+    </p>}
     {evidence?.aircraft===aircraft&&<p>
       Technický snapshot: {evidence.snapshot.capturedAtUtc}
       {' · '}SimConnect {evidence.snapshot.telemetry.live?'připojen':'neověřen'}
