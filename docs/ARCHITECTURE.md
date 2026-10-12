@@ -41,7 +41,12 @@ Více informací: [B2 – živá telemetrie](LIVE_SIMCONNECT_B2.md).
 
 - `GET /api/status` – režim zdroje dat.
 - `GET /api/telemetry` – poslední snímek telemetrie.
-- `WS /ws` – telemetrie v JSON přibližně 20× za sekundu.
+- `WS /ws` – telemetrie v JSON přibližně 20× za sekundu. WebSocket
+  vyžaduje shodný `Origin` vůči adrese dashboardu (schéma, hostitel
+  a port), ještě před přijetím spojení. Cizí a chybějící `Origin`
+  server odmítne HTTP 403. Stejný původ přeposílá i vývojový Vite proxy.
+  Není to autentizace zařízení: jiný klient může hlavičku podvrhnout.
+  Provoz proto musí zůstat uvnitř důvěryhodné domácí podsítě.
 - `GET /api/admin/updates/status` – stav aktualizací Windows.
 - `POST /api/admin/updates/check` – vynucená kontrola a případná instalace novější verze.
 
