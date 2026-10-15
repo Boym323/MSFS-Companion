@@ -51,6 +51,50 @@ var across = new AviationCatalogSnapshot(DateTimeOffset.UtcNow,
     [], [], []);
 Check(AviationCatalog.FindNearby(across, 50, 179.9, 25).Any(),
     "anti-meridian search");
+// The cached geographic index must return exactly the same ordered airports
+// as a full great-circle scan, also around the dateline and at high latitudes.
+static double ReferenceDistance(double lat1, double lon1, double lat2, double lon2)
+{
+    const double rad = Math.PI / 180;
+    var a = Math.Sin((lat2 - lat1) * rad / 2);
+    var deltaLon = ((lon2 - lon1 + 540) % 360) - 180;
+    var b = Math.Sin(deltaLon * rad / 2);
+    var h = a * a + Math.Cos(lat1 * rad) * Math.Cos(lat2 * rad) * b * b;
+    return 12742 * Math.Asin(Math.Sqrt(Math.Clamp(h, 0, 1)));
+}
+var rng = new Random(34219);
+var worldwide = Enumerable.Range(0, 12000).Select(i =>
+    new AirportData("S" + i.ToString("D5"), "Synthetic",
+        "small_airport", rng.NextDouble() * 170 - 85,
+        rng.NextDouble() * 360 - 180, null)).Concat(new AirportData[]
+    {
+        new("EAST", "East dateline", "small_airport", 0, 179.98, null),
+        new("WEST", "West dateline", "small_airport", 0, -179.98, null),
+        new("NORTH", "High latitude", "small_airport", 85.04, -179.9, null),
+        new("SOUTH", "Low latitude", "small_airport", -85.04, 179.9, null),
+    }).ToArray();
+var worldwideSnapshot = new AviationCatalogSnapshot(DateTimeOffset.UtcNow,
+    worldwide, [], [], []);
+var queries = new (double Lat, double Lon, double Radius)[]
+{
+    (50, 14, 25), (0, 179.99, 60), (0, -179.99, 120),
+    (85.05, 179.98, 200), (-85.05, -179.98, 200),
+    (0, 0, 200), (-32, 151, 150)
+};
+foreach (var query in queries)
+{
+    var expected = worldwide
+        .Select(item => (item, km: ReferenceDistance(query.Lat, query.Lon,
+            item.Latitude, item.Longitude)))
+        .Where(x => x.km <= query.Radius)
+        .OrderBy(x => x.km).Take(70).Select(x => x.item.Ident).ToArray();
+    var actual = AviationCatalog.FindNearby(worldwideSnapshot,
+        query.Lat, query.Lon, query.Radius)
+        .Where(x => x.Type == "airport").Select(x => x.Ident).ToArray();
+    Check(actual.SequenceEqual(expected),
+        $"spatial index must match full scan at {query.Lat}/{query.Lon}");
+}
+
 // C45: official-directory candidate selection must be deterministic and
 // reject future or attacker-supplied URLs.
 var now=new DateTimeOffset(2026,10,9,7,0,0,TimeSpan.Zero);
