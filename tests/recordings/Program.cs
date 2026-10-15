@@ -35,6 +35,15 @@ try
     var reread=recorder.Read(stored[0].Id);
     Check(reread?.Samples.Count==2&&reread.Samples[1].Longitude==14.21,
         "restored sample data mismatch");
+    // Reading /flights must coexist with an open append handle, the same
+    // sharing pattern used while a live flight is being recorded on Windows.
+    using (var append = new FileStream(Path.Combine(root, stored[0].Id+".jsonl"),
+        FileMode.Append, FileAccess.Write, FileShare.Read))
+    {
+        var concurrentRead = recorder.Read(stored[0].Id);
+        Check(concurrentRead?.Samples.Count == 2,
+            "flight read must coexist with a writer holding an append handle");
+    }
     var before=File.ReadAllText(Path.Combine(root,stored[0].Id+".jsonl"));
 
     Check(!recorder.RestoreArchive(Archive(Make(active:true))).Success,
