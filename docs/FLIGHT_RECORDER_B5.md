@@ -66,6 +66,18 @@ může odhadnout zobrazovanou oblast, neobdrží však celou trasu.
 Při nedostupném internetu zůstává viditelná stopa na mřížce.
 Odkaz na licenci OpenStreetMap je přímo na podkladové mapě.
 
+## Souběžné čtení a zápis
+
+Při otevření historie letu se pod zámkem načtou pouze metadata;
+dlouhé čtení řádků JSONL probíhá mimo tento zámek. Soubor je
+otevřen pro souběžné čtení a připojování dalších vzorků, aby
+zobrazení historie na iPadu nebrzdilo 1Hz zapisovač. Pokud je
+historický záznam mezitím odstraněn při promazání archivu,
+zůstane zachováno dosavadní bezpečné ošetření chyby.
+U živého letu je neúplný poslední JSONL řádek ignorován.
+Test pokrývá čtení při otevřeném zapisovacím souboru.
+
+
 ## Ověření
 
 1. Zapněte Windows MSFS Companion v režimu SimConnect.
