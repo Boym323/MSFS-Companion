@@ -32,6 +32,36 @@ export function metersBetween(a: Point, b: Point) {
   return 12742000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/** The whole flight trace is projected only when a point or the zoom changes.
+ * Each segment follows the shortest wrapped longitude, including the dateline.
+ * Coordinates are relative to the first point so recentering only translates
+ * the existing SVG path instead of rebuilding thousands of coordinates.
+ */
+export function relativeTrackPath(points: readonly Point[], zoom: number): string {
+  if (points.length < 2) return '';
+  const first = project(points[0], zoom);
+  let previous = first;
+  let offsetX = 0;
+  const commands = ['M 0 0'];
+  for (let i = 1; i < points.length; i++) {
+    const current = project(points[i], zoom);
+    offsetX += shortestWorldDistance(current.x, previous.x, zoom);
+    commands.push(`L ${offsetX.toFixed(1)} ${(current.y - first.y).toFixed(1)}`);
+    previous = current;
+  }
+  return commands.join(' ');
+}
+
+export function trackPathOrigin(
+  first: Point, center: WorldPoint, zoom: number, width: number, height: number,
+): WorldPoint {
+  const projected = project(first, zoom);
+  return {
+    x: shortestWorldDistance(projected.x, center.x, zoom) + width / 2,
+    y: projected.y - center.y + height / 2,
+  };
+}
+
 export type WorldPoint = { x: number; y: number };
 
 export type VisibleTile = {
