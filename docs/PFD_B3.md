@@ -62,6 +62,17 @@ Při odpojení nebo příliš starých snímcích se přístroj zakryje
 oznámením **ŽÁDNÁ ŽIVÁ TELEMETRIE**. Nikdy nesmí vydávat
 mock data nebo starý vzorek za skutečný let bez označení.
 
+## Omezení zbytečných aktualizací
+
+Animační smyčka dále používá `requestAnimationFrame`, ale když se
+vyhlazené hodnoty od cíle liší méně než vizuálně zanedbatelné tolerance,
+zachová poslední React state a nevytváří nový SVG commit pro neměnný
+obraz. Úhlové tolerance respektují přechod 359°/0° a znaménka
+náklonu. Nezasahuje se do samotné telemetrie ani do maximální
+frekvence publikace 20 Hz. Při živém řízení letadla vyhlazování
+pokračuje. Skutečný přínos vyžaduje měření na zařízení klienta.
+
+
 ## Ověření
 
 1. V MSFS spusťte let na XCub/Cessna.

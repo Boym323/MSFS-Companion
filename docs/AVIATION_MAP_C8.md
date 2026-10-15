@@ -59,3 +59,16 @@ Pro C8 existuje deterministický .NET test CSV parseru včetně uvozovek,
 drah, frekvencí, antimeridiánu a omezení okolí. Browser build kontroluje
 TS/JSX. GitHub CI nedokazuje dostupnost veřejného serveru při letu;
 při prvním nasazení ověřit skutečné online stažení a lokální cache.
+
+## Výkonnost geografických dotazů
+
+Neměnný katalog se při prvním prostorovém dotazu jednorázově
+indexuje do geografických buněk 1° × 1°. Následné dotazy do
+200 km procházejí pouze relevantní buňky, nad jejichž položkami
+se stále provádí přesná kontrola vzdálenosti po zemském povrchu.
+Řazení stejně vzdálených položek zachovává pořadí původního
+datasetu. Index správně přechází přes 180. poledník a je svázán
+s konkrétním snímkem katalogu; jeho nahrazení umožňuje uvolnit
+i starý index. Nemění se formát API, rozsahy ani seznam vrstev.
+Regresní test porovnává výsledky s úplným průchodem daty.
+

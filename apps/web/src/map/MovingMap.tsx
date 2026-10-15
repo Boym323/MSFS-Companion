@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import {
-  metersBetween, project, shortestWorldDistance,
+  metersBetween, project, shortestWorldDistance, relativeTrackPath, trackPathOrigin,
 } from './geo';
 import MapTileLayer from './MapTileLayer';
 import { useFlightNavigation, FlightNavigationPanel } from './FlightNavigation';
@@ -157,14 +157,11 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
     && Math.abs(center.longitude) <= 180;
   const world = validCenter ? project(center, zoom) : null;
   const { width, height } = size;
-  const trackPath = world && track.length >= 2
-    ? track.map((point, index) => {
-        const p = project(point, zoom);
-        const x = shortestWorldDistance(p.x, world.x, zoom) + width / 2;
-        const y = p.y - world.y + height / 2;
-        return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-      }).join(' ')
-    : '';
+  // Telemetry may arrive at 20 Hz, but the track changes at most at 1 Hz.
+  // Keep its expensive Mercator projection and SVG string stable while panning.
+  const trackPath = useMemo(() => relativeTrackPath(track, zoom), [track, zoom]);
+  const trackOrigin = world && track.length >= 2
+    ? trackPathOrigin(track[0], world, zoom, width, height) : null;
   const mapPosition = (point: { latitude: number; longitude: number }) => {
     if (!world || Math.abs(point.latitude) > 85.05 || Math.abs(point.longitude) > 180) return null;
     const projected = project(point, zoom);
@@ -218,10 +215,10 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
   }
   const nearbyTraffic=showSimTraffic && telemetry && simTraffic.available && !simTraffic.stale
     ? relativeTraffic(telemetry,simTraffic.targets) : [];
-  const distance = track.reduce((total, point, index) => {
+  const distance = useMemo(() => track.reduce((total, point, index) => {
     if (index === 0) return total;
     return total + metersBetween(track[index - 1], point);
-  }, 0);
+  }, 0), [track]);
 
   return (
     <section className="moving-map" aria-label="Pohyblivá mapa letu">
@@ -365,7 +362,11 @@ export default function MovingMap({ telemetry }: { telemetry: TelemetrySnapshot 
               {navigation?.nextWaypointId ?? 'GPS WP'}
             </text>
           </>}
-          <path d={trackPath} stroke="#79e6f8" fill="none"
+          <path d={trackOrigin ? trackPath : ''}
+            transform={trackOrigin
+              ? `translate(${trackOrigin.x.toFixed(1)} ${trackOrigin.y.toFixed(1)})`
+              : undefined}
+            stroke="#79e6f8" fill="none"
             strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
           {world && track.length > 0 && (() => {
             const first = project(track[0], zoom);

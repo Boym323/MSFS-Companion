@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 import {
   blend, blendAngle, normalizeHeading, pitchUpFromSimConnect,
-  bankHorizonRotation,
+  bankHorizonRotation, sameDisplayFrame,
 } from './math';
 import {
   PFD_LAYOUT as L, tapeTicks, tapeY, tapeScaleClips,
@@ -44,10 +44,13 @@ function useSmoothFlight(telemetry: TelemetrySnapshot | null) {
       lastTime = time;
       const target = latest.current;
       setDisplay((before) => {
-        if (!target) return null;
+        // A stationary aircraft should not force 60 React/SVG commits per
+        // second. The animation clock still runs for the next live sample.
+        if (!target) return before === null ? before : null;
         if (!before) return target;
+        if (sameDisplayFrame(before, target)) return before;
         const bank = blendAngle(before.bank, target.bank, elapsed);
-        return {
+        const next = {
           speed: blend(before.speed, target.speed, elapsed),
           altitude: blend(before.altitude, target.altitude, elapsed),
           vs: blend(before.vs, target.vs, elapsed),
@@ -55,6 +58,7 @@ function useSmoothFlight(telemetry: TelemetrySnapshot | null) {
           pitch: blend(before.pitch, target.pitch, elapsed),
           bank: bank > 180 ? bank - 360 : bank,
         };
+        return sameDisplayFrame(before, next) ? before : next;
       });
       frameId = window.requestAnimationFrame(render);
     };

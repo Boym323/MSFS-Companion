@@ -28,3 +28,21 @@ export function pitchUpFromSimConnect(pitchDegrees: number): number {
 export function bankHorizonRotation(bankDegrees: number): number {
   return bankDegrees;
 }
+
+/** Skip React commits once interpolation is visually indistinguishable from
+ * the last displayed frame. This does not alter raw SimConnect telemetry.
+ * Angular differences must wrap correctly at north and at +/-180 bank.
+ */
+export type PfdFlightNumbers = {
+  speed: number; altitude: number; vs: number;
+  heading: number; pitch: number; bank: number;
+};
+
+export function sameDisplayFrame(a: PfdFlightNumbers, b: PfdFlightNumbers): boolean {
+  return Math.abs(a.speed - b.speed) < 0.025
+    && Math.abs(a.altitude - b.altitude) < 0.05
+    && Math.abs(a.vs - b.vs) < 0.5
+    && Math.abs(shortestAngleDifference(a.heading, b.heading)) < 0.025
+    && Math.abs(a.pitch - b.pitch) < 0.01
+    && Math.abs(shortestAngleDifference(a.bank, b.bank)) < 0.01;
+}

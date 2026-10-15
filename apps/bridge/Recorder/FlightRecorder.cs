@@ -313,34 +313,39 @@ public sealed partial class FlightRecorder(
     public FlightDetail? Read(string id)
     {
         if (!ValidId.IsMatch(id)) return null;
-        lock (_gate)
+        // Only metadata resolution needs recorder serialization. A long read
+        // of thousands of JSONL lines must not hold the lock needed by the
+        // independent one-second writer (especially on slower disks).
+        var summary = List().FirstOrDefault(x => x.Id == id);
+        if (summary is null) return null;
+        try
         {
-            var summary = List().FirstOrDefault(x => x.Id == id);
-            if (summary is null) return null;
-            try
+            // Open with explicit sharing so an active flight may be appended
+            // while a dashboard reads its current, potentially partial trace.
+            using var stream = new FileStream(DataPath(id), FileMode.Open,
+                FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream);
+            var stride = Math.Max(1, (int)Math.Ceiling(summary.Samples / 4000d));
+            var points = new List<FlightRecordedSample>();
+            var row = 0;
+            string? line;
+            while (points.Count < 4000 && (line = reader.ReadLine()) is not null)
             {
-                // Podrobná vizualizace je omezená na 4000 vzorků.
-                var stride = Math.Max(1, (int)Math.Ceiling(summary.Samples / 4000d));
-                var points = new List<FlightRecordedSample>();
-                var row = 0;
-                foreach (var line in File.ReadLines(DataPath(id)))
+                if ((row++ % stride) != 0) continue;
+                try
                 {
-                    if ((row++ % stride) != 0) continue;
-                    if (points.Count >= 4000) break;
-                    try
-                    {
-                        var point = JsonSerializer.Deserialize<FlightRecordedSample>(line, JsonOptions);
-                        if (point is not null) points.Add(point);
-                    }
-                    catch (JsonException) { /* Nedokončený poslední řádek. */ }
+                    var point = JsonSerializer.Deserialize<FlightRecordedSample>(line, JsonOptions);
+                    if (point is not null) points.Add(point);
                 }
-                return new FlightDetail(summary, points);
+                catch (JsonException) { /* Nedokončený poslední řádek. */ }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                logger.LogWarning(ex, "Nepodařilo se načíst průběh letu {Id}", id);
-                return null;
-            }
+            return new FlightDetail(summary, points);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A completed flight can be pruned after metadata was listed.
+            logger.LogWarning(ex, "Nepodařilo se načíst průběh letu {Id}", id);
+            return null;
         }
     }
 }

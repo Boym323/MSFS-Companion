@@ -46,6 +46,18 @@ na Windows PC a zobrazuje ji na podkladové mapě v /flights.
 Při odpojení MSFS se mapa označí jako offline a přestane
 předstírat novou polohu.
 
+## Výkonnost vykreslování stopy
+
+Při každém novém bodu nebo změně zoomu se vytvoří relativní SVG
+geometrie trasy. Samotné průběžné centrování mapy posouvá již připravenou
+geometrii pomocí SVG transformace; nepřepočítává všech 3 600 bodů
+při každém 20Hz snímku telemetrie. Délka stopy se přepočítává
+pouze při změně bodů. Segmenty přes ±180° používají nejkratší
+zeměpisný přechod. Zůstávají zachovány dosavadní limity, export
+záznamů i stav při odpojení simulátoru. Přínos na konkrétním
+iPadu je nutné ověřit provozním měřením FPS a paměti.
+
+
 ## Ověření
 
 1. Na Windows spusťte MSFS a načtěte let.
