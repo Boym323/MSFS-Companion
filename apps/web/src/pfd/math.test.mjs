@@ -7,6 +7,7 @@ import {
   blendAngle,
   pitchUpFromSimConnect,
   bankHorizonRotation,
+  sameDisplayFrame,
 } from './math.ts';
 
 test('PFD: převod pitch a bank podle ověřené konvence MSFS 2020', () => {
@@ -29,4 +30,13 @@ test('PFD: vyhlazování se nepokouší extrapolovat neexistující vzorky', () 
   assert.equal(blend(10, 20, 0), 10);
   assert.ok(blend(10, 20, 16) > 10 && blend(10, 20, 16) < 20);
   assert.ok(blend(10, 20, 1000) < 20);
+});
+
+test('PFD: zastavený displej zbytečně nevyvolá novou React aktualizaci', () => {
+  const still = {speed: 150, altitude: 12000, vs: 0, heading: 359.999,
+    pitch: 0, bank: -0.002};
+  assert.equal(sameDisplayFrame(still, { ...still, heading: 0.001, bank: 0 }), true);
+  assert.equal(sameDisplayFrame(still, { ...still, speed: 151 }), false);
+  assert.equal(sameDisplayFrame(still, { ...still, pitch: 1 }), false);
+  assert.equal(sameDisplayFrame(still, { ...still, heading: 45 }), false);
 });
