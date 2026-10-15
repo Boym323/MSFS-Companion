@@ -239,7 +239,7 @@ public sealed class AviationCatalog(ILogger<AviationCatalog> logger)
     private sealed class SpatialBuckets<T>
     {
         public readonly record struct Entry(T Item, int OriginalIndex);
-        private readonly Dictionary<int, List<Entry>> _cells = [];
+        private readonly Dictionary<int, List<Entry>> _cells = new();
 
         private static int WrapLongitudeCell(int cell) =>
             ((cell + 180) % 360 + 360) % 360 - 180;
