@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -220,29 +221,94 @@ public sealed class AviationCatalog(ILogger<AviationCatalog> logger)
         };
     }
 
+    // Immutable, one-degree geographic buckets are shared across requests for
+    // a specific snapshot. When a new global dataset replaces the old one,
+    // ConditionalWeakTable does not keep the retired snapshot alive.
+    private static readonly ConditionalWeakTable<AviationCatalogSnapshot, SpatialIndex> SpatialIndexes = new();
+
+    private sealed class SpatialIndex(AviationCatalogSnapshot snapshot)
+    {
+        public readonly SpatialBuckets<AirportData> Airports =
+            new(snapshot.Airports, x => x.Latitude, x => x.Longitude);
+        public readonly SpatialBuckets<NavaidData> Navaids =
+            new(snapshot.Navaids, x => x.Latitude, x => x.Longitude);
+        public readonly SpatialBuckets<RunwayData> Runways =
+            new(snapshot.Runways, x => x.Latitude, x => x.Longitude);
+    }
+
+    private sealed class SpatialBuckets<T>
+    {
+        public readonly record struct Entry(T Item, int OriginalIndex);
+        private readonly Dictionary<int, List<Entry>> _cells = [];
+
+        private static int WrapLongitudeCell(int cell) =>
+            ((cell + 180) % 360 + 360) % 360 - 180;
+        private static int Key(int latitudeCell, int longitudeCell) =>
+            (latitudeCell + 90) * 360 + (WrapLongitudeCell(longitudeCell) + 180);
+
+        public SpatialBuckets(T[] source, Func<T, double> latitude, Func<T, double> longitude)
+        {
+            for (var i = 0; i < source.Length; i++)
+            {
+                var item = source[i];
+                var cell = Key((int)Math.Floor(latitude(item)),
+                    (int)Math.Floor(longitude(item)));
+                if (!_cells.TryGetValue(cell, out var bucket))
+                    _cells[cell] = bucket = [];
+                bucket.Add(new Entry(item, i));
+            }
+        }
+
+        public IEnumerable<Entry> Candidates(double latitude, double longitude, double radiusKm)
+        {
+            // Conservative spherical bounding box: no valid point inside the
+            // requested radius may be discarded, including near the dateline.
+            // The precise great-circle check is still performed by FindNearby.
+            var latDelta = Math.Max(0, radiusKm) / 110.0 + 0.01;
+            var farLatitude = Math.Min(89.999, Math.Abs(latitude) + latDelta);
+            var lonDelta = Math.Min(180.0,
+                latDelta / Math.Max(0.00001, Math.Cos(farLatitude * Math.PI / 180)) + 0.01);
+            var south = (int)Math.Floor(Math.Max(-85.05, latitude - latDelta));
+            var north = (int)Math.Floor(Math.Min(85.05, latitude + latDelta));
+            var west = lonDelta >= 180 ? -180 : (int)Math.Floor(longitude - lonDelta);
+            var east = lonDelta >= 180 ? 179 : (int)Math.Floor(longitude + lonDelta);
+            for (var lat = south; lat <= north; lat++)
+            for (var lon = west; lon <= east; lon++)
+            {
+                if (_cells.TryGetValue(Key(lat, lon), out var bucket))
+                    foreach (var entry in bucket)
+                        yield return entry;
+            }
+        }
+    }
+
     public static AviationFeature[] FindNearby(AviationCatalogSnapshot data,
         double latitude, double longitude, double radiusKm)
     {
-        var airports = data.Airports
-            .Select(a => (item: a, distance: DistanceKm(latitude, longitude, a.Latitude, a.Longitude)))
+        var index = SpatialIndexes.GetValue(data, snapshot => new SpatialIndex(snapshot));
+        var airports = index.Airports.Candidates(latitude, longitude, radiusKm)
+            .Select(a => (item: a.Item, original: a.OriginalIndex,
+                distance: DistanceKm(latitude, longitude, a.Item.Latitude, a.Item.Longitude)))
             .Where(x => x.distance <= radiusKm)
-            .OrderBy(x => x.distance).Take(70)
+            .OrderBy(x => x.distance).ThenBy(x => x.original).Take(70)
             .Select(x => new AviationFeature("airport", x.item.Ident, x.item.Name,
                 x.item.Latitude, x.item.Longitude))
             .ToArray();
 
-        var navaids = data.Navaids
-            .Select(n => (item: n, distance: DistanceKm(latitude, longitude, n.Latitude, n.Longitude)))
+        var navaids = index.Navaids.Candidates(latitude, longitude, radiusKm)
+            .Select(n => (item: n.Item, original: n.OriginalIndex,
+                distance: DistanceKm(latitude, longitude, n.Item.Latitude, n.Item.Longitude)))
             .Where(x => x.distance <= radiusKm)
-            .OrderBy(x => x.distance).Take(90)
+            .OrderBy(x => x.distance).ThenBy(x => x.original).Take(90)
             .Select(x => new AviationFeature(x.item.Type, x.item.Ident, x.item.Name,
                 x.item.Latitude, x.item.Longitude, FrequencyKhz: x.item.FrequencyKhz))
             .ToArray();
 
-        var runways = data.Runways
-            .Select(r => (item: r, distance: DistanceKm(latitude, longitude, r.Latitude, r.Longitude)))
+        var runways = index.Runways.Candidates(latitude, longitude, radiusKm)
+            .Select(r => (item: r.Item, original: r.OriginalIndex,
+                distance: DistanceKm(latitude, longitude, r.Item.Latitude, r.Item.Longitude)))
             .Where(x => x.distance <= radiusKm)
-            .OrderBy(x => x.distance).Take(80)
+            .OrderBy(x => x.distance).ThenBy(x => x.original).Take(80)
             .Select(x => new AviationFeature("runway",
                 x.item.LowIdent + "/" + x.item.HighIdent, "Dráha " +
                 x.item.LowIdent + "/" + x.item.HighIdent,
