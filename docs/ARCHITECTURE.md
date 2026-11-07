@@ -71,8 +71,9 @@ V době aktualizace se restartuje jen Companion/bridge, ne MSFS.
 
 - Živá SimConnect telemetrie, profily, PFD a pohyblivá mapa jsou
   implementované; jejich plná kompatibilita vyžaduje pilotní test.
-- A320 FCU/WASM má experimentální řízení a nezaměňuje ACK ani
-  referenční SimVar za potvrzení skutečné avioniky/FMA.
+- Původní Asobo V1 FCU/WASM/H-event byly vyřazeny v Draft PR #152.
+  Zůstává obecná 20Hz telemetrie, PFD, mapa, rádio a bezpečné TITLE ověření.
+  A32NX a iniBuilds V2 vyžadují samostatné adaptérní ověření.
 - Automatický rollback obsahuje opt-in watchdog, který **zůstává vypnutý**,
   dokud neprojde reálnou akceptací dvou instalovaných Windows verzí.
 - Podpis instalátorů je volitelný, dokud není zajištěn certifikát.

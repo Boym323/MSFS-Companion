@@ -7,8 +7,8 @@ Windows aplikace běží na pozadí, automaticky se aktualizuje,
 > **Pokročilá beta verze:** Windows instalace používá živá data ze
 > SimConnect. Pokud MSFS není připojený, zobrazuje čekání, nikoli
 > vymyšlené údaje. Samostatné spuštění na Macu používá mock data.
-> Část ovládání Asobo A320neo stále vyžaduje pilotní ověření ve
-> skutečném MSFS 2020. Přehled implementace a zbývajících testů:
+> Původní Asobo V1 FCU/MCDU/WASM byl na žádost uživatele vyřazen
+> v rozpracovaném PR #152, nikoli v již vydané verzi. Přehled implementace a zbývajících testů:
 > [aktuální stav projektu](docs/PROJECT_STATUS.md).
 
 ## Spuštění při vývoji
@@ -71,7 +71,7 @@ standardně vypnutý do reálné akceptace dvou Windows verzí.
 Horní lišta používá sedm přehledných sekcí: **Přehled, Let, Mapa,
 Navigace, Letadlo, Historie a Nastavení**. Druhý řádek ukazuje pouze
 související stránky z dané sekce. Žádná původní obrazovka nezmizela;
-například Airbus A320, G1000 i Avionika jsou pod **Letadlo**.
+například společná diagnostika a řízení letadla jsou pod **Letadlo**.
 Na iPadu a mobilu se záložky zalamují místo horizontálního
 ořezávání. Lišta zvlášť ukazuje spojení s bridge a s MSFS.
 
@@ -218,7 +218,7 @@ záměrně poškozenou aktualizací dvou nainstalovaných Windows verzí.
 Viz [příprava podepisování a obnova](docs/RELEASE_HARDENING.md).
 
 
-## Ovládání kokpitu C1/C2 a G1000 C3
+## Ovládání kokpitu C1/C2
 
 Na `/controls` fungují COM/NAV, transpondér a autopilot. V rámci důvěryhodné
 domácí LAN je **párování standardně vypnuté**. Na Windows lze na
@@ -226,11 +226,8 @@ domácí LAN je **párování standardně vypnuté**. Na Windows lze na
 Příkazy mají allowlist, kontrolu hodnot a vyžadují živý MSFS. Nikdy
 neotevírejte lokální HTTP server do internetu.
 
-Na `/g1000` jsou připraveny FMS/HDG/NAV a kandidátní Direct-To/Menu/CLR
-ovladače. Dostupnost Input Events se zjišťuje u aktuálního letadla:
-nepodporované ovladače se deaktivují. MSFS 2020 avionika vyžaduje manuální
-ověření. Viz [dokumentace C1/C2](docs/COCKPIT_CONTROLS_C1_C2.md) a
-[G1000 C3](docs/G1000_C3.md).
+Specializované Garmin i původní Asobo V1 příkazy jsou vyřazené.
+Viz [dokumentace obecného ovládání](docs/COCKPIT_CONTROLS_C1_C2.md).
 
 ## GPS navigace a flight plan C4
 
@@ -251,13 +248,13 @@ avionické profily a volitelná zabezpečená ovládací API.
 
 Nové read-only `/api/aircraft/profile` a panel `/aircraft` rozpoznávají
 kandidátní avioniku podle `TITLE`. Nejisté varianty zůstávají označené
-jako neověřené; profil sám o sobě nepovoluje G1000 ani jiné příkazy.
+jako neověřené; samotný profil nikdy nepovoluje žádné neověřené povely.
 Viz [C5 – profily letadel](docs/AIRCRAFT_C5.md).
 
 ## Vlastní kokpit C11
 
-Na `/workspace` lze sestavit až tři panely (PFD, mapa, letadlo,
-COM/NAV, G1000 nebo další avionika), vybrat jeden či dva sloupce a
+Na `/workspace` lze sestavit až tři společné panely (PFD, mapa,
+systémy a běžné ovládání), vybrat jeden či dva sloupce a
 přesouvat jejich pořadí. Rozložení se ukládá pouze v prohlížeči.
 Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
 
@@ -269,8 +266,7 @@ Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
   poslední úspěšně ověřenou verzi. **Nezávislý watchdog je implementovaný jako experimentální opt-in
   funkce, standardně vypnutý; skutečný crash/downgrade test dvou
   Windows vydání ještě neproběhl.** [Dokumentace](docs/UPDATE_C42_RECOVERY_PROVENANCE.md).
-- **C43:** Na `/g1000` lze ručně potvrzovat/hlásit odchylky jednotlivých
-  enumerovaných Input Events pro přesné letadlo. [Dokumentace](docs/AVIONICS_C43.md).
+- **C43 (archiv):** Historická Garmin Input Events diagnostika byla vyřazena. [Starší dokumentace](docs/AVIONICS_C43.md).
 - **C44:** Na `/map` se shoda GPS × PLN/SimBrief odvozuje z polohy a
   identifikátoru odděleně. Žádná automatická synchronizace do FMS.
   [Dokumentace](docs/FLIGHT_PLAN_C44.md).
@@ -309,20 +305,15 @@ reálný let nebo destruktivní výpadek dvou nainstalovaných verzí**.
 Závislosti nyní kontroluje také
 [týdenní bezpečnostní audit](docs/DEPENDENCY_SECURITY.md).
 
-## Asobo A320neo (MSFS 2020)
+## Odstraněný Asobo V1 / WASM a budoucí Airbus adaptéry
 
-Samostatná stránka `/a320` a volitelný panel
-`/workspace` zobrazují 1Hz **read-only** FCU/ENG/APU/fuel
-diagnostiku, vedle dosavadní 20Hz PFD a mapy. Identita
-`TITLE` je průběžně kontrolována a měření mimo správné
-letadlo, při výpadku nebo po 6 sekundách stáří se skryjí.
-Generické `autopilot.*` povely jsou u Airbusu
-z bezpečnostních důvodů vypnuté.
+Původní experimentální Asobo A320neo V1 FCU/MCDU/H-event/WASM
+byl z vývojového kódu v návrhu [PR #152](https://github.com/Boym323/MSFS-Companion/pull/152)
+odstraněn. Jeho lokální Community balíček uživatel odebere ručně a
+samostatně; Companion jej bez souhlasu nemaže.
 
-Automatické testy zkoušejí data a bezpečnostní pravidla,
-nikoliv skutečný účinek FCU na Asobo A320neo.
-Pilotní akceptační postup:
-[Asobo A320](docs/ACCEPTANCE_A320.md),
-[identita](docs/A320_01_IDENTITY.md),
-[FCU a motory](docs/A320_02_03_READBACK.md),
-[dashboard](docs/A320_04_DASHBOARD.md).
+Aktivní směr vývoje: FlyByWire A32NX (oficiální SimBridge) a
+iniBuilds A320neo V2 s ověřeným, zatím omezeným SimConnect kontraktem.
+Žádná ovládací podpora FMS V2 se nepředstírá. Dokumentace:
+[odstranění V1](docs/RETIRED_ASOBO_V1_WASM.md) a
+[migrační plán](docs/AIRBUS_ONLY_MIGRATION_PLAN.md).
