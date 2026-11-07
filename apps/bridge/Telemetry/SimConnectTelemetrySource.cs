@@ -3,7 +3,6 @@ using SimConnect.NET;
 using SimConnect.NET.SimVar;
 using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Aircraft;
-using MsfsCompanion.Bridge.Airbus;
 
 namespace MsfsCompanion.Bridge.Telemetry;
 
@@ -22,7 +21,6 @@ public sealed class SimConnectTelemetrySource(
     CockpitSystemsStore cockpitSystems,
     LandingStore landings,
     AircraftIdentityGuard identity,
-    A320ReadbackStore a320,
     ILogger<SimConnectTelemetrySource> logger) : BackgroundService, ITelemetrySource
 {
     public string Mode => "simconnect";
@@ -42,7 +40,6 @@ public sealed class SimConnectTelemetrySource(
         {
             health.StartConnecting();
             identity.Reset();
-            a320.Reset();
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
@@ -66,7 +63,6 @@ public sealed class SimConnectTelemetrySource(
             }
 
             identity.Reset();
-            a320.Reset();
             systemsStore.Reset();
             radioStore.Reset();
             autopilotModes.Reset();
@@ -186,73 +182,6 @@ public sealed class SimConnectTelemetrySource(
         using var waypointIdSubscription = SubscribeWaypointId(client, stoppingToken);
         using var cockpitSystemsSubscription = SubscribeCockpitSystems(client, stoppingToken);
         using var landingSubscription = SubscribeLanding(client, stoppingToken);
-        // Each optional Airbus subscription is independent. Startup failures
-        // and completed/faulted readers retry without restarting the 20 Hz PFD.
-        ISimVarSubscription? a320EngineSubscription=null;
-        ISimVarSubscription? a320FcuSubscription=null;
-        ISimVarSubscription? a320AuxSubscription=null;
-        ISimVarSubscription? a320ModesSubscription=null;
-        var nextEngineRetryAt=DateTimeOffset.MinValue;
-        var nextFcuRetryAt=DateTimeOffset.MinValue;
-        var nextAuxRetryAt=DateTimeOffset.MinValue;
-        var nextModesRetryAt=DateTimeOffset.MinValue;
-        void EnsureAirbusSubscriptions(DateTimeOffset now)
-        {
-            var title=identity.Current.Title;
-            if (!identity.Trusted(title,now) ||
-                AircraftProfileResolver.Resolve(title).Id!="a320-asobo-candidate")
-                return;
-
-            if (a320EngineSubscription?.Completion.IsCompleted==true)
-            {
-                logger.LogWarning("A320 engine subscription ended; restarting only this reader.");
-                a320EngineSubscription.Dispose();
-                a320EngineSubscription=null;
-                nextEngineRetryAt=now.AddSeconds(5);
-            }
-            if (a320FcuSubscription?.Completion.IsCompleted==true)
-            {
-                logger.LogWarning("A320 FCU subscription ended; restarting only this reader.");
-                a320FcuSubscription.Dispose();
-                a320FcuSubscription=null;
-                nextFcuRetryAt=now.AddSeconds(5);
-            }
-            if (a320AuxSubscription?.Completion.IsCompleted==true)
-            {
-                logger.LogWarning("A320 APU/fuel subscription ended; restarting only this reader.");
-                a320AuxSubscription.Dispose();
-                a320AuxSubscription=null;
-                nextAuxRetryAt=now.AddSeconds(5);
-            }
-            if (a320ModesSubscription?.Completion.IsCompleted==true)
-            {
-                logger.LogWarning("A320 mode subscription ended; restarting only this reader.");
-                a320ModesSubscription.Dispose();
-                a320ModesSubscription=null;
-                nextModesRetryAt=now.AddSeconds(5);
-            }
-            if (a320EngineSubscription is null && now>=nextEngineRetryAt)
-            {
-                a320EngineSubscription=SubscribeA320Engines(client,stoppingToken);
-                nextEngineRetryAt=now.AddSeconds(5);
-            }
-            if (a320FcuSubscription is null && now>=nextFcuRetryAt)
-            {
-                a320FcuSubscription=SubscribeA320Fcu(client,stoppingToken);
-                nextFcuRetryAt=now.AddSeconds(5);
-            }
-            if (a320AuxSubscription is null && now>=nextAuxRetryAt)
-            {
-                a320AuxSubscription=SubscribeA320Aux(client,stoppingToken);
-                nextAuxRetryAt=now.AddSeconds(5);
-            }
-            if (a320ModesSubscription is null && now>=nextModesRetryAt)
-            {
-                a320ModesSubscription=SubscribeA320Modes(client,stoppingToken);
-                nextModesRetryAt=now.AddSeconds(5);
-            }
-        }
-
         logger.LogInformation("SimConnect subscription aktivní; publisher poběží na 20 Hz.");
         long lastPublishedSequence = 0;
         using var publishTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(50));
@@ -289,7 +218,6 @@ public sealed class SimConnectTelemetrySource(
                     nextTitleRetryAt=now.AddSeconds(5);
                 }
 
-                EnsureAirbusSubscriptions(now);
                 if (subscription.Completion.IsCompleted)
                 {
                     await subscription.Completion;
@@ -316,10 +244,6 @@ public sealed class SimConnectTelemetrySource(
         finally
         {
             titleSubscription?.Dispose();
-            a320EngineSubscription?.Dispose();
-            a320FcuSubscription?.Dispose();
-            a320AuxSubscription?.Dispose();
-            a320ModesSubscription?.Dispose();
         }
     }
 
@@ -447,78 +371,6 @@ public sealed class SimConnectTelemetrySource(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Radio SimVars nejsou dostupné; PFD zůstává v provozu.");
-            return null;
-        }
-    }
-
-    private ISimVarSubscription? SubscribeA320Engines(SimConnectClient client,CancellationToken token)
-    {
-        try
-        {
-            return client.SimVars.Subscribe<A320SimConnectEngineData>(
-                SimConnectPeriod.Second,data=>
-                {
-                    if(identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
-                        a320.UpdateEngines(data,DateTimeOffset.UtcNow);
-                },cancellationToken:token);
-        }
-        catch(Exception ex)
-        {
-            logger.LogWarning(ex,"Airbus engine SimVars unavailable; base PFD stays live.");
-            return null;
-        }
-    }
-
-    private ISimVarSubscription? SubscribeA320Aux(SimConnectClient client,CancellationToken token)
-    {
-        try
-        {
-            return client.SimVars.Subscribe<A320SimConnectAuxData>(
-                SimConnectPeriod.Second,data=>
-                {
-                    if(identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
-                        a320.UpdateAux(data,DateTimeOffset.UtcNow);
-                },cancellationToken:token);
-        }
-        catch(Exception ex)
-        {
-            logger.LogWarning(ex,"A320 optional APU/fuel SimVars unavailable.");
-            return null;
-        }
-    }
-
-    private ISimVarSubscription? SubscribeA320Modes(SimConnectClient client,CancellationToken token)
-    {
-        try
-        {
-            return client.SimVars.Subscribe<A320SimConnectModesData>(
-                SimConnectPeriod.Second,data=>
-                {
-                    if (identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
-                        a320.UpdateModes(data,DateTimeOffset.UtcNow);
-                },cancellationToken:token);
-        }
-        catch(Exception ex)
-        {
-            logger.LogWarning(ex,"A320 optional AP mode SimVars unavailable; base PFD unaffected.");
-            return null;
-        }
-    }
-
-    private ISimVarSubscription? SubscribeA320Fcu(SimConnectClient client,CancellationToken token)
-    {
-        try
-        {
-            return client.SimVars.Subscribe<A320SimConnectFcuData>(
-                SimConnectPeriod.Second,data=>
-                {
-                    if(identity.Trusted(identity.Current.Title,DateTimeOffset.UtcNow))
-                        a320.UpdateFcu(data,DateTimeOffset.UtcNow);
-                },cancellationToken:token);
-        }
-        catch(Exception ex)
-        {
-            logger.LogWarning(ex,"Airbus FCU SimVars unavailable; base PFD stays live.");
             return null;
         }
     }
