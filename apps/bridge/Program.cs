@@ -146,6 +146,8 @@ app.MapPost("/api/a320/wasm/probe",()=>Results.StatusCode(410));
 app.MapPost("/api/a320/wasm/command",()=>Results.StatusCode(410));
 app.MapGet("/api/a320/mcdu/status",()=>Results.StatusCode(410));
 app.MapCapabilityCatalog();
+// Fixed-loopback read-only FlyByWire integration, no MCDU commands.
+app.MapFlyByWireIntegration();
 app.MapDeprecatedAvionics();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);

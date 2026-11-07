@@ -8,6 +8,7 @@ const MovingMap=memo(lazy(()=>import('./map/MovingMap')));
 const FlightHistory=memo(lazy(()=>import('./flights/FlightHistory')));
 const AircraftDashboard=memo(lazy(()=>import('./aircraft/AircraftDashboard')));
 const PanelAktualizaci=memo(lazy(()=>import('./PanelAktualizaci')));
+const FlyByWireDashboard=memo(lazy(()=>import('./flybywire/FlyByWireDashboard')));
 const CockpitControls=memo(lazy(()=>import('./controls/CockpitControls')));
 const FlightPlanner=memo(lazy(()=>import('./planning/FlightPlanner')));
 const CockpitWorkspace=memo(lazy(()=>import('./workspace/CockpitWorkspace')));
@@ -43,6 +44,7 @@ const pageMeta = {
   '/capabilities': { eyebrow: 'AVIONIKA', heading: 'Dostupné ovládací prvky', description: 'Nativní inventura avioniky v aktuálním letadle.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
   '/a320': {eyebrow:'VYŘAZENÁ FUNKCE',heading:'Původní Asobo A320neo V1 byl odstraněn',description:'Experimentální FCU/MCDU a nefunkční WASM byly vyřazeny. Pro Airbus použijte společné letové přístroje a nové specializované integrace.'},
+  '/a32nx': {eyebrow:'LETADLO · FLYBYWIRE',heading:'A32NX · SimBridge',description:'Oficiální Remote MCDU FlyByWire a nástroje plánování letu.'},
   '/controls': { eyebrow: 'KOKPIT', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
   '/g1000': { eyebrow: 'UKONČENÁ FUNKCE', heading: 'Garmin G1000 není součástí Airbus Companion', description: 'Původní ovládání G1000 již není podporované.' },
   '/avionics': { eyebrow: 'UKONČENÁ FUNKCE', heading: 'Jiná avionika není součástí Airbus Companion', description: 'Ovládání G3X, G3000, GNS430 a GNS530 již není podporované.' },
@@ -78,6 +80,7 @@ export default function App() {
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
   const isA320=pathname==='/a320';
+  const isA32nx=pathname==='/a32nx';
   const isCapabilities = pathname === '/capabilities';
   const isWeather = pathname === '/weather';
   const isVatsim = pathname === '/vatsim';
@@ -193,6 +196,9 @@ export default function App() {
           <AircraftCapabilities live={sourceIsLive && sourceMode === 'simconnect'} aircraft={validTelemetry?.aircraft??null} />
         ) : isAircraft ? (
           <AircraftDashboard telemetry={validTelemetry} />
+        ) : isA32nx ? (
+          <FlyByWireDashboard aircraft={validTelemetry?.aircraft??null}
+            live={sourceIsLive&&sourceMode==='simconnect'} />
         ) : isControls ? (
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
