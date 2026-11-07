@@ -31,6 +31,7 @@ const corePages=[
  {route:'/briefing',name:'airport-briefing'},
  {route:'/controls',name:'controls'},
  {route:'/health',name:'health'},
+ {route:'/a32nx',name:'flybywire-a32nx'},
  {route:'/pilot',name:'pilot-assistant'}
 ];
 await mkdir(out,{recursive:true});
@@ -276,6 +277,16 @@ try{
       note:'deterministic mocked flight layout; not real MSFS data'});
     await page.unroute('**/api/flights');
     await page.unroute('**/api/flights/*');
+   }
+   if(screen.name==='flybywire-a32nx'){
+    assert.equal(await page.locator('.fbw-card').count(),3,
+      device.name+': A32NX integration must retain its status, planning and setup panels');
+    const mcdu=page.getByRole('link',{name:'Otevřít oficiální Remote MCDU'});
+    assert.equal(await mcdu.getAttribute('href'),
+      'http://simbridge.local:8380/interfaces/mcdu');
+    assert.equal(await mcdu.getAttribute('target'),'_blank');
+    assert.equal(await mcdu.getAttribute('rel'),'noopener noreferrer');
+    assert.equal(await page.locator('.fbw-tools a').count(),6);
    }
    if(screen.name==='flight-plan'){
     assert.equal(await page.locator('.flight-planner-import').count(),1);
