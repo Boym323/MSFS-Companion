@@ -216,3 +216,17 @@ SimConnect, letový deník a data. CI výsledek musí popisovat realitu.
   neotvírat souběžně destruktivní práce do stále pohyblivého main.
 - Po prvním neúspěšném akceptačním testu zastavit další mazání,
   vrátit předešlý ověřený release, nezasahovat do soukromých dat.
+
+## Implementační PR připravené k revizi (7. 11. 2026)
+
+- [#144](https://github.com/Boym323/MSFS-Companion/pull/144) – oficiální FlyByWire A32NX/SimBridge, Draft, nutná živá akceptace.
+- [#146](https://github.com/Boym323/MSFS-Companion/pull/146) – bezpečný úklid odpojených A320 UI panelů, Draft; webové CI prošlo.
+- [#147](https://github.com/Boym323/MSFS-Companion/pull/147) – samostatná oprava runneru pro Chromium/Playwright, Draft; CI a vizuální audit prošly.
+- [#148](https://github.com/Boym323/MSFS-Companion/pull/148) – odstranění Garmin obrazovek a migrace starého workspace při zachování localStorage, Draft.
+- [#149](https://github.com/Boym323/MSFS-Companion/pull/149) – odstranění Garmin Input Events a příkazových API, Draft **navazuje na #148**; po opravě HTTP smoke CI prošlo.
+- [#150](https://github.com/Boym323/MSFS-Companion/pull/150) – ruční neinvazivní záloha nastavení/letů v PowerShellu, Draft; Windows test syntetických dat prošel.
+- [#151](https://github.com/Boym323/MSFS-Companion/pull/151) – React lazy-loading + zastavení polling updateru v zavřeném panelu, Draft **navazuje na #149**; Vite měření počátečního JS gzip před 148,46 kB, po prvním výkonovém commitu 76,24 kB (při fixních závislostech).
+
+**Povolené pořadí:** samostatně schválit #147 a #150, následně #146 a #144; po kontrole konfliktů a pilotní akceptaci #148 → #149 → #151. Nejprve zajistit bezpečnou zálohu uživatelských dat. Přesné pořadí může vyžadovat rebase větví – nikdy neslučovat automaticky. Původní Asobo V1/WASM a recovery watchdog zůstávají, dokud není důkaz funkční náhrady a zálohy.
+
+Vizuální CI PR #146/#148/#149/#151 nyní může selhávat kvůli Ubuntu runneru v main; nelze jej zaměňovat za chybu aplikačního kódu. Před slučováním vyžadovat zelený vizuální audit po opravě #147.
