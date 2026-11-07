@@ -15,4 +15,12 @@ Check(!CompatibilityAssessment.Evaluate(false,"FlyByWire A32NX").IdentityTrusted
     "stale identity blocked");
 Check(AircraftProfileResolver.Resolve("Daher TBM930").Id=="generic",
     "retired profile generic fallback");
+Check(FlyByWireIntegrationEndpoints.IsA32nxCandidate("FlyByWire A32NX"), "dedicated A32NX");
+Check(!FlyByWireIntegrationEndpoints.IsA32nxCandidate("iniBuilds Airbus A320neo V2"), "iniBuilds is not FlyByWire");
+Check(!FlyByWireIntegrationEndpoints.IsA32nxCandidate("Airbus A320 Neo"), "generic Airbus must not call SimBridge");
+Check(FlyByWireIntegrationEndpoints.ParsePort(null)==8380 &&
+    FlyByWireIntegrationEndpoints.ParsePort("8381")==8381 &&
+    FlyByWireIntegrationEndpoints.ParsePort("0")==8380 &&
+    FlyByWireIntegrationEndpoints.ParsePort("65536")==8380,
+    "SimBridge port validation");
 Console.WriteLine("PASS: read-only Airbus capabilities; no Garmin commands");

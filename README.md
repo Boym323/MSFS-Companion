@@ -317,3 +317,9 @@ iniBuilds A320neo V2 s ověřeným, zatím omezeným SimConnect kontraktem.
 Žádná ovládací podpora FMS V2 se nepředstírá. Dokumentace:
 [odstranění V1](docs/RETIRED_ASOBO_V1_WASM.md) a
 [migrační plán](docs/AIRBUS_ONLY_MIGRATION_PLAN.md).
+
+## FlyByWire A32NX a SimBridge
+
+Nová stránka `/a32nx` ověřuje dostupnost oficiálního Remote MCDU přes SimBridge a umožňuje jej otevřít samostatně na iPadu nebo Macu. Neposílá neověřené ovládací povely ani nečte interní FMS. SimBrief, PFD, mapa a VATSIM zůstávají dostupné.
+
+[Postup instalace a ověření FlyByWire A32NX](docs/FLYBYWIRE_A32NX_SIMBRIDGE.md).

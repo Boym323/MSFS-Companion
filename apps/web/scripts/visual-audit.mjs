@@ -30,7 +30,8 @@ const corePages=[
  {route:'/briefing',name:'airport-briefing'},
  {route:'/controls',name:'controls'},
  {route:'/health',name:'health'},
- {route:'/pilot',name:'pilot-assistant'}
+ {route:'/pilot',name:'pilot-assistant'},
+ {route:'/a32nx',name:'flybywire-a32nx'}
 ];
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true});
@@ -181,6 +182,14 @@ try{
       note:'deterministic mocked flight layout; not real MSFS data'});
     await page.unroute('**/api/flights');
     await page.unroute('**/api/flights/*');
+   }
+   if(screen.name==='flybywire-a32nx'){
+    assert.equal(await page.locator('.fbw-card').count(),3,device.name+': three FlyByWire panels');
+    const link=page.getByRole('link',{name:'Otevřít oficiální Remote MCDU'});
+    assert.equal(await link.getAttribute('href'),'http://simbridge.local:8380/interfaces/mcdu');
+    assert.equal(await link.getAttribute('target'),'_blank');
+    assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
+    assert.equal(await page.locator('.fbw-tools a').count(),6);
    }
    if(screen.name==='flight-plan'){
     assert.equal(await page.locator('.flight-planner-import').count(),1);

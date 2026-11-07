@@ -217,6 +217,14 @@ class BridgeSmokeTests(unittest.TestCase):
                     urllib.request.urlopen(request, timeout=3)
                 self.assertEqual(failure.exception.code, 410)
 
+    def test_flybywire_status_does_not_claim_fms_or_readiness_in_mock(self):
+        status = get_json("/api/integrations/flybywire")
+        self.assertFalse(status["aircraftMatched"])
+        self.assertFalse(status["simBridgeReachable"])
+        self.assertFalse(status["fmsSyncVerified"])
+        self.assertFalse(status["mcduControlByCompanion"])
+        self.assertEqual(status["remoteMcduPath"], "/interfaces/mcdu")
+
     def test_read_only_aircraft_systems_are_marked_mock_in_ci(self):
         response = get_json("/api/aircraft/systems")
         self.assertTrue(response["connected"])
