@@ -4,7 +4,6 @@ import Pfd from '../pfd/Pfd';
 import MovingMap from '../map/MovingMap';
 import AircraftDashboard from '../aircraft/AircraftDashboard';
 import CockpitControls from '../controls/CockpitControls';
-import A320CompactStatus from '../a320/A320CompactStatus';
 import './CockpitWorkspace.css';
 import { normalizeWorkspace, type PanelId, type Layout } from './layout';
 import { recommendedAircraftLayout, aircraftLayoutStorageKey } from './aircraftPresets';
@@ -13,7 +12,6 @@ const panels: { id: PanelId; name: string; path: string }[] = [
   { id:'pfd', name:'PFD', path:'/pfd' },
   { id:'map', name:'Mapa', path:'/map' },
   { id:'aircraft', name:'Systémy letadla', path:'/aircraft' },
-  { id:'a320', name:'Airbus A320 readback', path:'/a320' },
   { id:'controls', name:'Ovládání kokpitu', path:'/controls' },
 ];
 const presets: Record<string, PanelId[]> = {
@@ -94,7 +92,6 @@ export default function CockpitWorkspace({ telemetry, live }: {
     if (id === 'map') return <MovingMap telemetry={telemetry} />;
     if (id === 'aircraft') return <AircraftDashboard telemetry={telemetry} />;
     if (id === 'controls') return <CockpitControls live={live} />;
-    if (id === 'a320') return <A320CompactStatus telemetry={telemetry} live={live} />;
     return null;
   }
 

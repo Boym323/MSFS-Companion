@@ -10,7 +10,7 @@ test('compact cockpit shell avoids duplicating the global status cards on every 
  assert.match(app,/<details className="overview-maintenance"/);
  assert.match(app,/onToggle=\{event=>setMaintenanceOpen\(event.currentTarget.open\)\}/);
  assert.match(app,/maintenanceOpen&&<Suspense/);
- assert.match(app,/\{!isA320&&<div className="intro">/);
+ assert.match(app,/\{<div className="intro">/);
  assert.match(app,/isHealth&&sourceIsLive && sourceStatus/);
 });
 test('top level navigation stays one horizontal accessible scrolling row on mobile',()=>{

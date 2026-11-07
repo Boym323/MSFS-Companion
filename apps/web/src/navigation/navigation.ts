@@ -30,7 +30,6 @@ export const navigationGroups: readonly NavigationGroup[] = [
   ] },
   { label: 'Letadlo', href: '/aircraft', items: [
     { href: '/aircraft', label: 'Systémy letadla' },
-    { href: '/a320', label: 'Airbus A320' },
     { href: '/capabilities', label: 'Profily' },
     { href: '/controls', label: 'Ovládání' },
   ] },

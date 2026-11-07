@@ -6,8 +6,8 @@ export function recommendedAircraftLayout(aircraft:string|null|undefined):{
   if(!aircraft||aircraft.length>100||/[\x00-\x1f]/.test(aircraft))return null;
   const name=aircraft.toLowerCase();
   if(/(?:a320|airbus.*320)/.test(name))
-    return {name:'Airbus A320neo – PFD / Mapa / Airbus čtení',
-      layout:{columns:2,visible:['pfd','map','a320']}};
+    return {name:'Airbus A320neo – společné PFD a mapa',
+      layout:{columns:2,visible:['pfd','map','aircraft']}};
   return {name:'Univerzální – PFD / Mapa',
     layout:{columns:1,visible:['pfd','map']}};
 }

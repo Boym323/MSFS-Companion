@@ -7,7 +7,6 @@ const Pfd=memo(lazy(()=>import('./pfd/Pfd')));
 const MovingMap=memo(lazy(()=>import('./map/MovingMap')));
 const FlightHistory=memo(lazy(()=>import('./flights/FlightHistory')));
 const AircraftDashboard=memo(lazy(()=>import('./aircraft/AircraftDashboard')));
-const A320Dashboard=memo(lazy(()=>import('./a320/A320Dashboard')));
 const PanelAktualizaci=memo(lazy(()=>import('./PanelAktualizaci')));
 const CockpitControls=memo(lazy(()=>import('./controls/CockpitControls')));
 const FlightPlanner=memo(lazy(()=>import('./planning/FlightPlanner')));
@@ -43,7 +42,7 @@ const pageMeta = {
   '/weather': { eyebrow: 'AVIATION', heading: 'Letecké počasí', description: 'Aktuální METAR a TAF bez dalšího softwaru.' },
   '/capabilities': { eyebrow: 'AVIONIKA', heading: 'Dostupné ovládací prvky', description: 'Nativní inventura avioniky v aktuálním letadle.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
-  '/a320': {eyebrow:'LETADLO · ASOBO',heading:'Airbus A320neo',description:'FCU, navigace, systémy a MCDU na samostatných pracovních plochách. Ovládání jen s ověřeným povolením.'},
+  '/a320': {eyebrow:'VYŘAZENÁ FUNKCE',heading:'Původní Asobo A320neo V1 byl odstraněn',description:'Experimentální FCU/MCDU a nefunkční WASM byly vyřazeny. Pro Airbus použijte společné letové přístroje a nové specializované integrace.'},
   '/controls': { eyebrow: 'KOKPIT', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
   '/g1000': { eyebrow: 'UKONČENÁ FUNKCE', heading: 'Garmin G1000 není součástí Airbus Companion', description: 'Původní ovládání G1000 již není podporované.' },
   '/avionics': { eyebrow: 'UKONČENÁ FUNKCE', heading: 'Jiná avionika není součástí Airbus Companion', description: 'Ovládání G3X, G3000, GNS430 a GNS530 již není podporované.' },
@@ -83,7 +82,7 @@ export default function App() {
   const isWeather = pathname === '/weather';
   const isVatsim = pathname === '/vatsim';
   const isControls = pathname === '/controls';
-  const isRetiredAvionics = pathname === '/g1000' || pathname === '/avionics';
+  const isRetiredAvionics = isA320 || pathname === '/g1000' || pathname === '/avionics';
 
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
@@ -105,7 +104,7 @@ export default function App() {
         aircraft={sourceIsLive ? telemetry?.aircraft ?? null : null} />
 
       <main className={isOverview ? 'overview-screen' : undefined}>
-        {!isA320&&<div className="intro">
+        {<div className="intro">
           <div className="eyebrow">{page.eyebrow}</div>
           <h1>{page.heading}</h1>
           <p>{page.description}</p>
@@ -145,7 +144,7 @@ export default function App() {
         )}
 
 
-        {!sourceIsLive && !isA320 && !isOverview && !isFlights && !isMap && !isFlightPlan && (
+        {!sourceIsLive && !isRetiredAvionics && !isOverview && !isFlights && !isMap && !isFlightPlan && (
           <p className="telemetry-offline" role="status">
             {sourceMode === 'simconnect'
               ? 'SimConnect není připojený nebo neposílá čerstvá data. Zobrazované hodnoty nejsou platné.'
@@ -155,9 +154,9 @@ export default function App() {
         <Suspense fallback={<p className="page-loading" role="status">Načítám přístroj…</p>}>
         {isRetiredAvionics ? (
           <section className="retired-avionics" role="status">
-            <h2>Specializovaná Garmin avionika byla vyřazena</h2>
+            <h2>{isA320?'Původní Asobo A320 V1 a WASM byly vyřazeny':'Specializovaná Garmin avionika byla vyřazena'}</h2>
             <p>Společné PFD, mapa, rádio a diagnostika letadla zůstávají dostupné.
-              Uložené rozložení panelů se zachovává.</p>
+              Z uloženého rozložení se vynechají staré nepodporované panely.</p>
             <p><a href="/aircraft">Systémy letadla</a> · <a href="/pfd">PFD</a></p>
           </section>
         ) : isPilot ? (
@@ -194,9 +193,6 @@ export default function App() {
           <AircraftCapabilities live={sourceIsLive && sourceMode === 'simconnect'} aircraft={validTelemetry?.aircraft??null} />
         ) : isAircraft ? (
           <AircraftDashboard telemetry={validTelemetry} />
-        ) : isA320 ? (
-          <A320Dashboard telemetry={validTelemetry}
-            live={sourceIsLive&&sourceMode==='simconnect'} />
         ) : isControls ? (
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
