@@ -23,3 +23,8 @@ iPadu zůstává nutná.
 Tento PR vychází z backend refaktoru PR #149 a nesmí se slučovat
 přímo do main dříve než jeho rodičovské PR. Žádný SimConnect,
 FMS ani pilotní povel nebyl změněn.
+
+Správa Windows aktualizací se nyní **neinstancuje ani nepolluje**, dokud
+pilot nerozbalí servisní sekci na přehledu. Zavřením se komponenta
+odpojí a její 5s polling se zastaví; v Chromium se to ověřuje
+samostatným assertem.

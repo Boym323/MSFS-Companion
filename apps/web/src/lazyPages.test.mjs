@@ -14,6 +14,10 @@ test('heavy route components are dynamic imports, not eager dependencies',()=>{
     assert.ok(!code.includes('import '+name+' from'),name+' still eager');
   }
 });
+test('collapsed updater is not mounted or polled',()=>{
+  assert.match(code,/maintenanceOpen&&<Suspense/);
+  assert.match(code,/onToggle=\{event=>setMaintenanceOpen\(event.currentTarget.open\)\}/);
+});
 test('lazy views provide a screen-reader loading message and Suspense boundary',()=>{
   assert.match(code,/<Suspense fallback=\{<p className="page-loading" role="status">/);
   assert.match(code,/<\/Suspense>/);

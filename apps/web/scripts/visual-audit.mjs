@@ -196,6 +196,8 @@ try{
     const maintenance=main.locator('.overview-maintenance');
     assert.equal(await maintenance.getAttribute('open'),null,
       device.name+': Windows maintenance starts collapsed');
+    assert.equal(await maintenance.locator('.update-panel').count(),0,
+      device.name+': closed maintenance must not poll the Windows updater');
     assert.equal(await main.locator('.telemetry-offline').count(),0,
       device.name+': overview must not duplicate offline status');
     assert.equal(await main.evaluate(el=>{
@@ -205,6 +207,7 @@ try{
     if(device.name==='desktop'||device.name==='phone'){
       await maintenance.locator('summary').click();
       assert.equal(await maintenance.evaluate(el=>el.hasAttribute('open')),true);
+      await maintenance.locator('.update-panel').waitFor({state:'visible',timeout:15000});
       assert.equal(await maintenance.locator('.update-panel').isVisible(),true);
       const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
       assert.ok(expandedWidth<=device.width+2,device.name+': maintenance disclosure overflow');

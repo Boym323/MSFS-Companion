@@ -1,4 +1,4 @@
-import {lazy,memo,Suspense} from 'react';
+import {lazy,memo,Suspense,useState} from 'react';
 import { useTelemetry } from './telemetry/useTelemetry';
 import CockpitHeader from './navigation/CockpitHeader';
 
@@ -61,6 +61,7 @@ const values = [
 export default function App() {
   const { telemetry, connection, sourceStatus, sourceIsLive, lastUpdateAgeMs, validTelemetry } = useTelemetry();
   const pathname = window.location.pathname;
+  const [maintenanceOpen,setMaintenanceOpen]=useState(false);
   const isOverview = pathname === '/admin' || pathname === '/';
   const page = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta['/admin'];
   const isPilot = pathname === '/pilot';
@@ -232,13 +233,14 @@ export default function App() {
           </details>
         )}
 
-          <details className="overview-maintenance">
+          <details className="overview-maintenance"
+            onToggle={event=>setMaintenanceOpen(event.currentTarget.open)}>
             <summary>
               <strong>Správa Windows aplikace</strong>
               <span>Verze, aktualizace a správa Companionu</span>
             </summary>
             <div className="overview-maintenance-content">
-              <PanelAktualizaci />
+              {maintenanceOpen&&<Suspense fallback={<p role="status">Načítám správu aktualizací…</p>}><PanelAktualizaci /></Suspense>}
             </div>
           </details>
           </>
