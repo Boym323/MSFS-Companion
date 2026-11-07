@@ -326,3 +326,16 @@ Pilotní akceptační postup:
 [identita](docs/A320_01_IDENTITY.md),
 [FCU a motory](docs/A320_02_03_READBACK.md),
 [dashboard](docs/A320_04_DASHBOARD.md).
+
+
+## FlyByWire A32NX a SimBridge
+
+Samostatná stránka /a32nx nabízí bezpečnou diagnostiku A32NX, kontrolu
+dostupnosti oficiálního Remote MCDU SimBridge na Windows (port 8380)
+a jeho otevření na iPadu/Macu. Zachovává mapu, telemetrii, SimBrief,
+VATSIM a další existující nástroje Companion bez zápisu do FMS.
+A32NX a SimBridge musí uživatel nainstalovat a spustit zvlášť.
+HTTP dostupnost není důkazem fungujícího MCDU; samotný Companion
+nečte strukturovaný FMS plán a neposílá jeho klávesy.
+
+Podrobnosti: [integrace FlyByWire](docs/FLYBYWIRE_A32NX_SIMBRIDGE.md).
