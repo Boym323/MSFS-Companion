@@ -37,9 +37,10 @@ nikoli aktuálním doporučením.
 
 ## Následující praktická akceptace
 
-1. Vypnout experimentální rollback; na odděleném Windows testovacím účtu
-   ověřit scénáře A→B a obnovu do A podle
+1. Na odděleném Windows testovacím účtu ověřit scénáře A→B,
+   zastavení aktualizací po chybě a **ruční** obnovu do A podle
    [Stabilization & Acceptance](STABILIZATION_ACCEPTANCE.md).
+   Experimentální automatický watchdog už není součástí návrhu.
 2. Ověřit aktuální TITLE a telemetrii FlyByWire A32NX/iniBuilds V2
    v MSFS a propojení s dostupnými oficiálními MCDU rozhraními,
    nikdy nespouštět původní Asobo V1 WASM.

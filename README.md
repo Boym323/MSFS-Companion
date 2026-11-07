@@ -62,16 +62,17 @@ Publikování Windows instalátoru nyní vyžaduje úspěšné
 kompletní CI pro odpovídající commit. Ochrana telemetrického
 WebSocketu kontroluje `Origin`, nepředstavuje však autentizaci:
 server patří výhradně do důvěryhodné domácí LAN.
-Na tabletu a telefonu je dostupný čitelný kompaktní režim FCU.
-Automatický rollback je pouze experimentální opt-in a zůstává
-standardně vypnutý do reálné akceptace dvou Windows verzí.
+Na tabletu a telefonu zůstávají společné PFD, mapa a systémy.
+Experimentální automatický watchdog byl odstraněn (PR #153).
+Zůstává integritně ověřený balíček pro **ruční** obnovu,
+kontrola stavu po aktualizaci a bezpečnostní journal.
 
 ## Navigace Kokpitu
 
 Horní lišta používá sedm přehledných sekcí: **Přehled, Let, Mapa,
 Navigace, Letadlo, Historie a Nastavení**. Druhý řádek ukazuje pouze
-související stránky z dané sekce. Žádná původní obrazovka nezmizela;
-například společná diagnostika a řízení letadla jsou pod **Letadlo**.
+související stránky z dané sekce. Historické panely Garmin a Asobo V1 jsou vyřazeny;
+společná diagnostika a řízení zůstávají pod **Letadlo**.
 Na iPadu a mobilu se záložky zalamují místo horizontálního
 ořezávání. Lišta zvlášť ukazuje spojení s bridge a s MSFS.
 
@@ -212,9 +213,9 @@ Windows build lze volitelně podepisovat po doplnění infrastruktury
 certifikátů, ale dokud není `WINDOWS_SIGN_PARAMS` nakonfigurován,
 zůstávají instalátory nepodepsaná vývojová vydání. Základní
 manuální obnova předchozí verze používá SHA-256 ověřený plný balíček.
-Samostatný watchdog je přibalený jako **experimentální opt-in funkce,
-standardně vypnutá**. Automatický návrat zatím nebyl prokázán
-záměrně poškozenou aktualizací dvou nainstalovaných Windows verzí.
+Samostatný watchdog už není přibalený. Automatický rollback nebyl
+ověřen a je záměrně odstraněn. Kontrola verze po restartu a
+ruční obnova ověřeného balíčku zůstávají.
 Viz [příprava podepisování a obnova](docs/RELEASE_HARDENING.md).
 
 
@@ -262,10 +263,9 @@ Viz [C11 – vlastní displeje](docs/WORKSPACE_C11.md).
 
 - **C41:** Na `/validation` lze porovnat read-only SimVars/GPS před a po změně v MSFS.
   Ruční potvrzení avioniky je stále nutné. [Dokumentace](docs/VALIDATION_C41.md).
-- **C42:** Částečně hotovo – update journal zná předchozí instalovanou a
-  poslední úspěšně ověřenou verzi. **Nezávislý watchdog je implementovaný jako experimentální opt-in
-  funkce, standardně vypnutý; skutečný crash/downgrade test dvou
-  Windows vydání ještě neproběhl.** [Dokumentace](docs/UPDATE_C42_RECOVERY_PROVENANCE.md).
+- **C42:** Zůstává update journal, SHA-256 ověřená offline kopie předchozí verze
+  a ručně potvrzená obnova. Experimentální watchdog je vyřazen.
+  [Dokumentace](docs/RETIRED_RECOVERY_WATCHDOG.md).
 - **C43 (archiv):** Historická Garmin Input Events diagnostika byla vyřazena. [Starší dokumentace](docs/AVIONICS_C43.md).
 - **C44:** Na `/map` se shoda GPS × PLN/SimBrief odvozuje z polohy a
   identifikátoru odděleně. Žádná automatická synchronizace do FMS.

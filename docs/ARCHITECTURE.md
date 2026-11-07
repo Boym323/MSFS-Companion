@@ -74,8 +74,8 @@ V době aktualizace se restartuje jen Companion/bridge, ne MSFS.
 - Původní Asobo V1 FCU/WASM/H-event byly vyřazeny v Draft PR #152.
   Zůstává obecná 20Hz telemetrie, PFD, mapa, rádio a bezpečné TITLE ověření.
   A32NX a iniBuilds V2 vyžadují samostatné adaptérní ověření.
-- Automatický rollback obsahuje opt-in watchdog, který **zůstává vypnutý**,
-  dokud neprojde reálnou akceptací dvou instalovaných Windows verzí.
+- Automatický rollback watchdog byl vyřazen v PR #153. Zachován je
+  update journal, restartové ověření a ruční obnova SHA-256 ověřeného balíčku.
 - Podpis instalátorů je volitelný, dokud není zajištěn certifikát.
 - Před případným použitím mimo důvěryhodnou LAN je nutná
   plnohodnotná autentizace a HTTPS.
