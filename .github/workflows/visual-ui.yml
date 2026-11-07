@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   browser-screenshots:
-    runs-on: ubuntu-latest
+    # Playwright Chromium browser installation requires supported Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
