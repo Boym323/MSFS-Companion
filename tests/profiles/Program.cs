@@ -10,7 +10,9 @@ Check(AircraftProfileResolver.Resolve("CubCrafters XCub Floats").Id == "xcub", "
 Check(AircraftProfileResolver.Resolve("Daher TBM 930").Id == "tbm930", "tbm");
 Check(AircraftProfileResolver.Resolve("Airbus A320 Neo").Id == "a320-asobo-candidate", "a320 candidate");
 Check(AircraftProfileResolver.Resolve("Asobo Airbus A320neo").Id == "a320-asobo-candidate", "asobo candidate");
-Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "airbus-addon", "fbw separated");
+Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "a320-fbw-a32nx-candidate", "fbw dedicated profile");
+Check(AircraftProfileResolver.Resolve("FlyByWire Simulations A320neo").Id == "a320-fbw-a32nx-candidate", "fbw long title");
+Check(AircraftProfileResolver.Resolve("FlyByWire A380X").Id == "airbus-addon", "other FBW aircraft isolated");
 Check(AircraftProfileResolver.Resolve("Fenix Airbus A320").Id == "airbus-addon", "fenix separated");
 Check(AircraftProfileResolver.Resolve("iniBuilds Airbus A320neo").Id == "airbus-addon", "v2 separated");
 // SimConnect strings MUST pass empty units to the native SDK. The scalar
