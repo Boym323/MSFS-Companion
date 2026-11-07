@@ -7,8 +7,6 @@ import AircraftDashboard from './aircraft/AircraftDashboard';
 import A320Dashboard from './a320/A320Dashboard';
 import PanelAktualizaci from './PanelAktualizaci';
 import CockpitControls from './controls/CockpitControls';
-import G1000Remote from './g1000/G1000Remote';
-import AdvancedAvionics from './avionics/AdvancedAvionics';
 import FlightPlanner from './planning/FlightPlanner';
 import CockpitWorkspace from './workspace/CockpitWorkspace';
 import AircraftCapabilities from './aircraft/AircraftCapabilities';
@@ -47,8 +45,8 @@ const pageMeta = {
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
   '/a320': {eyebrow:'LETADLO · ASOBO',heading:'Airbus A320neo',description:'FCU, navigace, systémy a MCDU na samostatných pracovních plochách. Ovládání jen s ověřeným povolením.'},
   '/controls': { eyebrow: 'KOKPIT', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
-  '/g1000': { eyebrow: 'AVIONIKA', heading: 'G1000 Remote', description: 'Ovladače PFD/MFD dostupné přes Input Events aktuálního letadla.' },
-  '/avionics': { eyebrow: 'AVIONIKA', heading: 'Další typy avioniky', description: 'Ovládání G3X, G3000, GNS430 a GNS530 s ověřením dostupnosti.' },
+  '/g1000': { eyebrow: 'UKONČENÁ FUNKCE', heading: 'Garmin G1000 není součástí Airbus Companion', description: 'Původní ovládání G1000 již není podporované.' },
+  '/avionics': { eyebrow: 'UKONČENÁ FUNKCE', heading: 'Jiná avionika není součástí Airbus Companion', description: 'Ovládání G3X, G3000, GNS430 a GNS530 již není podporované.' },
 } as const;
 
 const values = [
@@ -84,8 +82,7 @@ export default function App() {
   const isWeather = pathname === '/weather';
   const isVatsim = pathname === '/vatsim';
   const isControls = pathname === '/controls';
-  const isG1000 = pathname === '/g1000';
-  const isAvionics = pathname === '/avionics';
+  const isRetiredAvionics = pathname === '/g1000' || pathname === '/avionics';
 
   const sourceMode = sourceStatus?.mode;
   const isMock = sourceMode === 'mock';
@@ -154,7 +151,14 @@ export default function App() {
               : 'Čekám na telemetrii z bridge.'}
           </p>
         )}
-        {isPilot ? (
+        {isRetiredAvionics ? (
+          <section className="retired-avionics" role="status">
+            <h2>Specializovaná Garmin avionika byla vyřazena</h2>
+            <p>Společné PFD, mapa, rádio a diagnostika letadla zůstávají dostupné.
+              Uložené rozložení panelů se zachovává.</p>
+            <p><a href="/aircraft">Systémy letadla</a> · <a href="/pfd">PFD</a></p>
+          </section>
+        ) : isPilot ? (
           <PilotAssistant telemetry={validTelemetry} live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : isValidation ? (
           <LiveValidation telemetry={validTelemetry} live={sourceIsLive && sourceMode === 'simconnect'} />
@@ -193,10 +197,6 @@ export default function App() {
             live={sourceIsLive&&sourceMode==='simconnect'} />
         ) : isControls ? (
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />
-        ) : isG1000 ? (
-          <G1000Remote live={sourceIsLive && sourceMode === 'simconnect'} />
-        ) : isAvionics ? (
-          <AdvancedAvionics live={sourceIsLive && sourceMode === 'simconnect'} />
         ) : (
           <>
           <section className="overview-live" aria-label="Aktuální letová telemetrie">

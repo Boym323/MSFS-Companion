@@ -4,12 +4,9 @@ import {recommendedAircraftLayout,aircraftLayoutStorageKey} from './aircraftPres
 import {normalizeWorkspace} from './layout.ts';
 
 test('C50 maps common aircraft to explicit candidate layouts',()=>{
- assert.deepEqual(recommendedAircraftLayout('Cessna 172 Skyhawk')?.layout.visible,
- ['pfd','map','g1000']);
- assert.deepEqual(recommendedAircraftLayout('TBM930')?.layout.visible,
- ['pfd','map','avionics']);
- assert.deepEqual(recommendedAircraftLayout('XCub Floats')?.layout.visible,
- ['pfd','map','aircraft']);
+ assert.deepEqual(recommendedAircraftLayout('Cessna 172 Skyhawk')?.layout.visible,['pfd','map']);
+ assert.deepEqual(recommendedAircraftLayout('TBM930')?.layout.visible,['pfd','map']);
+ assert.deepEqual(recommendedAircraftLayout('XCub Floats')?.layout.visible,['pfd','map']);
  assert.deepEqual(recommendedAircraftLayout('Airbus A320 Neo')?.layout.visible,
  ['pfd','map','a320']);
  assert.deepEqual(recommendedAircraftLayout('Unknown plane')?.layout.visible,
