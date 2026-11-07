@@ -209,6 +209,9 @@ jobs:
             nuget-${{ runner.os }}-
       - name: Compile Windows tray host (no installer)
         run: dotnet build apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release --nologo
+      - name: Verify pre-migration backup with synthetic data
+        shell: pwsh
+        run: ./tests/backup-windows/backup-smoke.ps1
       - name: Verify Windows host recovery policy
         shell: pwsh
         run: |
