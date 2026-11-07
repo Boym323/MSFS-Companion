@@ -1,70 +1,56 @@
-import { useEffect, useState } from 'react';
+import {useEffect,useState} from 'react';
 
-type Entry = {
-  id: string; name: string; avionics: string; inputEvent: string;
-  enumerated: boolean; rotary: boolean;
+type CapabilityStatus={
+  connected:boolean; aircraft:string|null; status:string;
+  profile:{id:string;label:string;avionics:string;verified:boolean;note:string};
+  assessment:{state:string;identityTrusted:boolean;commandsConfirmed:boolean;
+    fmsVerified:boolean;inputEventsEnumerated:boolean;reason:string};
 };
-type Status = {
-  connected: boolean; status: string;
-  aircraft?: string; scannedAt?: string | null;
-  assessment?: { state: string; aircraftMatches: boolean; scanFresh: boolean;
-    commandsConfirmed: boolean; enumeratedCount: number; candidateCount: number;
-    reason: string | null };
-  profile: { id: string; label: string; avionics: string; note: string };
-  entries: Entry[];
-};
-
-export default function AircraftCapabilities({ live }: { live: boolean }) {
-  const [status, setStatus] = useState<Status | null>(null);
-  useEffect(() => {
-    if (!live) { setStatus(null); return; }
-    let dead = false;
-    async function refresh() {
-      try {
-        const response = await fetch('/api/aircraft/capabilities', { cache: 'no-store' });
-        if (!response.ok) throw new Error();
-        const data = await response.json() as Status;
-        if (!dead) setStatus(data);
-      } catch { if (!dead) setStatus(null); }
-    }
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 30000);
-    return () => { dead = true; window.clearInterval(timer); };
-  }, [live]);
-  const ready = status?.entries.filter(e => e.enumerated) ?? [];
-  return <section>
-    <h2>C13 · Katalog ovládání letadel</h2>
-    <p>Vlastní katalog standardních SimConnect Input Events, bez instalace MobiFlight
-      či kopírování neověřených skriptů HubHop. Dostupnost je zjištěna přímo v kokpitu.</p>
-    <p role="status">{!live ? 'Simulátor není připojen.'
-      : status ? `${status.profile.label} · ${status.profile.avionics} · skutečně dostupné: ${ready.length}/${status.entries.length}`
-      : 'Zjišťuji kompatibilitu…'}</p>
-    {status?.connected && <>
+export default function AircraftCapabilities({live,aircraft}:{
+  live:boolean;aircraft:string|null
+}){
+  const [status,setStatus]=useState<CapabilityStatus|null>(null);
+  const [error,setError]=useState(false);
+  useEffect(()=>{
+    if(!live||!aircraft){setStatus(null);return;}
+    let closed=false;let pending=false;
+    const controller=new AbortController();
+    const refresh=async()=>{
+      if(closed||pending)return;
+      pending=true;
+      try{
+        const response=await fetch('/api/aircraft/capabilities',{cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw Error('Diagnostika není dostupná');
+        const next=await response.json() as CapabilityStatus;
+        if(!closed){setStatus(next.aircraft===aircraft&&next.connected?next:null);setError(false);}
+      }catch{
+        if(!closed){setStatus(null);setError(true);}
+      }finally{pending=false;}
+    };
+    setStatus(null);void refresh();
+    const timer=window.setInterval(()=>void refresh(),3000);
+    return()=>{closed=true;controller.abort();window.clearInterval(timer);};
+  },[live,aircraft]);
+  const assessment=status?.assessment;
+  return <section className="airbus-capabilities">
+    <h2>Airbus · stav dostupných rozhraní</h2>
+    <p>Diagnostika pro FlyByWire A32NX a iniBuilds A320neo V2. Nepřítomnost původní
+       služby Garmin neznamená, že Companion získal plnohodnotný přístup k FMS.</p>
+    <p role="status">{!live?'MSFS je offline.':error?'Diagnostika není dostupná.'
+      :!status?'Čekám na potvrzenou identitu letadla.':
+      status.profile.label+' · '+assessment?.state}</p>
+    {status&&<>
+      <p>SimConnect TITLE: <strong>{status.aircraft}</strong></p>
+      <p>{assessment?.reason}</p>
+      <dl>
+        <div><dt>Čerstvá identita SimConnect</dt><dd>{assessment?.identityTrusted?'Ano':'Ne'}</dd></div>
+        <div><dt>FMS a jeho plán ověřeny</dt><dd>Ne</dd></div>
+        <div><dt>Ovládací povely přes Companion</dt><dd>Nepodporovány</dd></div>
+        <div><dt>Enumerace Input Events</dt><dd>Neprovádí se</dd></div>
+      </dl>
       <p>{status.profile.note}</p>
-      <div className="compatibility-lab">
-        <h3>C22 · Diagnostika kompatibility</h3>
-        <p>Aktuální TITLE: <strong>{status.aircraft || '—'}</strong></p>
-        <p>Poslední enumerace: {status.scannedAt
-          ? new Date(status.scannedAt).toLocaleString('cs-CZ') : 'zatím neprovedena'}</p>
-        <p role="status">Výsledek: <strong>{status.assessment?.state || status.status}</strong>
-          {' · '}{status.assessment?.reason}</p>
-        <p>Přesnost: {status.assessment?.aircraftMatches ? 'Shoda letadla' : 'Identita neověřena'}
-          {' · '}{status.assessment?.scanFresh ? 'Aktuální scan' : 'Scan neaktuální'}
-          {' · '}Ovládací účinek: {status.assessment?.commandsConfirmed
-            ? 'Potvrzený' : 'NEPOTVRZENÝ (žádný automatický test)'}
-        </p>
-      </div>
-      {status.entries.length === 0
-        ? <p>Pro tento typ letadla zatím nemáme ověřený profil. Stávající PFD a rádio fungují dál.</p>
-        : <div className="capability-list">
-          {status.entries.map(entry => <div key={entry.id} className="capability-row">
-            <strong>{entry.name}</strong>
-            <span>{entry.avionics.toUpperCase()} · {entry.inputEvent}</span>
-            <span>{entry.enumerated ? 'Enumerováno v MSFS (bez readbacku)' : 'Nezjištěno / nepodporováno'}</span>
-          </div>)}
-        </div>}
+      <p>Skutečnou avioniku vždy potvrďte v MSFS. Pro FlyByWire použijte
+        oficiální SimBridge; ten vyžaduje samostatnou instalaci.</p>
     </>}
-    <p>Seznam je pouze diagnostický. Samotný katalog nepovoluje žádné příkazy
-      ani neinterpretuje cizí RPN skripty.</p>
   </section>;
 }

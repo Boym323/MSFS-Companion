@@ -189,7 +189,7 @@ export default function App() {
         ) : isWeather ? (
           <AviationWeather />
         ) : isCapabilities ? (
-          <AircraftCapabilities live={sourceIsLive && sourceMode === 'simconnect'} />
+          <AircraftCapabilities live={sourceIsLive && sourceMode === 'simconnect'} aircraft={validTelemetry?.aircraft??null} />
         ) : isAircraft ? (
           <AircraftDashboard telemetry={validTelemetry} />
         ) : isA320 ? (
