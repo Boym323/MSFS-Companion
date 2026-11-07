@@ -27,8 +27,13 @@ public static class AircraftProfileResolver
         (@"(da.?62|diamond 62)", new("da62", "Diamond DA62", "G1000 (kandidát)",
             ["pfd", "map", "radio", "g1000"], false, "Ověřit variantu avioniky.")),
         // TITLE is a candidate, NOT proof of Asobo aircraft package identity.
+        // Dedicated A32NX candidate; TITLE alone is not proof of an installed package.
+        (@"(a32nx|flybywire.{0,40}a320(?:neo)?|a320.{0,20}flybywire)",
+            new("a320-fbw-a32nx-candidate", "FlyByWire A32NX (kandidát)",
+                "Externí MCDU přes SimBridge", ["pfd", "map", "radio", "airliner"], false,
+                "Ověřit TITLE a běžící A32NX/SimBridge v simulátoru.")),
         // Named third-party variants must never inherit Asobo-specific assumptions.
-        (@"(a32nx|flybywire|fenix|inibuilds|inibuild)", new("airbus-addon",
+        (@"(flybywire|fenix|inibuilds|inibuild)", new("airbus-addon",
             "Airbus – jiná avionika", "Add-on FCU/MCDU (neověřeno)",
             ["pfd", "map", "radio", "airliner"], false,
             "Nejedná se o potvrzený profil výchozí Asobo A320neo.")),

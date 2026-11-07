@@ -1,4 +1,6 @@
 using MsfsCompanion.Bridge.Airbus;
+using MsfsCompanion.Bridge.Aircraft;
+using MsfsCompanion.Bridge.Integrations;
 using MsfsCompanion.Bridge.Navigation;
 using System.Text.Json;
 
@@ -10,6 +12,26 @@ static JsonElement Inspect(A320ReadbackStore store,string title,bool trusted,Dat
     JsonSerializer.SerializeToElement(store.Status(title,trusted,at),
         new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
+Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id==
+    "a320-fbw-a32nx-candidate","A32NX separated");
+Check(AircraftProfileResolver.Resolve("FlyByWire Simulations Airbus A320neo").Id==
+    "a320-fbw-a32nx-candidate","FBW A320 TITLE");
+Check(AircraftProfileResolver.Resolve("Airbus A320 Neo").Id==
+    "a320-asobo-candidate","Asobo unchanged");
+Check(AircraftProfileResolver.Resolve("iniBuilds A320neo V2").Id==
+    "airbus-addon","iniBuilds isolated");
+Check(AircraftProfileResolver.Resolve("FlyByWire A380X").Id==
+    "airbus-addon","A380 not A32NX");
+Check(FlyByWireIntegrationEndpoints.IsA32nxCandidate("FBW A32NX"),
+    "explicit A32NX recognized");
+Check(!FlyByWireIntegrationEndpoints.IsA32nxCandidate("Airbus A320 Neo"),
+    "generic Airbus denied");
+Check(FlyByWireIntegrationEndpoints.ParsePort(null)==8380 &&
+    FlyByWireIntegrationEndpoints.ParsePort("8381")==8381 &&
+    FlyByWireIntegrationEndpoints.ParsePort("0")==8380 &&
+    FlyByWireIntegrationEndpoints.ParsePort("65536")==8380 &&
+    FlyByWireIntegrationEndpoints.ParsePort("abc")==8380,
+    "invalid SimBridge port fallback");
 var at=new DateTimeOffset(2026,10,9,10,0,0,TimeSpan.Zero);
 var store=new A320ReadbackStore();
 var engines=new A320SimConnectEngineData {

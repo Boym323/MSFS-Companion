@@ -5,6 +5,7 @@ import MovingMap from './map/MovingMap';
 import FlightHistory from './flights/FlightHistory';
 import AircraftDashboard from './aircraft/AircraftDashboard';
 import A320Dashboard from './a320/A320Dashboard';
+import FlyByWireDashboard from './flybywire/FlyByWireDashboard';
 import PanelAktualizaci from './PanelAktualizaci';
 import CockpitControls from './controls/CockpitControls';
 import G1000Remote from './g1000/G1000Remote';
@@ -46,6 +47,7 @@ const pageMeta = {
   '/capabilities': { eyebrow: 'AVIONIKA', heading: 'Dostupné ovládací prvky', description: 'Nativní inventura avioniky v aktuálním letadle.' },
   '/aircraft': { eyebrow: 'SYSTÉMY LETADLA', heading: 'Aktuální letadlo', description: 'Letové parametry, motor, vítr a stav systémů · pouze čtení.' },
   '/a320': {eyebrow:'LETADLO · ASOBO',heading:'Airbus A320neo',description:'FCU, navigace, systémy a MCDU na samostatných pracovních plochách. Ovládání jen s ověřeným povolením.'},
+  '/a32nx': {eyebrow:'LETADLO · FLYBYWIRE',heading:'A32NX · SimBridge',description:'Oficiální vzdálené MCDU FlyByWire a navigační nástroje Companion.'},
   '/controls': { eyebrow: 'KOKPIT', heading: 'Dálkové ovládání avioniky', description: 'Rádia, transpondér a autopilot.' },
   '/g1000': { eyebrow: 'AVIONIKA', heading: 'G1000 Remote', description: 'Ovladače PFD/MFD dostupné přes Input Events aktuálního letadla.' },
   '/avionics': { eyebrow: 'AVIONIKA', heading: 'Další typy avioniky', description: 'Ovládání G3X, G3000, GNS430 a GNS530 s ověřením dostupnosti.' },
@@ -80,6 +82,7 @@ export default function App() {
   const isFlights = pathname === '/flights';
   const isAircraft = pathname === '/aircraft';
   const isA320=pathname==='/a320';
+  const isA32nx=pathname==='/a32nx';
   const isCapabilities = pathname === '/capabilities';
   const isWeather = pathname === '/weather';
   const isVatsim = pathname === '/vatsim';
@@ -190,6 +193,9 @@ export default function App() {
           <AircraftDashboard telemetry={validTelemetry} />
         ) : isA320 ? (
           <A320Dashboard telemetry={validTelemetry}
+            live={sourceIsLive&&sourceMode==='simconnect'} />
+        ) : isA32nx ? (
+          <FlyByWireDashboard aircraft={validTelemetry?.aircraft??null}
             live={sourceIsLive&&sourceMode==='simconnect'} />
         ) : isControls ? (
           <CockpitControls live={sourceIsLive && sourceMode === 'simconnect'} />

@@ -161,6 +161,8 @@ app.MapA320Mcdu();
 app.MapG1000();
 app.MapAdvancedAvionics();
 app.MapCapabilityCatalog();
+// Fixed-loopback read-only integration: no browser-provided URLs or MCDU commands.
+app.MapFlyByWireIntegration();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
 app.MapAirRadar();
