@@ -106,11 +106,11 @@ U A32NX používat oficiální SimBridge Remote MCDU; bez domnělých FMS dat.
 U V2 realizovat pouze ověřené read-only/command capability.
 Na skutečném Windows/MSFS potvrdit TITLE obou variant, stale/reset,
 MCDU, aktualizace, iPad/Mac a SimBrief.
-**Dokud není tato etapa ověřena, PR-F se nesmí slučovat.**
+**Uživatel následně výslovně schválil přípravu odstranění Asobo V1/WASM i před akceptací nové avioniky.** PR-F se proto připravuje hned, ale žádný merge nebo release neproběhne bez kompletních testů a zvláštního souhlasu. FlyByWire/iniBuilds funkce se nepředstírají.
 
 ### PR-F: Odstranění původního Asobo A320neo V1 a WASM
 
-**Větev (až po PR-E):** `remove/asobo-v1-wasm`.
+**Větev připravena na žádost uživatele:** `remove/asobo-v1-wasm`, Draft PR #152 (stacked na #151).
 Potenciální odstranění:
 - Asobo-only `apps/web/src/a320/` a cesty `/a320` (pouze části,
   které nové Airbus dashboardy již nenahrazují);
@@ -144,13 +144,12 @@ U vydání měřit velikost Setup.exe a *.nupkg proti v0.2.193
 
 ### PR-H: Recovery watchdog – samostatné rozhodnutí
 
-**Větev pouze při schválení:** `refactor/recovery-watchdog-policy`.
+**Větev připravena na výslovnou žádost uživatele:** `remove/recovery-watchdog`, Draft PR #153 (stacked na #152).
 Watchdog je dnes opt-in a standardně vypnutý, ale balí se do instalátoru.
 **Neodstraňovat současně** s ostatní avionikou.
 Nejprve porovnat instalaci, aktualizaci a scénáře výpadku
 s vypnutým i zapnutým watchdogem na testovacím Windows účtu/VM.
-Možnosti: ponechat; přesunout na volitelný balíček; nahradit prokazatelně
-bezpečnějším mechanismem. Bez funkční obnovy žádné vymazání.
+Rozhodnuto odstranit jen neověřený automatický recovery supervisor. Zachovat journal, integritně ověřený balíček a ručně potvrzenou obnovu předchozího vydání; nelikvidovat soukromá data.
 
 ### PR-I: Sjednocení dokumentace a regresních testů
 
@@ -227,6 +226,9 @@ SimConnect, letový deník a data. CI výsledek musí popisovat realitu.
 - [#150](https://github.com/Boym323/MSFS-Companion/pull/150) – ruční neinvazivní záloha nastavení/letů v PowerShellu, Draft; Windows test syntetických dat prošel.
 - [#151](https://github.com/Boym323/MSFS-Companion/pull/151) – React lazy-loading + zastavení polling updateru v zavřeném panelu, Draft **navazuje na #149**; Vite měření počátečního JS gzip před 148,46 kB, po prvním výkonovém commitu 76,24 kB (při fixních závislostech).
 
-**Povolené pořadí:** samostatně schválit #147 a #150, následně #146 a #144; po kontrole konfliktů a pilotní akceptaci #148 → #149 → #151. Nejprve zajistit bezpečnou zálohu uživatelských dat. Přesné pořadí může vyžadovat rebase větví – nikdy neslučovat automaticky. Původní Asobo V1/WASM a recovery watchdog zůstávají, dokud není důkaz funkční náhrady a zálohy.
+**Povolené pořadí:** samostatně schválit #147 a #150, následně #146 a #144; po kontrole konfliktů a pilotní akceptaci #148 → #149 → #151. Nejprve zajistit bezpečnou zálohu uživatelských dat. Přesné pořadí může vyžadovat rebase větví – nikdy neslučovat automaticky. PR #152 a #153 už vyřazují Asobo V1/WASM a automatický watchdog na větvích bez zásahu do main. Nezávislý manuální recovery journal a ověřený balíček zůstávají. Žádná produkce bez zálohy, testů a souhlasu.
 
 Vizuální CI PR #146/#148/#149/#151 nyní může selhávat kvůli Ubuntu runneru v main; nelze jej zaměňovat za chybu aplikačního kódu. Před slučováním vyžadovat zelený vizuální audit po opravě #147.
+
+- [#152](https://github.com/Boym323/MSFS-Companion/pull/152) – odstranění Asobo A320neo V1 FCU/MCDU a nefunkčního WASM z webu/bridge/Windows balení; pouze Draft, bez automatického zásahu do Community.
+- [#153](https://github.com/Boym323/MSFS-Companion/pull/153) – odstranění experimentálního recovery watchdog procesu a opt-in přepínače; zachována ručně potvrzená obnova, SHA-256 cache a update journal; pouze Draft, stacked na #152.
