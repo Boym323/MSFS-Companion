@@ -188,76 +188,34 @@ class BridgeSmokeTests(unittest.TestCase):
             get_json("/api/health/windows-host-log?lines=5000")
         self.assertEqual(failure.exception.code, 404)
 
-    def test_a320_h_event_module_remains_disabled_in_mock(self):
-        status = get_json("/api/a320/wasm/status")
-        self.assertFalse(status["moduleReady"])
-        self.assertFalse(status["ready"])
-        self.assertFalse(status["armed"])
-        self.assertFalse(status["fcuFresh"])
-        self.assertEqual(len(status["actions"]), 6)
-        body = b'{"command":"a320.fcu.heading.managed"}'
-        req = urllib.request.Request(
-            BASE + "/api/a320/wasm/command", data=body,
-            headers={"Content-Type":"application/json","Origin":BASE},
-            method="POST")
-        with self.assertRaises(urllib.error.HTTPError) as failure:
-            urllib.request.urlopen(req,timeout=3)
-        self.assertEqual(failure.exception.code,409)
-        req = urllib.request.Request(
-            BASE + "/api/a320/wasm/command",
-            data=b'{"command":"a320.fcu.ap1.on"}',
-            headers={"Content-Type":"application/json","Origin":BASE},
-            method="POST")
-        with self.assertRaises(urllib.error.HTTPError) as failure:
-            urllib.request.urlopen(req,timeout=3)
-        self.assertEqual(failure.exception.code,400)
-        req = urllib.request.Request(
-            BASE + "/api/a320/wasm/probe",data=b'', method="POST",
-            headers={"Origin":BASE,"X-MSFS-Companion-Action":"a320-wasm-probe"})
-        with self.assertRaises(urllib.error.HTTPError) as failure:
-            urllib.request.urlopen(req,timeout=3)
-        self.assertEqual(failure.exception.code,409)
-
-    def test_a320_control_is_never_enabled_in_mock(self):
-        status = get_json("/api/a320/controls/status")
-        self.assertFalse(status["armed"])
-        self.assertFalse(status["ready"])
-        self.assertFalse(status["canArm"])
-        self.assertFalse(status["readbackFresh"])
-        request = urllib.request.Request(
-            BASE + "/api/a320/controls/command", data=b'{"command":"a320.fcu.heading.set","value":270}',
-            headers={"Content-Type":"application/json","Origin":BASE}, method="POST")
-        with self.assertRaises(urllib.error.HTTPError) as failure:
-            urllib.request.urlopen(request,timeout=3)
-        self.assertEqual(failure.exception.code,409)
-        arm = urllib.request.Request(
-            BASE + "/api/a320/controls/arm", data=b'{"enabled":true}',
-            headers={"Content-Type":"application/json","Origin":BASE,
-                     "X-MSFS-Companion-Action":"a320-fcu-arm"}, method="POST")
-        with self.assertRaises(urllib.error.HTTPError) as failure:
-            urllib.request.urlopen(arm,timeout=3)
-        self.assertEqual(failure.exception.code,409)
-
-    def test_a320_readback_never_fabricates_values_in_mock(self):
+    def test_retired_asobo_v1_endpoints_fail_closed(self):
+        # The old Asobo FCU and WASM cannot be used even in mock mode.
         identity = get_json("/api/aircraft/identity")
         self.assertFalse(identity["trusted"])
         self.assertIsNone(identity["title"])
-        status = get_json("/api/aircraft/airbus/a320/status")
-        self.assertFalse(status["connected"])
-        self.assertEqual(status["mode"], "read_only")
-        self.assertFalse(status["verifiedAircraft"])
-        self.assertFalse(status["fmaVerified"])
-        for field in ("engines", "fcu", "aux"):
-            self.assertIsNone(status[field])
-        self.assertIsNone(status["aircraft"])
-        for path in ("/api/aircraft/airbus/a320/status",
-                     "/api/aircraft/identity"):
-            req = urllib.request.Request(
-                BASE + path, method="POST", data=b"{}",
-                headers={"Content-Type": "application/json"})
-            with self.assertRaises(urllib.error.HTTPError) as failure:
-                urllib.request.urlopen(req, timeout=3)
-            self.assertIn(failure.exception.code, (404, 405))
+        for path in (
+            "/api/aircraft/airbus/a320/status",
+            "/api/a320/controls/status",
+            "/api/a320/wasm/status",
+            "/api/a320/mcdu/status",
+        ):
+            with self.subTest(path=path):
+                with self.assertRaises(urllib.error.HTTPError) as failure:
+                    urllib.request.urlopen(BASE + path, timeout=3)
+                self.assertEqual(failure.exception.code, 410)
+
+        for path in (
+            "/api/a320/controls/arm", "/api/a320/controls/command",
+            "/api/a320/wasm/probe", "/api/a320/wasm/command",
+        ):
+            with self.subTest(path=path):
+                request = urllib.request.Request(
+                    BASE + path, data=b'{"command":"a320.fcu.heading.set","value":270}',
+                    headers={"Content-Type":"application/json","Origin":BASE},
+                    method="POST")
+                with self.assertRaises(urllib.error.HTTPError) as failure:
+                    urllib.request.urlopen(request, timeout=3)
+                self.assertEqual(failure.exception.code, 410)
 
     def test_read_only_aircraft_systems_are_marked_mock_in_ci(self):
         response = get_json("/api/aircraft/systems")
