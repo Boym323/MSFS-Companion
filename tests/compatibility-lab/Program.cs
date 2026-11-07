@@ -4,7 +4,7 @@ Check(CompatibilityAssessment.Evaluate(false,null).State=="offline","offline");
 Check(CompatibilityAssessment.Evaluate(false,"FlyByWire A32NX").State=="offline",
     "stale TITLE never leaks as current");
 Check(CompatibilityAssessment.Evaluate(true,"Airbus A320 Neo").State==
-    "asobo_v1_legacy_candidate","Asobo legacy distinction");
+    "unsupported_aircraft","retired Asobo V1 not advertised");
 Check(CompatibilityAssessment.Evaluate(true,"FlyByWire A380X").State==
     "unsupported_aircraft","A380 never treated as A32NX");
 Check(CompatibilityAssessment.Evaluate(true,"iniBuilds A321neo").State==

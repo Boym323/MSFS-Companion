@@ -22,14 +22,12 @@ public static class CompatibilityAssessment
         {
             "a320-fbw-a32nx-candidate"=>"a32nx_candidate",
             "a320-inibuilds-v2-candidate"=>"inibuilds_v2_candidate",
-            "a320-asobo-candidate"=>"asobo_v1_legacy_candidate",
             _=>"unsupported_aircraft"
         };
         var reason=state switch
         {
             "a32nx_candidate"=>"TITLE připomíná A32NX; externí MCDU a FMS nejsou potvrzeny.",
             "inibuilds_v2_candidate"=>"TITLE připomíná iniBuilds V2; přístup k FMS není ověřen.",
-            "asobo_v1_legacy_candidate"=>"Starší Asobo V1 zůstává pouze pro přechodnou kompatibilitu.",
             _=>"Tento model nemá specializovanou integraci Companion."
         };
         return new(state,true,false,false,false,reason);

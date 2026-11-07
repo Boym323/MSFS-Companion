@@ -14,8 +14,8 @@ public static class AircraftProfileResolver
 {
     private static readonly (string Pattern, AircraftProfile Profile)[] Rules =
     [
-        // TITLE is a candidate, NOT proof of Asobo aircraft package identity.
-        // Named third-party variants must never inherit Asobo-specific assumptions.
+        // TITLE alone is never proof of a verified avionics integration.
+        // Named third-party variants must never inherit other aircraft's commands.
         (@"(a32nx|flybywire.{0,40}a320(?:neo)?|a320.{0,20}flybywire)",
             new("a320-fbw-a32nx-candidate", "FlyByWire A32NX (kandidát)",
                 "Oficiální MCDU přes SimBridge", ["pfd", "map", "radio", "airliner"],
@@ -27,11 +27,11 @@ public static class AircraftProfileResolver
         (@"(flybywire|fenix|inibuilds|inibuild)", new("airbus-addon",
             "Airbus – jiná avionika", "Add-on FCU/MCDU (neověřeno)",
             ["pfd", "map", "radio", "airliner"], false,
-            "Nejedná se o potvrzený profil výchozí Asobo A320neo.")),
-        (@"(a320[ -]?neo|a320neo|a320)", new("a320-asobo-candidate",
-            "Airbus A320neo (Asobo kandidát)", "FCU/MCDU (read-only diagnostika)",
+            "Tento doplněk zatím nemá ověřené rozhraní FMS/MCDU.")),
+        (@"(a320[ -]?neo|a320neo|a320)", new("a320-unsupported",
+            "Airbus A320 bez ověřeného adaptéru", "Společné SimConnect údaje",
             ["pfd", "map", "radio", "airliner"], false,
-            "Podoba TITLE nestačí k potvrzení Asobo V1; generické AP povely blokovány.")),
+            "V1/WASM byl odstraněn; bez přesného TITLE žádná specializovaná ovládací API.")),
         (@"(airbus)", new("airbus", "Airbus – neověřeno", "Airliner FMC/FCU",
             ["pfd", "map", "radio", "airliner"], false,
             "Generické AP povely blokovány, dokud nejsou ověřené pro variantu.")),
