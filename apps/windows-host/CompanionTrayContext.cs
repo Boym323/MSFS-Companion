@@ -99,32 +99,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
         menu.Items.Add(_updateStatus);
         menu.Items.Add(new ToolStripMenuItem("Zkontrolovat aktualizace", null, async (_, _) => await CheckUpdatesAsync(force: true)));
         menu.Items.Add(_automaticUpdates);
-        var recoveryWatchToggle=new ToolStripMenuItem("Automatický návrat při pádu aktualizace (experimentální)")
-        {
-            Checked=_settings.EnableRecoveryWatchdog,CheckOnClick=true
-        };
-        recoveryWatchToggle.CheckedChanged+=(_,_)=>
-        {
-            if(_applyingUpdate||_verifyingUpdate||_exiting)
-            {
-                recoveryWatchToggle.Checked=_settings.EnableRecoveryWatchdog;
-                return;
-            }
-            if(recoveryWatchToggle.Checked &&
-                MessageBox.Show("Tato funkce je experimentální a nebyla dosud ověřena na " +
-                    "úmyslně poškozené instalaci. Při neúspěšném startu nového hostitele " +
-                    "může automaticky instalovat předchozí uloženou verzi. " +
-                    "Aktivovat pouze pro testování na vlastním počítači?",
-                    "Experimentální obnova",MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning)!=DialogResult.Yes)
-            {
-                recoveryWatchToggle.Checked=false;
-                return;
-            }
-            _settings.EnableRecoveryWatchdog=recoveryWatchToggle.Checked;
-            _settings.Save();
-        };
-        menu.Items.Add(recoveryWatchToggle);
         menu.Items.Add(new ToolStripMenuItem("Obnovit předchozí verzi (pokročilé)…", null,
             (_, _) => RestorePreviousPackage()));
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
@@ -586,24 +560,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
         // installed version is not a rollback-capable binary snapshot.
         var previousVersion = _updateManager.IsInstalled
             ? _updateManager.CurrentVersion?.ToString() : null;
-        // Capture even for manual recovery, but never silently degrade an
-        // explicitly enabled watchdog into an unprotected update.
+        // Preserve verified local package for explicit manual recovery.
+        // No independent watchdog process or automatic rollback is started.
         if(previousVersion is not null &&
             !RecoveryPackageCache.TryCapture(previousVersion))
             EventLogFile.Write("C42: no freshly captured rollback package found.");
-        var matchingPackage=previousVersion is not null &&
-            RecoveryPackageCache.VerifiedPackageForVersion(previousVersion) is not null;
-        if(!UpdatePolicy.RecoveryRequirementMet(_settings.EnableRecoveryWatchdog,
-            previousVersion,matchingPackage))
-        {
-            _updateStatus.Text="Aktualizace pozastavena – není dostupná bezpečná obnova";
-            AdminControl.WriteStatus("error",
-                "Watchdog je zapnutý, ale chybí ověřená předchozí verze. "+
-                "Aktualizace neproběhla; vypněte experimentální watchdog nebo "+
-                "obnovte místní balíček.");
-            EventLogFile.Write("C42: protected update blocked: no matching rollback package.");
-            return;
-        }
         var targetVersion=_pendingUpdate!.TargetFullRelease.Version.ToString();
         if(!UpdateRecoveryJournal.TryArm(targetVersion,previousVersion))
         {
@@ -611,23 +572,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
             AdminControl.WriteStatus("error","Aktualizaci nelze bezpečně zaznamenat.");
             EventLogFile.Write("C33: update blocked because journal cannot be armed.");
             return;
-        }
-        if(_settings.EnableRecoveryWatchdog)
-        {
-            // RecoveryRequirementMet guarantees that this version is non-null
-            // and has a SHA-256-checked matching full package.
-            if(previousVersion is null ||
-                !RecoveryPackageCache.TryStartSupervisor(targetVersion,previousVersion))
-            {
-                var canceled=previousVersion is not null &&
-                    UpdateRecoveryJournal.CancelBeforeApply(targetVersion,previousVersion);
-                _updateStatus.Text="Aktualizace pozastavena – watchdog se nespustil";
-                AdminControl.WriteStatus("error",
-                    "Aktualizace nebyla použita: požadovaný obnovovací proces se "+
-                    "nepodařilo spustit. "+(canceled?"":"Zkontrolujte update journal."));
-                EventLogFile.Write("C42: protected update blocked: watchdog failed to start; journalCanceled="+canceled);
-                return;
-            }
         }
         _applyingUpdate = true;
         try

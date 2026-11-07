@@ -58,8 +58,3 @@ jobs:
         run: |
           dotnet restore apps/windows-host/MsfsCompanion.WindowsHost.csproj -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high "-p:WarningsAsErrors=NU1903%3BNU1904"
           if ($LASTEXITCODE -ne 0) { throw 'Windows host package vulnerability audit failed' }
-      - name: Audit bundled recovery supervisor packages
-        shell: pwsh
-        run: |
-          dotnet restore apps/recovery-watch/MsfsCompanion.RecoveryWatch.csproj -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high "-p:WarningsAsErrors=NU1903%3BNU1904"
-          if ($LASTEXITCODE -ne 0) { throw 'Recovery supervisor package vulnerability audit failed' }
