@@ -6,7 +6,6 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
-import {A320_TABS} from '../src/a320/a320Tabs.ts';
 
 const base=process.env.VISUAL_BASE_URL??'http://127.0.0.1:4173';
 const out=new URL('../visual-artifacts/',import.meta.url);
@@ -31,7 +30,8 @@ const corePages=[
  {route:'/briefing',name:'airport-briefing'},
  {route:'/controls',name:'controls'},
  {route:'/health',name:'health'},
- {route:'/pilot',name:'pilot-assistant'}
+ {route:'/pilot',name:'pilot-assistant'},
+ {route:'/a32nx',name:'flybywire-a32nx'}
 ];
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true});
@@ -44,126 +44,28 @@ try{
   const page=await context.newPage();
   const runtimeErrors=[];
   page.on('pageerror',error=>runtimeErrors.push(error.message));
-  for(const tab of A320_TABS){
-   await page.goto(base+'/a320?panel='+tab.id,{waitUntil:'domcontentloaded'});
-   await page.locator('.a320-instrument-tabs').waitFor({state:'visible'});
-   await page.locator('.a320-instrument-stage > section').waitFor({state:'visible'});
-   // UI-REF-11: the active tab must be visible inside its scrolling row.
-   await page.waitForFunction(()=>{
-    const nav=document.querySelector('.a320-instrument-tabs');
-    const link=nav?.querySelector('a[aria-current="page"]');
-    if(!nav||!link)return false;
-    const a=link.getBoundingClientRect(),n=nav.getBoundingClientRect();
-    return a.left>=n.left-3&&a.right<=n.right+3;
-   },null,{timeout:5000});
-   const active=await page.locator('.a320-instrument-tabs a[aria-current="page"]').allTextContents();
-   assert.deepEqual(active.map(s=>s.trim()),[tab.label],
-    device.name+'/'+tab.id+': active page must be unique');
-   assert.equal(await page.locator('.a320-instrument-stage > section').count(),1,
-    device.name+'/'+tab.id+': exactly one instrument is mounted');
-   assert.equal(await page.locator('.telemetry-offline').count(),0,
-    device.name+'/'+tab.id+': A320 must not repeat the global offline banner');
-   if(tab.id!=='diagnostics'){
-    assert.equal(await page.locator('.a320-diagnostic-content').count(),0,
-     device.name+'/'+tab.id+': evidence controls must stay outside flight deck');
-   }
-   const geometry=await page.evaluate(()=>{
-    const element=document.documentElement;
-    const stage=document.querySelector('.a320-instrument-stage');
-    return {
-     viewport:innerWidth,body:element.scrollWidth,
-     stageWidth:stage?.getBoundingClientRect().width??0,
-     stageTop:stage?.getBoundingClientRect().top??0,
-     activeTabHeight:document.querySelector('.a320-instrument-tabs a[aria-current="page"]')?.getBoundingClientRect().height??0,
-     primaryHeight:document.querySelector('.cockpit-primary-nav a.selected')?.getBoundingClientRect().height??0,
-     stagePresent:!!stage
-    };
-   });
-   assert.ok(geometry.body<=geometry.viewport+2,
-    device.name+'/'+tab.id+': viewport overflow '+JSON.stringify(geometry));
-   assert.ok(geometry.stagePresent&&geometry.stageWidth>0);
-   assert.ok(geometry.stageTop>=0,device.name+'/'+tab.id+': instrument stage clipped above viewport');
-   assert.ok(geometry.activeTabHeight>=43&&geometry.primaryHeight>=43,
-    device.name+'/'+tab.id+': navigation touch targets below 44 px '+JSON.stringify(geometry));
-   if(device.width<=768){
-    assert.ok(geometry.stageTop<device.height-80,
-     device.name+'/'+tab.id+': primary instrument starts below the first viewport '+JSON.stringify(geometry));
-    assert.equal(await page.locator('.cockpit-mobile-tools').isVisible(),true,
-     device.name+': compact tools selector should be visible');
-    assert.equal(await page.locator('.cockpit-secondary-nav').isVisible(),false,
-     device.name+': redundant second nav row must be hidden');
-   }
-   if(tab.id==='fcu'){
-    const compact=page.getByRole('button',{name:'Kompaktní',exact:true});
-    const fit=page.getByRole('button',{name:'Přizpůsobit'});
-    const actual=page.getByRole('button',{name:'1:1',exact:true});
-    const fullscreen=page.getByRole('button',{name:'Celá obrazovka'});
-    if(device.width>=900){
-     assert.equal(await fit.getAttribute('aria-pressed'),'true',
-      device.name+': desktop and landscape iPad should fit original FCU');
-    }else{
-     assert.equal(await compact.getAttribute('aria-pressed'),'true',
-      device.name+': portrait iPad and phones default to readable references');
-    }
-    await compact.click();
-    assert.equal(await page.locator('.a320-hw-compact-readings .a320-hw-compact-metric').count(),4,
-     device.name+': compact FCU has all four reference values');
-    await fit.click();
-    await page.waitForFunction(()=>{
-     const s=document.querySelector('.a320-hw-scroll');
-     return s&&s.scrollWidth<=s.clientWidth+3;
-    },null,{timeout:5000});
-    await actual.click();
-    assert.equal(await actual.getAttribute('aria-pressed'),'true');
-    await fullscreen.click();
-    assert.equal(await page.locator('.a320-hw-viewer.is-fullscreen').count(),1);
-    assert.equal(await fit.getAttribute('aria-pressed'),'true',
-     device.name+': fullscreen opens with the complete instrument fitted');
-    if(device.name==='ipad-landscape'||device.name==='phone'){
-     const zoomFile=device.name+'--a320-fcu-fullscreen.png';
-     await page.screenshot({path:new URL(zoomFile,out).pathname,animations:'disabled'});
-     manifest.push({file:zoomFile,...device,panel:'fcu-fullscreen',
-      note:'offline fullscreen control audit'});
-    }
-    await page.keyboard.press('Escape');
-    assert.equal(await page.locator('.a320-hw-viewer.is-fullscreen').count(),0,
-     device.name+': Escape should dismiss the overlay');
-    if(device.width>=900)await fit.click(); else await compact.click();
-   }
-   const file=device.name+'--a320-'+tab.id+'.png';
-   await page.screenshot({path:new URL(file,out).pathname,
-    fullPage:true,animations:'disabled'});
-   manifest.push({file,...device,panel:tab.id,geometry,
-    note:'offline visual baseline (not an MSFS in-game comparison)'});
-  }
-  // Workspace should never mount the whole Airbus dashboard into a half-column.
+  // Retired Asobo route must not mount the legacy FCU or send commands.
+  await page.goto(base+'/a320',{waitUntil:'domcontentloaded'});
+  assert.equal(await page.getByText('Původní Asobo A320 V1 a WASM byly vyřazeny').count(),1);
+  assert.equal(await page.locator('.a320-instrument-stage').count(),0);
+  // Workspace remains usable and its iPad lock prevents accidental edits.
   await page.goto(base+'/workspace',{waitUntil:'domcontentloaded'});
-  const toggle=page.getByRole('checkbox',{name:'Airbus A320 readback'});
-  await toggle.check();
-  assert.equal(await page.locator('.a320-compact').count(),1,
-   device.name+': expected compact Airbus Workspace tile');
-  assert.equal(await page.locator('.a320-ui-shell').count(),0,
-   device.name+': large FCU must never mount in Workspace');
+  await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
   const lock=page.locator('.cockpit-workspace-lock input[type="checkbox"]');
   await lock.check();
-  assert.equal(await toggle.isDisabled(),true,
-    device.name+': locked tablet layout must disable instrument selection');
+  assert.equal(await page.getByRole('checkbox',{name:'PFD',exact:true}).isDisabled(),true);
   if(device.name==='ipad-portrait'){
     const lockedFile=device.name+'--workspace-locked.png';
-    await page.screenshot({path:new URL(lockedFile,out).pathname,
-      fullPage:true,animations:'disabled'});
-    manifest.push({file:lockedFile,...device,panel:'workspace-locked',
-      note:'iPad layout lock must protect instrument choices'});
+    await page.screenshot({path:new URL(lockedFile,out).pathname,fullPage:true,animations:'disabled'});
+    manifest.push({file:lockedFile,...device,panel:'workspace-locked',note:'iPad workspace lock regression'});
   }
   await lock.uncheck();
-  assert.equal(await toggle.isDisabled(),false);
   const workspaceFile=device.name+'--workspace.png';
-  await page.screenshot({path:new URL(workspaceFile,out).pathname,
-   fullPage:true,animations:'disabled'});
-  manifest.push({file:workspaceFile,...device,panel:'workspace',
-   note:'compact Airbus workspace; offline'});
+  await page.screenshot({path:new URL(workspaceFile,out).pathname,fullPage:true,animations:'disabled'});
+  manifest.push({file:workspaceFile,...device,panel:'workspace',note:'PFD/map workspace; offline'});
   for(const screen of corePages){
    await page.goto(base+screen.route,{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
    const selected=page.locator('.cockpit-primary-nav a[aria-current="location"]');
    await selected.waitFor({state:'visible'});
    await page.waitForFunction(()=>{
@@ -193,6 +95,8 @@ try{
     const maintenance=main.locator('.overview-maintenance');
     assert.equal(await maintenance.getAttribute('open'),null,
       device.name+': Windows maintenance starts collapsed');
+    assert.equal(await maintenance.locator('.update-panel').count(),0,
+      device.name+': closed maintenance must not poll the Windows updater');
     assert.equal(await main.locator('.telemetry-offline').count(),0,
       device.name+': overview must not duplicate offline status');
     assert.equal(await main.evaluate(el=>{
@@ -202,6 +106,7 @@ try{
     if(device.name==='desktop'||device.name==='phone'){
       await maintenance.locator('summary').click();
       assert.equal(await maintenance.evaluate(el=>el.hasAttribute('open')),true);
+      await maintenance.locator('.update-panel').waitFor({state:'visible',timeout:15000});
       assert.equal(await maintenance.locator('.update-panel').isVisible(),true);
       const expandedWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
       assert.ok(expandedWidth<=device.width+2,device.name+': maintenance disclosure overflow');
@@ -253,6 +158,7 @@ try{
       status:200,contentType:'application/json',body:JSON.stringify({summary,samples})
     }));
     await page.goto(base+'/flights',{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
     await page.locator('.flight-history-player').waitFor({state:'visible'});
     assert.equal(await page.locator('.flight-history-summary').count(),1);
     assert.equal(await page.locator('.flight-history-tools').getAttribute('open'),null);
@@ -276,6 +182,14 @@ try{
       note:'deterministic mocked flight layout; not real MSFS data'});
     await page.unroute('**/api/flights');
     await page.unroute('**/api/flights/*');
+   }
+   if(screen.name==='flybywire-a32nx'){
+    assert.equal(await page.locator('.fbw-card').count(),3,device.name+': three FlyByWire panels');
+    const link=page.getByRole('link',{name:'Otevřít oficiální Remote MCDU'});
+    assert.equal(await link.getAttribute('href'),'http://simbridge.local:8380/interfaces/mcdu');
+    assert.equal(await link.getAttribute('target'),'_blank');
+    assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
+    assert.equal(await page.locator('.fbw-tools a').count(),6);
    }
    if(screen.name==='flight-plan'){
     assert.equal(await page.locator('.flight-planner-import').count(),1);
@@ -350,16 +264,6 @@ try{
   assert.deepEqual(runtimeErrors,[],device.name+': unhandled browser errors');
   await context.close();
  }
- // Navigation must work using real browser history on iPad dimensions.
- const context=await browser.newContext({viewport:{width:768,height:1024}});
- const page=await context.newPage();
- await page.goto(base+'/a320?panel=fcu',{waitUntil:'domcontentloaded'});
- await page.locator('.a320-instrument-tabs a[href*="panel=ecam"]').click();
- assert.equal(new URL(page.url()).searchParams.get('panel'),'ecam');
- await page.goBack();
- assert.equal(new URL(page.url()).searchParams.get('panel'),'fcu');
- assert.equal(await page.locator('.a320-instrument-tabs a[aria-current="page"]').innerText(),'FCU');
- await context.close();
  await writeFile(new URL('manifest.json',out),JSON.stringify({
   generatedAt:new Date().toISOString(),base,kind:'offline screenshot and layout regression',
   entries:manifest},null,2));

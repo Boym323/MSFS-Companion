@@ -26,7 +26,6 @@ jobs:
       all: ${{ steps.paths.outputs.all }}
       telemetry: ${{ steps.paths.outputs.telemetry }}
       controls: ${{ steps.paths.outputs.controls }}
-      g1000: ${{ steps.paths.outputs.g1000 }}
       navigation: ${{ steps.paths.outputs.navigation }}
       smoke: ${{ steps.paths.outputs.smoke }}
     steps:
@@ -42,11 +41,11 @@ jobs:
         run: |
           set -euo pipefail
           bridge=false; web=false; host=false; all=false
-          telemetry=false; controls=false; g1000=false; navigation=false; smoke=false
+          telemetry=false; controls=false; navigation=false; smoke=false
 
           if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
             bridge=true; web=true; host=true; all=true
-            telemetry=true; controls=true; g1000=true; navigation=true; smoke=true
+            telemetry=true; controls=true; navigation=true; smoke=true
           else
             git diff --name-only "$BASE_SHA...$HEAD_SHA" > changed-files.txt
             echo "Changed files:"
@@ -64,7 +63,6 @@ jobs:
                   case "$path" in
                     apps/bridge/Telemetry/*) telemetry=true ;;
                     apps/bridge/Controls/*) controls=true ;;
-                    apps/bridge/Avionics/*) g1000=true ;;
                     apps/bridge/Navigation/*) navigation=true ;;
                     *) all=true ;;
                   esac ;;
@@ -72,8 +70,6 @@ jobs:
                   bridge=true; telemetry=true ;;
                 tests/controls-logic/*)
                   bridge=true; controls=true ;;
-                tests/g1000-logic/*)
-                  bridge=true; g1000=true ;;
                 tests/navigation-logic/*)
                   bridge=true; navigation=true ;;
                 tests/*)
@@ -89,7 +85,6 @@ jobs:
             echo "all=$all"
             echo "telemetry=$telemetry"
             echo "controls=$controls"
-            echo "g1000=$g1000"
             echo "navigation=$navigation"
             echo "smoke=$smoke"
           } >> "$GITHUB_OUTPUT"
@@ -122,9 +117,6 @@ jobs:
       - name: C1/C2 testy validace příkazů
         if: needs.changes.outputs.controls == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/controls-logic/MsfsCompanion.ControlsCheck.csproj --configuration Release
-      - name: C3 G1000 allowlist
-        if: needs.changes.outputs.g1000 == 'true' || needs.changes.outputs.all == 'true'
-        run: dotnet run --project tests/g1000-logic/MsfsCompanion.G1000Check.csproj --configuration Release
       - name: C8 OurAirports CSV a lokální prostorový výběr
         if: needs.changes.outputs.navigation == 'true' || needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/aviation-logic/MsfsCompanion.AviationCheck.csproj --configuration Release
@@ -155,14 +147,6 @@ jobs:
       - name: C5 Aircraft Profiles
         if: needs.changes.outputs.all == 'true'
         run: dotnet run --project tests/profiles/MsfsCompanion.ProfilesCheck.csproj --configuration Release
-      - name: A320-02/03 Airbus read-only SimVars and FCU validity
-        if: needs.changes.outputs.all == 'true'
-        run: dotnet run --project tests/airbus-logic/MsfsCompanion.A320Check.csproj --configuration Release
-      - name: A320 WASM H-event allowlist and replay (mock SDK, not real simulator)
-        if: needs.changes.outputs.all == 'true' || needs.changes.outputs.smoke == 'true'
-        run: |
-          g++ -std=c++17 -Wall -Wextra -Werror -Itests/a320-wasm-sdk-stub tests/a320-wasm-native.cpp -o /tmp/kokpit-a320-wasm-contract
-          /tmp/kokpit-a320-wasm-contract
       - name: Runtime smoke tests (HTTP, WebSocket, mock)
         if: needs.changes.outputs.smoke == 'true' || needs.changes.outputs.all == 'true'
         run: |
@@ -225,6 +209,9 @@ jobs:
             nuget-${{ runner.os }}-
       - name: Compile Windows tray host (no installer)
         run: dotnet build apps/windows-host/MsfsCompanion.WindowsHost.csproj -c Release --nologo
+      - name: Verify pre-migration backup with synthetic data
+        shell: pwsh
+        run: ./tests/backup-windows/backup-smoke.ps1
       - name: Verify Windows host recovery policy
         shell: pwsh
         run: |

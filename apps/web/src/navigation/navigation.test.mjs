@@ -5,11 +5,11 @@ import { navigationGroups, activeNavigationGroup, normalizeNavigationPath } from
 const routes = [
  '/admin', '/pilot', '/validation', '/health', '/pfd', '/map', '/flight-plan',
  '/briefing', '/progress', '/fuel', '/radio-assistant', '/checklists',
- '/workspace', '/flights', '/aircraft', '/a320', '/capabilities', '/weather',
- '/vatsim', '/controls', '/g1000', '/avionics',
+ '/workspace', '/flights', '/aircraft', '/a32nx', '/capabilities', '/weather',
+ '/vatsim', '/controls',
 ];
 
-test('horní navigace obsahuje všech 22 obrazovek právě jednou', () => {
+test('horní navigace obsahuje všech 20 obrazovek právě jednou', () => {
  const all = navigationGroups.flatMap(group => group.items.map(item => item.href));
  assert.deepEqual([...all].sort(), [...routes].sort());
  assert.equal(new Set(all).size, all.length);
@@ -23,8 +23,7 @@ test('všechny hlavní sekce odkazují na dostupnou podstránku', () => {
  }
 });
 test('kontextové záložky zůstávají dostupné přímo i při otevření odkazu', () => {
- assert.equal(activeNavigationGroup('/g1000').label, 'Letadlo');
- assert.equal(activeNavigationGroup('/a320').label, 'Letadlo');
+ assert.equal(activeNavigationGroup('/a32nx').label, 'Letadlo');
  assert.equal(activeNavigationGroup('/validation').label, 'Nastavení');
  assert.equal(activeNavigationGroup('/radio-assistant').label, 'Let');
  assert.equal(activeNavigationGroup('/').label, 'Přehled');

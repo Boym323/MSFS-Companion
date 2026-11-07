@@ -53,24 +53,20 @@ class ControlsSmoke(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertFalse(ap_modes["connected"])
             self.assertIsNone(ap_modes["modes"])
-            status, g1000 = request("GET", "/api/avionics/g1000")
+            # Retired Garmin endpoints must always fail closed; even a paired
+            # client may not send the old Input Events after migration.
+            for path in ("/api/avionics/g1000", "/api/avionics/advanced"):
+                status, _ = request("GET", path)
+                self.assertEqual(status, 410)
+            for path in ("/api/avionics/g1000/command",
+                         "/api/avionics/advanced/command"):
+                status, _ = request("POST", path, {"id": "arbitrary-event", "value": 1}, auth)
+                self.assertEqual(status, 410)
+            status, capabilities = request("GET", "/api/aircraft/capabilities")
             self.assertEqual(status, 200)
-            self.assertEqual(g1000["status"], "offline")
-            status, _ = request("POST", "/api/avionics/g1000/command",
-                                {"id": "pfd.fms.inner", "value": 1}, auth)
-            self.assertEqual(status, 409, "Mock nesmí odeslat G1000 InputEvent")
-            status, _ = request("POST", "/api/avionics/g1000/command",
-                                {"id": "unknown", "value": 1}, auth)
-            self.assertEqual(status, 400)
-            status, advanced = request("GET", "/api/avionics/advanced")
-            self.assertEqual(status, 200)
-            self.assertEqual(advanced["status"], "offline")
-            status, _ = request("POST", "/api/avionics/advanced/command",
-                                {"id": "g3x.menu", "value": 1}, auth)
-            self.assertEqual(status, 409)
-            status, _ = request("POST", "/api/avionics/advanced/command",
-                                {"id": "arbitrary-event", "value": 1}, auth)
-            self.assertEqual(status, 400)
+            self.assertFalse(capabilities["connected"])
+            self.assertFalse(capabilities["assessment"]["commandsConfirmed"])
+            self.assertFalse(capabilities["assessment"]["fmsVerified"])
             status, cockpit = request("GET", "/api/cockpit/systems")
             self.assertEqual(status, 200)
             self.assertFalse(cockpit["connected"])

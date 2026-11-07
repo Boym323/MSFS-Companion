@@ -1,38 +1,42 @@
 using MsfsCompanion.Bridge.Aircraft;
-using MsfsCompanion.Bridge.Avionics;
 using MsfsCompanion.Bridge.Telemetry;
 
 namespace MsfsCompanion.Bridge.Integrations;
 
 public static class CapabilityEndpoints
 {
+    /// <summary>
+    /// No additional SimConnect instance or Input Events enumeration.
+    /// A trusted TITLE is only a candidate classifier, never FMS verification.
+    /// </summary>
     public static void MapCapabilityCatalog(this WebApplication app)
     {
-        app.MapGet("/api/aircraft/capabilities", async (
+        app.MapGet("/api/aircraft/capabilities", (HttpContext ctx,
             ITelemetrySource source, TelemetryHealth health, TelemetryStore store,
-            G1000Service avionics, CancellationToken ct) =>
+            AircraftIdentityGuard identity) =>
         {
-            var connected = source.Mode == "simconnect" &&
-                health.Snapshot(source.Mode).Connected;
-            var aircraft = connected ? store.Current.Aircraft : null;
-            var profile = AircraftProfileResolver.Resolve(aircraft);
-            if (!connected)
-                return Results.Ok(new { connected = false, profile,
-                    status = "offline", entries = Array.Empty<CapabilityCatalog.Entry>() });
-
-            var advanced = await avionics.StatusAdvancedAsync(ct);
-            var g1000 = await avionics.StatusAsync(ct);
-            var availableIds = advanced.AvailableActions.Concat(g1000.AvailableActions);
-            var entries = CapabilityCatalog.ForAircraft(aircraft, availableIds);
-            var assessment = CompatibilityAssessment.Evaluate(connected, aircraft,
-                g1000, advanced, entries.Count(e => e.Enumerated), entries.Length,
-                DateTimeOffset.UtcNow);
+            ctx.Response.Headers.CacheControl="no-store";
+            var trusted=source.Mode=="simconnect"&&
+                health.Snapshot(source.Mode).Connected&&
+                identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow);
+            var title=trusted?identity.Current.Title:null;
+            var assessment=CompatibilityAssessment.Evaluate(trusted,title);
             return Results.Ok(new {
-                connected, aircraft, profile, status = assessment.State,
-                assessment, scannedAt = g1000.CheckedAt,
-                g1000Status = g1000.Status, advancedStatus = advanced.Status,
-                entries
+                connected=trusted, aircraft=title,
+                profile=AircraftProfileResolver.Resolve(title),
+                status=assessment.State,assessment,
+                entries=Array.Empty<object>(),
+                scannedAt=(DateTimeOffset?)null
             });
         });
+    }
+
+    /// <summary>Retired command routes fail closed, including requests to old bookmarks.</summary>
+    public static void MapDeprecatedAvionics(this WebApplication app)
+    {
+        app.MapGet("/api/avionics/g1000",()=>Results.StatusCode(410));
+        app.MapPost("/api/avionics/g1000/command",()=>Results.StatusCode(410));
+        app.MapGet("/api/avionics/advanced",()=>Results.StatusCode(410));
+        app.MapPost("/api/avionics/advanced/command",()=>Results.StatusCode(410));
     }
 }

@@ -1,7 +1,17 @@
 # Kokpit – stav projektu a akceptační limity
 
-**Aktualizováno:** 12. října 2026. Tento dokument odlišuje implementaci
+**Historický přehled:** původně 12. října 2026. Tento dokument odlišuje implementaci
 od výsledků automatických testů a od skutečného pilotního ověření MSFS 2020.
+
+## Nové rozhodnutí (7. listopadu 2026)
+
+Experimentální Asobo V1 a nefunkční WASM byly na žádost uživatele
+odstraněny v Draft PR #152. Recovery watchdog se ruší v návazném
+Draft PR #153, avšak ruční obnova a bezpečnostní update journal
+zůstávají. Další podpora se soustředí na FlyByWire A32NX a
+iniBuilds A320neo V2. Tato změna **zatím není v main ani v produkci**.
+Níže uvedené etapy jsou historickým záznamem původní implementace,
+nikoli aktuálním doporučením.
 
 ## Stabilizační etapy A–G
 
@@ -27,12 +37,13 @@ od výsledků automatických testů a od skutečného pilotního ověření MSFS
 
 ## Následující praktická akceptace
 
-1. Vypnout experimentální rollback; na odděleném Windows testovacím účtu
-   ověřit scénáře A→B a obnovu do A podle
+1. Na odděleném Windows testovacím účtu ověřit scénáře A→B,
+   zastavení aktualizací po chybě a **ruční** obnovu do A podle
    [Stabilization & Acceptance](STABILIZATION_ACCEPTANCE.md).
-2. Na původním Asobo A320neo V1 ověřit přesný `TITLE`, FCU, WASM,
-   režimy a reconnect; důkazy se zapisují na `/validation`
-   podle [Airbus acceptance](ACCEPTANCE_A320.md).
+   Experimentální automatický watchdog už není součástí návrhu.
+2. Ověřit aktuální TITLE a telemetrii FlyByWire A32NX/iniBuilds V2
+   v MSFS a propojení s dostupnými oficiálními MCDU rozhraními,
+   nikdy nespouštět původní Asobo V1 WASM.
 3. Ověřit na reálném iPadu orientaci na výšku/šířku, čitelnost,
    dotyk a přepínání kompaktního/full FCU.
 4. V živém letu měřit CPU/RAM procesu, frekvenci SimConnect,

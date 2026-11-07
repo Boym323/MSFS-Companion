@@ -3,11 +3,9 @@ using System.Text.Json;
 using MsfsCompanion.Bridge.Telemetry;
 using MsfsCompanion.Bridge.Admin;
 using MsfsCompanion.Bridge.Controls;
-using MsfsCompanion.Bridge.Avionics;
 using MsfsCompanion.Bridge.Navigation;
 using MsfsCompanion.Bridge.Recorder;
 using MsfsCompanion.Bridge.Aircraft;
-using MsfsCompanion.Bridge.Airbus;
 using MsfsCompanion.Bridge.Integrations;
 using MsfsCompanion.Bridge.Traffic;
 
@@ -16,12 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<TelemetryStore>();
 builder.Services.AddSingleton<TelemetryWebSocketFrameCache>();
 builder.Services.AddSingleton<AircraftIdentityGuard>();
-builder.Services.AddSingleton<A320ReadbackStore>();
-builder.Services.AddSingleton<A320FcuControlGate>();
-builder.Services.AddSingleton<A320WasmEventSender>();
-builder.Services.AddSingleton<A320WasmHeartbeatState>();
-builder.Services.AddSingleton<A320WasmHeartbeatService>();
-builder.Services.AddHostedService(p=>p.GetRequiredService<A320WasmHeartbeatService>());
 builder.Services.AddSingleton<TelemetryHealth>();
 builder.Services.AddSingleton<AircraftSystemsStore>();
 builder.Services.AddSingleton<RadioStore>();
@@ -29,7 +21,6 @@ builder.Services.AddSingleton<AutopilotModesStore>();
 builder.Services.AddSingleton<CockpitSystemsStore>();
 builder.Services.AddSingleton<ControlAccess>();
 builder.Services.AddSingleton<NativeCockpitEventSender>();
-builder.Services.AddSingleton<G1000Service>();
 builder.Services.AddSingleton<NavigationStore>();
 builder.Services.AddSingleton<AviationCatalog>();
 builder.Services.AddSingleton<LandingStore>();
@@ -120,15 +111,8 @@ app.MapGet("/api/aircraft/identity", (AircraftIdentityGuard identity,
         changed=current.Changed,observedAtUtc=current.ObservedAtUtc });
 });
 
-app.MapGet("/api/aircraft/airbus/a320/status", (AircraftIdentityGuard identity,
-    A320ReadbackStore a320,ITelemetrySource source,TelemetryHealth health,
-    TelemetryStore store) =>
-{
-    var trusted=source.Mode=="simconnect"&&health.Snapshot(source.Mode).Connected &&
-        identity.Trusted(store.Current.Aircraft,DateTimeOffset.UtcNow);
-    return Results.Ok(a320.Status(identity.Current.Title,trusted,DateTimeOffset.UtcNow));
-});
-
+// Removed Asobo V1/WASM: fail closed for clients retaining old bookmarks.
+app.MapGet("/api/aircraft/airbus/a320/status",()=>Results.StatusCode(410));
 app.MapGet("/api/telemetry", (TelemetryStore store) =>
     Results.Ok(store.Current));
 
@@ -154,13 +138,17 @@ app.MapGet("/api/cockpit/systems", (CockpitSystemsStore systems) => Results.Ok(s
 
 // Ovládání je po startu vypnuté, aktivuje se jen na loopbacku.
 app.MapCockpitControls();
-app.MapA320FcuControls();
-app.MapA320WasmControls();
-// A320-UI-4: safe, read-only MCDU capabilities and current generic GPS leg.
-app.MapA320Mcdu();
-app.MapG1000();
-app.MapAdvancedAvionics();
+app.MapGet("/api/a320/controls/status",()=>Results.StatusCode(410));
+app.MapPost("/api/a320/controls/arm",()=>Results.StatusCode(410));
+app.MapPost("/api/a320/controls/command",()=>Results.StatusCode(410));
+app.MapGet("/api/a320/wasm/status",()=>Results.StatusCode(410));
+app.MapPost("/api/a320/wasm/probe",()=>Results.StatusCode(410));
+app.MapPost("/api/a320/wasm/command",()=>Results.StatusCode(410));
+app.MapGet("/api/a320/mcdu/status",()=>Results.StatusCode(410));
 app.MapCapabilityCatalog();
+// Fixed-loopback read-only FlyByWire integration, no MCDU commands.
+app.MapFlyByWireIntegration();
+app.MapDeprecatedAvionics();
 AviationWeatherService.MapAviationWeather(app);
 VatsimService.MapEndpoints(app);
 app.MapAirRadar();

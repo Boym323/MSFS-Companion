@@ -4,14 +4,11 @@ import {recommendedAircraftLayout,aircraftLayoutStorageKey} from './aircraftPres
 import {normalizeWorkspace} from './layout.ts';
 
 test('C50 maps common aircraft to explicit candidate layouts',()=>{
- assert.deepEqual(recommendedAircraftLayout('Cessna 172 Skyhawk')?.layout.visible,
- ['pfd','map','g1000']);
- assert.deepEqual(recommendedAircraftLayout('TBM930')?.layout.visible,
- ['pfd','map','avionics']);
- assert.deepEqual(recommendedAircraftLayout('XCub Floats')?.layout.visible,
- ['pfd','map','aircraft']);
+ assert.deepEqual(recommendedAircraftLayout('Cessna 172 Skyhawk')?.layout.visible,['pfd','map']);
+ assert.deepEqual(recommendedAircraftLayout('TBM930')?.layout.visible,['pfd','map']);
+ assert.deepEqual(recommendedAircraftLayout('XCub Floats')?.layout.visible,['pfd','map']);
  assert.deepEqual(recommendedAircraftLayout('Airbus A320 Neo')?.layout.visible,
- ['pfd','map','a320']);
+ ['pfd','map','aircraft']);
  assert.deepEqual(recommendedAircraftLayout('Unknown plane')?.layout.visible,
  ['pfd','map']);
 });
@@ -21,9 +18,9 @@ test('C50 storage keys are bounded and per actual aircraft title',()=>{
  assert.notEqual(aircraftLayoutStorageKey('C172 A'),aircraftLayoutStorageKey('C172 B'));
  assert.equal(recommendedAircraftLayout('A\nB'),null);
 });
-test('A320 panel is a valid manually selected workspace item',()=>{
- const normalized=normalizeWorkspace({columns:2,visible:['pfd','map','a320']});
- assert.deepEqual(normalized.visible,['pfd','map','a320']);
+test('historické Asobo layouty nemountují odstraněný panel',()=>{
+ const normalized=normalizeWorkspace({columns:2,visible:['a320','pfd','map']});
+ assert.deepEqual(normalized.visible,['pfd','map']);
 });
 
 test('C50 loaded layouts are normalized against enabled panel set',()=>{

@@ -1,13 +1,15 @@
 using MsfsCompanion.Bridge.Integrations;
-using MsfsCompanion.Bridge.Avionics;
-static void Check(bool ok, string what) { if(!ok) throw new Exception(what); }
-var now = DateTimeOffset.UtcNow;
-var g = new G1000Availability("ready","Cessna 172",now,["pfd.ent"],null);
-var a = new G1000Availability("ready","Cessna 172",now,["g3x.menu"],null);
-var yes = CompatibilityAssessment.Evaluate(true,"Cessna 172",g,a,2,10,now);
-Check(yes.State=="enumerated" && !yes.CommandsConfirmed && yes.ScanFresh,"Enumeration is NOT command confirmation");
-Check(CompatibilityAssessment.Evaluate(true,"Other",g,a,2,10,now).State=="aircraft_changed","switch aircraft");
-Check(CompatibilityAssessment.Evaluate(true,"Cessna 172",g,a with{CheckedAt=now.AddMinutes(-2)},2,10,now).State=="scan_stale","stale scan");
-Check(CompatibilityAssessment.Evaluate(true,"Cessna 172",g,a,0,10,now).State=="no_input_events","nothing available");
-Check(CompatibilityAssessment.Evaluate(false,null,g,a,2,10,now).State=="offline","disconnect");
-Console.WriteLine("PASS: C22 no false command verification, stale scans, identity changes.");
+static void Check(bool ok,string why){if(!ok)throw new Exception(why);}
+Check(CompatibilityAssessment.Evaluate(false,null).State=="offline","offline");
+Check(CompatibilityAssessment.Evaluate(false,"FlyByWire A32NX").State=="offline",
+    "stale TITLE never leaks as current");
+Check(CompatibilityAssessment.Evaluate(true,"Airbus A320 Neo").State==
+    "unsupported_aircraft","retired Asobo V1 not advertised");
+Check(CompatibilityAssessment.Evaluate(true,"FlyByWire A380X").State==
+    "unsupported_aircraft","A380 never treated as A32NX");
+Check(CompatibilityAssessment.Evaluate(true,"iniBuilds A321neo").State==
+    "unsupported_aircraft","iniBuilds A321 not V2 A320");
+var status=CompatibilityAssessment.Evaluate(true,"iniBuilds A320neo V2");
+Check(status.IdentityTrusted&&!status.CommandsConfirmed&&!status.FmsVerified&&
+    !status.InputEventsEnumerated,"TITLE does not verify FMS or commands");
+Console.WriteLine("PASS: Airbus candidate identities remain read-only and fail closed");

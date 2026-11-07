@@ -199,10 +199,10 @@ export default function AircraftDashboard({
             </div>
           ))}
         </div>
-        <p>Podrobný postup pro XCub Floats, C172 a A320 najdete v dokumentaci B8.</p>
+        <p>Zobrazené referenční veličiny nejsou důkazem funkčnosti avioniky konkrétní varianty Airbusu.</p>
       </section>
       <p className="aircraft-dashboard-note">
-        Pouze čtení. U plovákových a specializovaných letadel mohou některé univerzální SimVars
+        Pouze čtení. U odlišných variant Airbusu mohou některé univerzální SimVars
         vracet nulu nebo být nedostupné. Ovládání autopilota, klapek ani podvozku zde není povoleno.
       </p>
     </section>

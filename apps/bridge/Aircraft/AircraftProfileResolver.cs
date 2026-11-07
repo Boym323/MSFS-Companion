@@ -14,35 +14,27 @@ public static class AircraftProfileResolver
 {
     private static readonly (string Pattern, AircraftProfile Profile)[] Rules =
     [
-        (@"(nxcub)", new("nxcub", "CubCrafters NXCub", "G3X (kandidát)",
-            ["pfd", "map", "radio", "g3x"], false, "Ověřit variantu NXCub.")),
-        (@"(xcub|x.?cub)", new("xcub", "CubCrafters XCub", "G3X / podle varianty",
-            ["pfd", "map", "radio", "g3x"], false, "Ověřit konkrétní avioniku a Input Events v MSFS 2020.")),
-        (@"(c172|cessna 172|skyhawk)", new("c172", "Cessna 172", "G1000 / analog podle varianty",
-            ["pfd", "map", "radio", "g1000"], false, "G1000 jen pokud je fyzicky přítomný a enumerovaný.")),
-        (@"(tbm.?930)", new("tbm930", "Daher TBM 930", "G3000",
-            ["pfd", "map", "radio", "g3000"], false, "Ověřit G3000 Input Events.")),
-        (@"(da.?40|diamond 40)", new("da40", "Diamond DA40", "G1000 (kandidát)",
-            ["pfd", "map", "radio", "g1000"], false, "Ověřit variantu avioniky.")),
-        (@"(da.?62|diamond 62)", new("da62", "Diamond DA62", "G1000 (kandidát)",
-            ["pfd", "map", "radio", "g1000"], false, "Ověřit variantu avioniky.")),
-        // TITLE is a candidate, NOT proof of Asobo aircraft package identity.
-        // Named third-party variants must never inherit Asobo-specific assumptions.
-        (@"(a32nx|flybywire|fenix|inibuilds|inibuild)", new("airbus-addon",
+        // TITLE alone is never proof of a verified avionics integration.
+        // Named third-party variants must never inherit other aircraft's commands.
+        (@"(a32nx|flybywire.{0,40}a320(?:neo)?|a320.{0,20}flybywire)",
+            new("a320-fbw-a32nx-candidate", "FlyByWire A32NX (kandidát)",
+                "Oficiální MCDU přes SimBridge", ["pfd", "map", "radio", "airliner"],
+                false, "Ověřit skutečný A32NX a SimBridge v MSFS.")),
+        (@"(inibuilds?.{0,40}a320(?:neo)?|a320(?:neo)?.{0,35}inibuilds?)",
+            new("a320-inibuilds-v2-candidate", "iniBuilds A320neo V2 (kandidát)",
+                "FMS/MCDU bez potvrzeného externího rozhraní", ["pfd", "map", "radio", "airliner"],
+                false, "Dokud nejsou ověřena V2 rozhraní, žádné MCDU povely z Companion.")),
+        (@"(flybywire|fenix|inibuilds|inibuild)", new("airbus-addon",
             "Airbus – jiná avionika", "Add-on FCU/MCDU (neověřeno)",
             ["pfd", "map", "radio", "airliner"], false,
-            "Nejedná se o potvrzený profil výchozí Asobo A320neo.")),
-        (@"(a320[ -]?neo|a320neo|a320)", new("a320-asobo-candidate",
-            "Airbus A320neo (Asobo kandidát)", "FCU/MCDU (read-only diagnostika)",
+            "Tento doplněk zatím nemá ověřené rozhraní FMS/MCDU.")),
+        (@"(a320[ -]?neo|a320neo|a320)", new("a320-unsupported",
+            "Airbus A320 bez ověřeného adaptéru", "Společné SimConnect údaje",
             ["pfd", "map", "radio", "airliner"], false,
-            "Podoba TITLE nestačí k potvrzení Asobo V1; generické AP povely blokovány.")),
+            "V1/WASM byl odstraněn; bez přesného TITLE žádná specializovaná ovládací API.")),
         (@"(airbus)", new("airbus", "Airbus – neověřeno", "Airliner FMC/FCU",
             ["pfd", "map", "radio", "airliner"], false,
             "Generické AP povely blokovány, dokud nejsou ověřené pro variantu.")),
-        (@"(g36|bonanza)", new("g36", "Beechcraft Bonanza G36", "G1000 (kandidát)",
-            ["pfd", "map", "radio", "g1000"], false, "Ověřit avioniku.")),
-        (@"(c208|caravan)", new("c208", "Cessna 208", "G1000 (kandidát)",
-            ["pfd", "map", "radio", "g1000"], false, "Ověřit avioniku.")),
     ];
 
     public static bool IsAirbusLike(string? title) =>

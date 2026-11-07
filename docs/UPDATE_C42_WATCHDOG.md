@@ -1,3 +1,9 @@
+> **HISTORICKÝ DOKUMENT:** Tento experimentální watchdog byl na
+> výslovnou žádost uživatele vyřazen v Draft PR #153.
+> Následující popis zachycuje původní návrh, nikoli aktuální
+> funkci ani doporučení k zapnutí. Aktuální stav:
+> [odstranění watchdogu](RETIRED_RECOVERY_WATCHDOG.md).
+
 # C42 – nezávislý hlídač neúspěšných Windows aktualizací
 
 Kokpit obsahuje volitelnou samostatnou komponentu

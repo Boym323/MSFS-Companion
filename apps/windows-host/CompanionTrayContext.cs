@@ -22,7 +22,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
     private bool _applyingUpdate;
     private bool _exiting;
     private bool _verifyingUpdate;
-    private DateTimeOffset _nextA320ModuleCheck = DateTimeOffset.MinValue;
 
     public CompanionTrayContext()
     {
@@ -97,52 +96,9 @@ internal sealed class CompanionTrayContext : ApplicationContext
         }));
         var mdnsStatus = new ToolStripMenuItem("mDNS: načítám…") { Enabled = false };
         menu.Items.Add(mdnsStatus);
-        // WASM Community installation is a local Windows action only.
-        // Initial activation is opt-in; subsequent upgrades keep the opt-in.
-        var a320Menu = new ToolStripMenuItem("Modul původního Asobo A320neo");
-        var a320Status = new ToolStripMenuItem("Kontroluji modul…") { Enabled = false };
-        a320Menu.DropDownItems.Add(a320Status);
-        a320Menu.DropDownItems.Add(new ToolStripMenuItem(
-            "Nainstalovat / aktualizovat modul…", null,
-            (_, _) => ConfigureA320Module()));
-        a320Menu.DropDownItems.Add(new ToolStripMenuItem("Odinstalovat modul…", null,
-            (_, _) => UninstallA320Module()));
-        a320Menu.DropDownOpening += (_, _) =>
-        {
-            var folder = A320CommunityFolder();
-            a320Status.Text = A320ModuleInstaller.Status(folder);
-        };
-        menu.Items.Add(a320Menu);
-
         menu.Items.Add(_updateStatus);
         menu.Items.Add(new ToolStripMenuItem("Zkontrolovat aktualizace", null, async (_, _) => await CheckUpdatesAsync(force: true)));
         menu.Items.Add(_automaticUpdates);
-        var recoveryWatchToggle=new ToolStripMenuItem("Automatický návrat při pádu aktualizace (experimentální)")
-        {
-            Checked=_settings.EnableRecoveryWatchdog,CheckOnClick=true
-        };
-        recoveryWatchToggle.CheckedChanged+=(_,_)=>
-        {
-            if(_applyingUpdate||_verifyingUpdate||_exiting)
-            {
-                recoveryWatchToggle.Checked=_settings.EnableRecoveryWatchdog;
-                return;
-            }
-            if(recoveryWatchToggle.Checked &&
-                MessageBox.Show("Tato funkce je experimentální a nebyla dosud ověřena na " +
-                    "úmyslně poškozené instalaci. Při neúspěšném startu nového hostitele " +
-                    "může automaticky instalovat předchozí uloženou verzi. " +
-                    "Aktivovat pouze pro testování na vlastním počítači?",
-                    "Experimentální obnova",MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning)!=DialogResult.Yes)
-            {
-                recoveryWatchToggle.Checked=false;
-                return;
-            }
-            _settings.EnableRecoveryWatchdog=recoveryWatchToggle.Checked;
-            _settings.Save();
-        };
-        menu.Items.Add(recoveryWatchToggle);
         menu.Items.Add(new ToolStripMenuItem("Obnovit předchozí verzi (pokročilé)…", null,
             (_, _) => RestorePreviousPackage()));
         menu.Items.Add(new ToolStripMenuItem("Nastavit aktualizační zdroj…", null, (_, _) => ConfigureUpdateFeed()));
@@ -212,7 +168,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
         {
             _bridge.EnsureStarted();
             _mdns.Refresh(_settings.MdnsEnabled, _settings.MdnsName, _bridge.BoundLan ?? LanAccess.Find(), _bridge.IsRunning);
-            CheckA320ModuleUpdate();
         };
         _healthTimer.Start();
 
@@ -232,108 +187,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
         EventLogFile.Write("Windows tray host started; development updates may restart only the Companion bridge, even while MSFS runs.");
     }
 
-
-    private string? A320CommunityFolder()
-    {
-        // Once approved, NEVER silently switch to another installation.
-        // Discovery is for first-time user consent only.
-        if (_settings.A320CommunityPath is { Length: > 0 } approved)
-            return A320ModuleInstaller.ValidCommunity(approved) ? approved : null;
-        return A320ModuleInstaller.DetectCommunity();
-    }
-
-    private void ConfigureA320Module()
-    {
-        if (_exiting || _applyingUpdate || _verifyingUpdate) return;
-        if (A320ModuleInstaller.SimulatorRunning())
-        {
-            MessageBox.Show("Nejdříve ukončete MSFS 2020. Instalace modulu do Community během letu není bezpečná.",
-                "Modul Airbus A320neo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        var folder = A320CommunityFolder();
-        if (folder is null)
-        {
-            using var dialog = new FolderBrowserDialog
-            {
-                Description = "Vyberte existující složku Community pro MSFS 2020.",
-                ShowNewFolderButton = false
-            };
-            if (dialog.ShowDialog() != DialogResult.OK) return;
-            folder = dialog.SelectedPath;
-        }
-        if (!A320ModuleInstaller.ValidCommunity(folder))
-        {
-            MessageBox.Show("Vybraná složka musí být existující a nepřesměrovaná Community.",
-                "Modul Airbus A320neo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        if (MessageBox.Show(
-            "Kokpit nainstaluje pouze vlastní balíček kokpit-asobo-a320-v1 do:\n\n" +
-            folder + "\n\n" +
-            "Souhlasíte také s automatickými aktualizacemi tohoto modulu při aktualizaci Kokpitu, " +
-            "výhradně když MSFS není spuštěný?\n\n" +
-            "Cizí balíčky nebudou měněny.",
-            "Povolit instalaci modulu A320neo", MessageBoxButtons.YesNo,
-            MessageBoxIcon.Question) != DialogResult.Yes) return;
-
-        if (A320ModuleInstaller.Install(folder, out var message))
-        {
-            _settings.A320ModuleAutoUpdates = true;
-            _settings.A320CommunityPath = folder;
-            _settings.Save();
-            _nextA320ModuleCheck = DateTimeOffset.UtcNow.AddMinutes(5);
-            EventLogFile.Write("Asobo A320 module installation accepted: " + message);
-            MessageBox.Show(message, "Modul Airbus A320neo",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-        else
-        {
-            EventLogFile.Write("Asobo A320 module installation rejected: " + message);
-            MessageBox.Show(message, "Modul Airbus A320neo",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
-    }
-
-    private void UninstallA320Module()
-    {
-        if (_exiting || _applyingUpdate || _verifyingUpdate) return;
-        var folder = A320CommunityFolder();
-        if (folder is null) return;
-        if (MessageBox.Show("Odinstalovat pouze balíček Kokpitu " +
-            A320ModuleInstaller.PackageName + " ze složky Community?\n" +
-            "Automatické aktualizace modulu se zároveň vypnou.",
-            "Odinstalace modulu A320", MessageBoxButtons.YesNo,
-            MessageBoxIcon.Question) != DialogResult.Yes) return;
-        if (A320ModuleInstaller.Uninstall(folder, out var message))
-        {
-            _settings.A320ModuleAutoUpdates = false;
-            _settings.Save();
-            EventLogFile.Write("Asobo A320 module uninstalled at user request.");
-            MessageBox.Show(message, "Modul Airbus A320neo",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-        else MessageBox.Show(message, "Modul Airbus A320neo",
-            MessageBoxButtons.OK, MessageBoxIcon.Warning);
-    }
-
-    private void CheckA320ModuleUpdate()
-    {
-        if (!_settings.A320ModuleAutoUpdates || _exiting ||
-            _applyingUpdate || _verifyingUpdate ||
-            DateTimeOffset.UtcNow < _nextA320ModuleCheck) return;
-        // One check after startup and every five minutes. While MSFS runs,
-        // updates remain deferred without any simulator/bridge restart.
-        _nextA320ModuleCheck = DateTimeOffset.UtcNow.AddMinutes(5);
-        if (A320ModuleInstaller.SimulatorRunning()) return;
-        var folder = A320CommunityFolder();
-        if (folder is null) return;
-        if (A320ModuleInstaller.Status(folder) == "Modul je aktuální.") return;
-        if (A320ModuleInstaller.Install(folder, out var message))
-            EventLogFile.Write("Asobo A320 module maintenance: " + message);
-        else
-            EventLogFile.Write("Asobo A320 module maintenance deferred: " + message);
-    }
 
     private static void OpenDashboard()
     {
@@ -707,24 +560,11 @@ internal sealed class CompanionTrayContext : ApplicationContext
         // installed version is not a rollback-capable binary snapshot.
         var previousVersion = _updateManager.IsInstalled
             ? _updateManager.CurrentVersion?.ToString() : null;
-        // Capture even for manual recovery, but never silently degrade an
-        // explicitly enabled watchdog into an unprotected update.
+        // Preserve verified local package for explicit manual recovery.
+        // No independent watchdog process or automatic rollback is started.
         if(previousVersion is not null &&
             !RecoveryPackageCache.TryCapture(previousVersion))
             EventLogFile.Write("C42: no freshly captured rollback package found.");
-        var matchingPackage=previousVersion is not null &&
-            RecoveryPackageCache.VerifiedPackageForVersion(previousVersion) is not null;
-        if(!UpdatePolicy.RecoveryRequirementMet(_settings.EnableRecoveryWatchdog,
-            previousVersion,matchingPackage))
-        {
-            _updateStatus.Text="Aktualizace pozastavena – není dostupná bezpečná obnova";
-            AdminControl.WriteStatus("error",
-                "Watchdog je zapnutý, ale chybí ověřená předchozí verze. "+
-                "Aktualizace neproběhla; vypněte experimentální watchdog nebo "+
-                "obnovte místní balíček.");
-            EventLogFile.Write("C42: protected update blocked: no matching rollback package.");
-            return;
-        }
         var targetVersion=_pendingUpdate!.TargetFullRelease.Version.ToString();
         if(!UpdateRecoveryJournal.TryArm(targetVersion,previousVersion))
         {
@@ -732,23 +572,6 @@ internal sealed class CompanionTrayContext : ApplicationContext
             AdminControl.WriteStatus("error","Aktualizaci nelze bezpečně zaznamenat.");
             EventLogFile.Write("C33: update blocked because journal cannot be armed.");
             return;
-        }
-        if(_settings.EnableRecoveryWatchdog)
-        {
-            // RecoveryRequirementMet guarantees that this version is non-null
-            // and has a SHA-256-checked matching full package.
-            if(previousVersion is null ||
-                !RecoveryPackageCache.TryStartSupervisor(targetVersion,previousVersion))
-            {
-                var canceled=previousVersion is not null &&
-                    UpdateRecoveryJournal.CancelBeforeApply(targetVersion,previousVersion);
-                _updateStatus.Text="Aktualizace pozastavena – watchdog se nespustil";
-                AdminControl.WriteStatus("error",
-                    "Aktualizace nebyla použita: požadovaný obnovovací proces se "+
-                    "nepodařilo spustit. "+(canceled?"":"Zkontrolujte update journal."));
-                EventLogFile.Write("C42: protected update blocked: watchdog failed to start; journalCanceled="+canceled);
-                return;
-            }
         }
         _applyingUpdate = true;
         try

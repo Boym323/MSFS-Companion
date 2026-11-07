@@ -4,15 +4,15 @@ using SimConnect.NET;
 using SimConnect.NET.SimVar;
 using System.Runtime.InteropServices;
 static void Check(bool x, string reason) { if (!x) throw new Exception(reason); }
-Check(AircraftProfileResolver.Resolve("Cessna 172 Skyhawk G1000").Id == "c172", "c172");
-Check(AircraftProfileResolver.Resolve("CubCrafters NXCub").Id == "nxcub", "specific before general");
-Check(AircraftProfileResolver.Resolve("CubCrafters XCub Floats").Id == "xcub", "xcub");
-Check(AircraftProfileResolver.Resolve("Daher TBM 930").Id == "tbm930", "tbm");
-Check(AircraftProfileResolver.Resolve("Airbus A320 Neo").Id == "a320-asobo-candidate", "a320 candidate");
-Check(AircraftProfileResolver.Resolve("Asobo Airbus A320neo").Id == "a320-asobo-candidate", "asobo candidate");
-Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "airbus-addon", "fbw separated");
+Check(AircraftProfileResolver.Resolve("Cessna 172 Skyhawk G1000").Id == "generic", "Garmin profile retired");
+Check(AircraftProfileResolver.Resolve("CubCrafters NXCub").Id == "generic", "G3X profile retired");
+Check(AircraftProfileResolver.Resolve("CubCrafters XCub Floats").Id == "generic", "XCub profile retired");
+Check(AircraftProfileResolver.Resolve("Daher TBM 930").Id == "generic", "G3000 profile retired");
+Check(AircraftProfileResolver.Resolve("Airbus A320 Neo").Id == "a320-unsupported", "generic A320 unverified");
+Check(AircraftProfileResolver.Resolve("Asobo Airbus A320neo").Id == "a320-unsupported", "retired Asobo V1");
+Check(AircraftProfileResolver.Resolve("FlyByWire A32NX").Id == "a320-fbw-a32nx-candidate", "fbw isolated");
 Check(AircraftProfileResolver.Resolve("Fenix Airbus A320").Id == "airbus-addon", "fenix separated");
-Check(AircraftProfileResolver.Resolve("iniBuilds Airbus A320neo").Id == "airbus-addon", "v2 separated");
+Check(AircraftProfileResolver.Resolve("iniBuilds Airbus A320neo").Id == "a320-inibuilds-v2-candidate", "v2 candidate isolated");
 // SimConnect strings MUST pass empty units to the native SDK. The scalar
 // Subscribe overload rejects empty units; a typed struct avoids that bug.
 var titleField=typeof(SimConnectAircraftTitleData).GetField(nameof(SimConnectAircraftTitleData.Title));
