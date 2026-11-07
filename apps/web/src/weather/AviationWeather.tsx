@@ -1,3 +1,4 @@
+import './AviationWeather.css';
 import { useEffect, useState } from 'react';
 
 type WeatherReport = {

@@ -46,6 +46,7 @@ try{
   page.on('pageerror',error=>runtimeErrors.push(error.message));
   for(const tab of A320_TABS){
    await page.goto(base+'/a320?panel='+tab.id,{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
    await page.locator('.a320-instrument-tabs').waitFor({state:'visible'});
    await page.locator('.a320-instrument-stage > section').waitFor({state:'visible'});
    // UI-REF-11: the active tab must be visible inside its scrolling row.
@@ -138,6 +139,7 @@ try{
   }
   // Workspace should never mount the whole Airbus dashboard into a half-column.
   await page.goto(base+'/workspace',{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
   const toggle=page.getByRole('checkbox',{name:'Airbus A320 readback'});
   await toggle.check();
   assert.equal(await page.locator('.a320-compact').count(),1,
@@ -164,6 +166,7 @@ try{
    note:'compact Airbus workspace; offline'});
   for(const screen of corePages){
    await page.goto(base+screen.route,{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
    const selected=page.locator('.cockpit-primary-nav a[aria-current="location"]');
    await selected.waitFor({state:'visible'});
    await page.waitForFunction(()=>{
@@ -253,6 +256,7 @@ try{
       status:200,contentType:'application/json',body:JSON.stringify({summary,samples})
     }));
     await page.goto(base+'/flights',{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
     await page.locator('.flight-history-player').waitFor({state:'visible'});
     assert.equal(await page.locator('.flight-history-summary').count(),1);
     assert.equal(await page.locator('.flight-history-tools').getAttribute('open'),null);
@@ -354,6 +358,7 @@ try{
  const context=await browser.newContext({viewport:{width:768,height:1024}});
  const page=await context.newPage();
  await page.goto(base+'/a320?panel=fcu',{waitUntil:'domcontentloaded'});
+   await page.locator('.page-loading').waitFor({state:'hidden',timeout:15000});
  await page.locator('.a320-instrument-tabs a[href*="panel=ecam"]').click();
  assert.equal(new URL(page.url()).searchParams.get('panel'),'ecam');
  await page.goBack();

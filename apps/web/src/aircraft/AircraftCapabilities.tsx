@@ -1,3 +1,4 @@
+import './AircraftCapabilities.css';
 import {useEffect,useState} from 'react';
 
 type CapabilityStatus={

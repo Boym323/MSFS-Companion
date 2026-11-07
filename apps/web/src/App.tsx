@@ -1,28 +1,28 @@
+import {lazy,memo,Suspense} from 'react';
 import { useTelemetry } from './telemetry/useTelemetry';
 import CockpitHeader from './navigation/CockpitHeader';
-import Pfd from './pfd/Pfd';
-import MovingMap from './map/MovingMap';
-import FlightHistory from './flights/FlightHistory';
-import AircraftDashboard from './aircraft/AircraftDashboard';
-import A320Dashboard from './a320/A320Dashboard';
-import PanelAktualizaci from './PanelAktualizaci';
-import CockpitControls from './controls/CockpitControls';
-import FlightPlanner from './planning/FlightPlanner';
-import CockpitWorkspace from './workspace/CockpitWorkspace';
-import AircraftCapabilities from './aircraft/AircraftCapabilities';
-import AviationWeather from './weather/AviationWeather';
-import VatsimCenter from './vatsim/VatsimCenter';
-import SystemHealth from './health/SystemHealth';
-import AirportBriefing from './briefing/AirportBriefing';
-import FlightProgress from './progress/FlightProgress';
-import FuelMonitor from './fuel/FuelMonitor';
-import SmartRadio from './radio/SmartRadio';
-import AircraftChecklists from './checklists/AircraftChecklists';
-import PilotAssistant from './assistant/PilotAssistant';
-import LiveValidation from './validation/LiveValidation';
-import './vatsim/VatsimCenter.css';
-import './weather/AviationWeather.css';
-import './aircraft/AircraftCapabilities.css';
+
+// Load only the current route; memoize panels that do not consume high-frequency telemetry.
+const Pfd=memo(lazy(()=>import('./pfd/Pfd')));
+const MovingMap=memo(lazy(()=>import('./map/MovingMap')));
+const FlightHistory=memo(lazy(()=>import('./flights/FlightHistory')));
+const AircraftDashboard=memo(lazy(()=>import('./aircraft/AircraftDashboard')));
+const A320Dashboard=memo(lazy(()=>import('./a320/A320Dashboard')));
+const PanelAktualizaci=memo(lazy(()=>import('./PanelAktualizaci')));
+const CockpitControls=memo(lazy(()=>import('./controls/CockpitControls')));
+const FlightPlanner=memo(lazy(()=>import('./planning/FlightPlanner')));
+const CockpitWorkspace=memo(lazy(()=>import('./workspace/CockpitWorkspace')));
+const AircraftCapabilities=memo(lazy(()=>import('./aircraft/AircraftCapabilities')));
+const AviationWeather=memo(lazy(()=>import('./weather/AviationWeather')));
+const VatsimCenter=memo(lazy(()=>import('./vatsim/VatsimCenter')));
+const SystemHealth=memo(lazy(()=>import('./health/SystemHealth')));
+const AirportBriefing=memo(lazy(()=>import('./briefing/AirportBriefing')));
+const FlightProgress=memo(lazy(()=>import('./progress/FlightProgress')));
+const FuelMonitor=memo(lazy(()=>import('./fuel/FuelMonitor')));
+const SmartRadio=memo(lazy(()=>import('./radio/SmartRadio')));
+const AircraftChecklists=memo(lazy(()=>import('./checklists/AircraftChecklists')));
+const PilotAssistant=memo(lazy(()=>import('./assistant/PilotAssistant')));
+const LiveValidation=memo(lazy(()=>import('./validation/LiveValidation')));
 
 const pageMeta = {
   '/pilot': {eyebrow:'KOKPIT',heading:'Letový asistent',description:'Jedno místo pro navigaci, mapu, rádio, palivo a checklisty.'},
@@ -151,6 +151,7 @@ export default function App() {
               : 'Čekám na telemetrii z bridge.'}
           </p>
         )}
+        <Suspense fallback={<p className="page-loading" role="status">Načítám přístroj…</p>}>
         {isRetiredAvionics ? (
           <section className="retired-avionics" role="status">
             <h2>Specializovaná Garmin avionika byla vyřazena</h2>
@@ -242,6 +243,7 @@ export default function App() {
           </details>
           </>
         )}
+        </Suspense>
       </main>
     </div>
   );

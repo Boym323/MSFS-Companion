@@ -1,3 +1,4 @@
+import './VatsimCenter.css';
 import { useEffect, useState } from 'react';
 import type { TelemetrySnapshot } from '../telemetry/types';
 
